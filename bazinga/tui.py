@@ -345,7 +345,7 @@ class BazingaTUI:
     - 5D temporal processing
     """
 
-    VERSION = "2.2.0"
+    VERSION = "2.2.1"
 
     def __init__(self):
         if not RICH_AVAILABLE:
