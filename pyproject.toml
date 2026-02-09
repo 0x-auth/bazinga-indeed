@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bazinga-indeed"
-version = "2.0.2"
+version = "2.0.3"
 description = "BAZINGA - Distributed AI that belongs to everyone"
 readme = "README.md"
 license = {text = "MIT"}
@@ -52,7 +52,7 @@ bazinga = "bazinga:main_sync"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*", "bazinga*"]
+include = ["bazinga*", "src*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.md", "*.txt"]
