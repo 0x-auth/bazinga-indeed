@@ -12,7 +12,7 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "2.5.0"
+__version__ = "2.6.0"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
 
 # Lazy imports for optional components
@@ -46,3 +46,18 @@ def get_federated_node():
     from .federated import FederatedCoordinator
     from .federated.federated_coordinator import FederatedNode
     return FederatedNode
+
+def get_local_model():
+    """Get the LocalModel for on-device inference."""
+    from .inference import LocalModel
+    return LocalModel
+
+def get_model_router():
+    """Get the ModelRouter for intelligent query routing."""
+    from .inference import ModelRouter
+    return ModelRouter
+
+def get_distributed_inference():
+    """Get DistributedInference for P2P model serving."""
+    from .inference import DistributedInference
+    return DistributedInference
