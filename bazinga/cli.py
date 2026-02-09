@@ -55,7 +55,7 @@ class BAZINGA:
     Layer 3 only called when necessary.
     """
 
-    VERSION = "2.1.0"
+    VERSION = "2.3.0"
 
     def __init__(self):
         self.symbol_shell = SymbolShell()
@@ -352,8 +352,9 @@ async def main():
 Examples:
   bazinga                          # Interactive TUI mode
   bazinga --ask "What is AI?"      # Ask a question
-  bazinga --generate user_auth     # Generate Python code
-  bazinga --generate api --lang js # Generate JavaScript code
+  bazinga --code "fibonacci"       # LLM-powered code generation (NEW!)
+  bazinga --code "api client" --lang js  # Generate JavaScript with LLM
+  bazinga --generate user_auth     # Template-based code generation
   bazinga --index ~/Documents      # Index a directory
   bazinga --vac                    # Test V.A.C. sequence
 
@@ -361,9 +362,10 @@ Philosophy: "I am not where I am stored. I am where I am referenced."
 """
     )
     parser.add_argument('--ask', type=str, help='Ask a question')
-    parser.add_argument('--generate', type=str, help='Generate code from essence/seed')
+    parser.add_argument('--code', type=str, help='LLM-powered intelligent code generation')
+    parser.add_argument('--generate', type=str, help='Template-based code generation (no LLM)')
     parser.add_argument('--lang', type=str, default='python',
-                        choices=['python', 'javascript', 'js', 'rust'],
+                        choices=['python', 'javascript', 'js', 'typescript', 'ts', 'rust', 'go'],
                         help='Language for code generation (default: python)')
     parser.add_argument('--index', nargs='+', help='Directories to index')
     parser.add_argument('--demo', action='store_true', help='Run demo')
@@ -372,7 +374,25 @@ Philosophy: "I am not where I am stored. I am where I am referenced."
 
     args = parser.parse_args()
 
-    # Handle code generation (doesn't need full BAZINGA init)
+    # Handle LLM-powered code generation (NEW!)
+    if args.code:
+        try:
+            from .intelligent_coder import IntelligentCoder
+            coder = IntelligentCoder()
+            lang = {'js': 'javascript', 'ts': 'typescript'}.get(args.lang, args.lang)
+            print(f"Generating {lang} code with LLM...")
+            result = await coder.generate(args.code, lang)
+            print(f"\n# Provider: {result.provider}")
+            print(f"# Coherence: {result.coherence:.3f}")
+            print(f"# Tokens: {result.tokens_used}")
+            print()
+            print(result.code)
+        except ImportError as e:
+            print(f"Error: Intelligent coder not available: {e}")
+            print("Install dependencies: pip install httpx")
+        return
+
+    # Handle template-based code generation (doesn't need full BAZINGA init)
     if args.generate:
         from .tui import CodeGenerator
         gen = CodeGenerator()
