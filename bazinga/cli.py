@@ -28,7 +28,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.core.intelligence.real_ai import RealAI
 from src.core.lambda_g import LambdaGOperator, PHI
@@ -55,7 +55,7 @@ class BAZINGA:
     Layer 3 only called when necessary.
     """
 
-    VERSION = "2.0.0"
+    VERSION = "2.0.3"
 
     def __init__(self):
         self.symbol_shell = SymbolShell()
