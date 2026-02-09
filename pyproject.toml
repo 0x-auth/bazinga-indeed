@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bazinga-indeed"
-version = "2.0.3"
+version = "2.1.0"
 description = "BAZINGA - Distributed AI that belongs to everyone"
 readme = "README.md"
 license = {text = "MIT"}
@@ -32,6 +32,7 @@ dependencies = [
     "chromadb>=0.4.0",
     "sentence-transformers>=2.2.0",
     "httpx>=0.24.0",
+    "rich>=13.0.0",
 ]
 
 [project.optional-dependencies]

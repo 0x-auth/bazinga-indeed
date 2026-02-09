@@ -11,5 +11,5 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "2.0.3"
+__version__ = "2.1.0"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
