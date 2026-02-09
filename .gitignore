@@ -1,0 +1,41 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# BAZINGA data
+.bazinga/
+*.db
+*.sqlite
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# Temp
+tmp/
+temp/
+*.tmp
