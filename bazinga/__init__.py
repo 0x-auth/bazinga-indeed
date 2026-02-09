@@ -12,7 +12,7 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "2.4.0"
+__version__ = "2.5.0"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
 
 # Lazy imports for optional components
@@ -35,3 +35,14 @@ def get_p2p_network():
     """Get the P2P network (BAZINGANetwork)."""
     from .p2p import BAZINGANetwork
     return BAZINGANetwork
+
+def get_federated_coordinator():
+    """Get the Federated Learning Coordinator."""
+    from .federated import FederatedCoordinator
+    return FederatedCoordinator
+
+def get_federated_node():
+    """Get the FederatedNode (complete federated learning node)."""
+    from .federated import FederatedCoordinator
+    from .federated.federated_coordinator import FederatedNode
+    return FederatedNode
