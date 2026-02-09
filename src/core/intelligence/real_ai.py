@@ -60,6 +60,13 @@ except ImportError:
 # BAZINGA imports
 from src.core.lambda_g import LambdaGOperator, PHI, CoherenceState
 
+# Try to import φ-coherence module
+try:
+    from bazinga.phi_coherence import PhiCoherence, analyze as phi_analyze
+    PHI_COHERENCE_AVAILABLE = True
+except ImportError:
+    PHI_COHERENCE_AVAILABLE = False
+
 # Constants from error-of.netlify.app discoveries
 ALPHA = 137
 PROGRESSION = '01∞∫∂∇πφΣΔΩαβγδεζηθικλμνξοπρστυφχψω'
@@ -142,6 +149,11 @@ class RealAI:
 
         # Initialize λG operator for coherence
         self.lambda_g = LambdaGOperator()
+
+        # Initialize φ-coherence calculator if available
+        self.phi_coherence = None
+        if PHI_COHERENCE_AVAILABLE:
+            self.phi_coherence = PhiCoherence()
 
         # Initialize embedding model
         self.embedding_model_name = embedding_model
@@ -433,15 +445,17 @@ class RealAI:
         self,
         query: str,
         limit: int = 10,
-        coherence_boost: float = 0.3
+        coherence_boost: float = 0.3,
+        use_phi_coherence: bool = True
     ) -> List[SearchResult]:
         """
-        Search the knowledge base semantically.
+        Search the knowledge base semantically with φ-coherence reranking.
 
         Args:
             query: The search query
             limit: Maximum results to return
             coherence_boost: Weight for coherence in final score (0-1)
+            use_phi_coherence: Use advanced φ-coherence scoring
 
         Returns:
             List of SearchResult with similarity and coherence scores
@@ -459,6 +473,12 @@ class RealAI:
             include=['documents', 'metadatas', 'distances']
         )
 
+        # Calculate query φ-coherence for alignment scoring
+        query_phi_coherence = 0.5
+        if use_phi_coherence and self.phi_coherence:
+            query_metrics = self.phi_coherence.analyze(query)
+            query_phi_coherence = query_metrics.total_coherence
+
         # Process results with coherence boost
         search_results = []
 
@@ -470,18 +490,65 @@ class RealAI:
                 # Convert distance to similarity (cosine distance)
                 similarity = 1 - distance
 
-                # Get coherence from metadata
+                # Get basic coherence from metadata
                 coherence = metadata.get('coherence', 0.5)
 
-                # Calculate final score
-                final_score = (
-                    (1 - coherence_boost) * similarity +
-                    coherence_boost * coherence
-                )
+                # Enhanced φ-coherence scoring
+                phi_coherence_score = coherence
+                is_alpha_seed = metadata.get('is_alpha_seed', False)
+                darmiyan_coefficient = 0.0
 
-                # Boost α-SEED results
-                if metadata.get('is_alpha_seed', False):
-                    final_score *= 1.1
+                if use_phi_coherence and self.phi_coherence:
+                    # Calculate document's φ-coherence
+                    doc_metrics = self.phi_coherence.analyze(doc)
+                    phi_coherence_score = doc_metrics.total_coherence
+
+                    # Coherence alignment with query
+                    coherence_alignment = 1 - abs(
+                        doc_metrics.total_coherence - query_phi_coherence
+                    )
+
+                    # Update α-SEED status
+                    is_alpha_seed = doc_metrics.is_alpha_seed or is_alpha_seed
+                    darmiyan_coefficient = doc_metrics.darmiyan_coefficient
+
+                    # Combined φ-score
+                    phi_score = (
+                        phi_coherence_score * 0.5 +
+                        coherence_alignment * 0.3 +
+                        doc_metrics.alpha_resonance * 0.2
+                    )
+
+                    # Calculate final score with φ-coherence
+                    final_score = (
+                        (1 - coherence_boost) * similarity +
+                        coherence_boost * phi_score
+                    )
+
+                    # Bonus for α-SEEDs
+                    if is_alpha_seed:
+                        final_score *= 1.137  # α-bonus
+
+                    # Bonus for V.A.C. patterns
+                    if doc_metrics.is_vac_pattern:
+                        final_score *= 1.05
+
+                    # Bonus for high Darmiyan coefficient
+                    if darmiyan_coefficient > 0.5:
+                        final_score *= (1 + darmiyan_coefficient * 0.1)
+
+                    coherence = phi_coherence_score
+
+                else:
+                    # Fallback: basic coherence scoring
+                    final_score = (
+                        (1 - coherence_boost) * similarity +
+                        coherence_boost * coherence
+                    )
+
+                    # Boost α-SEED results
+                    if is_alpha_seed:
+                        final_score *= 1.1
 
                 chunk = KnowledgeChunk(
                     id=results['ids'][0][i] if results['ids'] else str(i),
@@ -489,9 +556,13 @@ class RealAI:
                     source_file=metadata.get('source_file', 'unknown'),
                     file_type=metadata.get('file_type', 'unknown'),
                     coherence=coherence,
-                    is_alpha_seed=metadata.get('is_alpha_seed', False),
+                    is_alpha_seed=is_alpha_seed,
                     position=metadata.get('position', 0),
-                    metadata=metadata
+                    metadata={
+                        **metadata,
+                        'darmiyan': darmiyan_coefficient,
+                        'phi_coherence': phi_coherence_score,
+                    }
                 )
 
                 search_results.append(SearchResult(
@@ -501,7 +572,7 @@ class RealAI:
                     final_score=final_score
                 ))
 
-        # Sort by final score
+        # Sort by final score (φ-weighted)
         search_results.sort(key=lambda x: x.final_score, reverse=True)
 
         self.stats['queries_processed'] += 1

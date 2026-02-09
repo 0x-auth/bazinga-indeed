@@ -55,7 +55,7 @@ class BAZINGA:
     Layer 3 only called when necessary.
     """
 
-    VERSION = "2.3.0"
+    VERSION = "2.4.0"
 
     def __init__(self):
         self.symbol_shell = SymbolShell()
