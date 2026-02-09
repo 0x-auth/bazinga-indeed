@@ -12,7 +12,7 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "2.3.0"
+__version__ = "2.4.0"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
 
 # Lazy imports for optional components
@@ -25,3 +25,13 @@ def get_llm_orchestrator():
     """Get the LLM Orchestrator (multi-provider intelligence)."""
     from .llm_orchestrator import LLMOrchestrator
     return LLMOrchestrator()
+
+def get_phi_coherence():
+    """Get the φ-Coherence calculator."""
+    from .phi_coherence import PhiCoherence
+    return PhiCoherence()
+
+def get_p2p_network():
+    """Get the P2P network (BAZINGANetwork)."""
+    from .p2p import BAZINGANetwork
+    return BAZINGANetwork
