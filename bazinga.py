@@ -377,5 +377,10 @@ async def main():
         await bazinga.interactive()
 
 
-if __name__ == "__main__":
+def main_sync():
+    """Synchronous entry point for CLI."""
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    main_sync()
