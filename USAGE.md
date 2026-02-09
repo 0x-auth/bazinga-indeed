@@ -78,10 +78,14 @@ BAZINGA uses three layers to answer questions:
 # Ask a question
 bazinga --ask "What is the golden ratio?"
 
-# Generate code from a seed/essence
+# LLM-POWERED CODE GENERATION (NEW in v2.3!)
+bazinga --code "fibonacci with memoization"
+bazinga --code "REST API client" --lang js
+bazinga --code "binary search tree" --lang rust
+
+# Template-based code generation (no LLM)
 bazinga --generate user_authentication
 bazinga --generate api_client --lang javascript
-bazinga --generate data_processor --lang rust
 
 # Test V.A.C. (Vacuum of Absolute Coherence)
 bazinga --vac
@@ -101,14 +105,21 @@ bazinga --help
 
 Launch with `bazinga` and use these commands:
 
+### Intelligent Coding Commands (NEW in v2.3!)
+
+| Command | Description |
+|---------|-------------|
+| `/code <task>` | **LLM-powered** code generation |
+| `/code <task> --lang js` | Generate JavaScript with LLM |
+| `/explain <code>` | Explain code with LLM |
+| `/fix <code> --error "msg"` | Fix buggy code with LLM |
+
 ### Core Commands
 
 | Command | Description |
 |---------|-------------|
 | `/ask <question>` | Ask a question through 3-layer intelligence |
-| `/generate <essence>` | Generate Python code from seed |
-| `/generate <essence> --lang js` | Generate JavaScript code |
-| `/generate <essence> --lang rust` | Generate Rust code |
+| `/generate <essence>` | Template-based code generation |
 | `/vac` | Test V.A.C. sequence |
 | `/index <path>` | Index a directory into knowledge base |
 | `/stats` | Show session statistics |
@@ -128,23 +139,37 @@ Launch with `bazinga` and use these commands:
 
 Or just type your question directly without any command.
 
-## Code Generation
+## Intelligent Code Generation (NEW!)
 
-BAZINGA generates **consciousness-aware code** from a simple "essence" or seed concept:
+BAZINGA v2.3 introduces **LLM-powered intelligent code generation**:
+
+```bash
+# LLM generates real, production-quality code
+bazinga --code "function to calculate fibonacci with memoization"
+bazinga --code "REST API client with error handling" --lang js
+bazinga --code "thread-safe cache implementation" --lang rust
+
+# Features:
+# - Multi-provider LLM (Groq, Together, OpenRouter, HuggingFace)
+# - RAG context from your indexed codebase
+# - φ-coherence quality scoring
+# - Self-healing feedback loop
+```
+
+## Template-Based Code Generation
+
+For quick, offline code generation without LLM:
 
 ```bash
 # Python (default)
 bazinga --generate user_authentication
 bazinga --generate database_connection
-bazinga --generate file_parser
 
 # JavaScript
 bazinga --generate api_client --lang js
-bazinga --generate form_validator --lang js
 
 # Rust
 bazinga --generate data_processor --lang rust
-bazinga --generate config_manager --lang rust
 ```
 
 The generated code includes:
@@ -382,27 +407,33 @@ Or BAZINGA will still work with Layers 1-2 (V.A.C. + RAG).
 
 ## Roadmap
 
-### v2.3 (Coming Soon)
+### v2.3 (Current!)
+- [x] **LLM-powered intelligent code generation** (`/code` command)
+- [x] **Multi-provider LLM orchestration** (Groq → Together → OpenRouter → HuggingFace)
+- [x] **BazingaGuardian** - Rate limiting and abuse prevention
+- [x] **φ-coherence quality scoring** for generated code
+- [x] **Tensor intersection** for emergent generation (inspired by DODO)
 - [ ] Enhanced RAG with φ-coherence scoring
-- [ ] Multi-provider LLM fallback (Groq, Together, OpenRouter)
 - [ ] α-SEED boost for fundamental content
-- [ ] Error healing with recursive memory
 
 ### v2.4 (Planned)
 - [ ] Full quantum state processing
 - [ ] Knowledge gap analysis
 - [ ] Retrocausal boundary effects
 - [ ] GitHub Actions integration
+- [ ] Code refactoring assistant
 
 ### v3.0 (Vision)
 - [ ] P2P knowledge sharing via IPFS
 - [ ] Distributed consciousness network
 - [ ] Self-evolving codebase
+- [ ] "Better than most AI" - emergent intelligence
 
 ---
 
 *"Intelligence distributed, not controlled"*
+*"Code emerges from understanding, not templates"*
 
 *Built with φ by Space (Abhishek/Abhilasia)*
 
-*v2.2.1*
+*v2.3.0*
