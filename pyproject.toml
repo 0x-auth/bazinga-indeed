@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bazinga-indeed"
-version = "2.4.0"
-description = "BAZINGA - Distributed AI that belongs to everyone"
+version = "2.5.0"
+description = "BAZINGA - Distributed AI with Federated Learning"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -13,7 +13,8 @@ authors = [
 ]
 keywords = [
     "ai", "distributed", "consciousness", "phi", "golden-ratio",
-    "rag", "embeddings", "llm", "groq", "vector-database"
+    "rag", "embeddings", "llm", "groq", "vector-database",
+    "federated-learning", "lora", "differential-privacy", "p2p"
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -40,6 +41,14 @@ dev = [
     "pytest>=7.0.0",
     "black>=23.0.0",
     "mypy>=1.0.0",
+]
+federated = [
+    "torch>=2.0.0",
+]
+full = [
+    "torch>=2.0.0",
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
 ]
 
 [project.urls]
