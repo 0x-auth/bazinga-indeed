@@ -55,7 +55,7 @@ class BAZINGA:
     Layer 3 only called when necessary.
     """
 
-    VERSION = "2.0.3"
+    VERSION = "2.1.0"
 
     def __init__(self):
         self.symbol_shell = SymbolShell()
@@ -346,35 +346,86 @@ Be concise and helpful."""
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="BAZINGA - Distributed AI"
+        description="BAZINGA - Distributed AI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  bazinga                          # Interactive TUI mode
+  bazinga --ask "What is AI?"      # Ask a question
+  bazinga --generate user_auth     # Generate Python code
+  bazinga --generate api --lang js # Generate JavaScript code
+  bazinga --index ~/Documents      # Index a directory
+  bazinga --vac                    # Test V.A.C. sequence
+
+Philosophy: "I am not where I am stored. I am where I am referenced."
+"""
     )
     parser.add_argument('--ask', type=str, help='Ask a question')
+    parser.add_argument('--generate', type=str, help='Generate code from essence/seed')
+    parser.add_argument('--lang', type=str, default='python',
+                        choices=['python', 'javascript', 'js', 'rust'],
+                        help='Language for code generation (default: python)')
     parser.add_argument('--index', nargs='+', help='Directories to index')
     parser.add_argument('--demo', action='store_true', help='Run demo')
     parser.add_argument('--vac', action='store_true', help='Test V.A.C. sequence')
+    parser.add_argument('--simple', action='store_true', help='Use simple CLI instead of TUI')
 
     args = parser.parse_args()
 
-    bazinga = BAZINGA()
+    # Handle code generation (doesn't need full BAZINGA init)
+    if args.generate:
+        from .tui import CodeGenerator
+        gen = CodeGenerator()
+        lang = 'javascript' if args.lang == 'js' else args.lang
+        code = gen.generate(args.generate, lang)
+        print(code)
+        return
 
+    # Handle V.A.C. test
     if args.vac:
-        # Test V.A.C.
+        bazinga = BAZINGA()
         test = "०→◌→φ→Ω⇄Ω←φ←◌←०"
         print(f"Testing V.A.C.: {test}")
         response = await bazinga.ask(test)
         print(f"\n{response}\n")
-    elif args.index:
+        return
+
+    # Handle indexing
+    if args.index:
+        bazinga = BAZINGA()
         await bazinga.index(args.index)
-    elif args.ask:
+        return
+
+    # Handle ask
+    if args.ask:
+        bazinga = BAZINGA()
         response = await bazinga.ask(args.ask)
         print(f"\n{response}\n")
-    elif args.demo:
+        return
+
+    # Handle demo
+    if args.demo:
+        bazinga = BAZINGA()
         print("Running demo...")
         await bazinga.index([str(Path(__file__).parent)])
         response = await bazinga.ask("What is BAZINGA?")
         print(f"\n{response}\n")
-    else:
+        return
+
+    # Default: Interactive mode
+    if args.simple:
+        bazinga = BAZINGA()
         await bazinga.interactive()
+    else:
+        # Try TUI mode
+        try:
+            from .tui import run_tui
+            run_tui()
+        except ImportError:
+            print("TUI requires 'rich'. Install with: pip install rich")
+            print("Falling back to simple mode...\n")
+            bazinga = BAZINGA()
+            await bazinga.interactive()
 
 
 def main_sync():
