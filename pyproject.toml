@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bazinga-ai"
+version = "2.0.0"
+description = "BAZINGA - Distributed AI that belongs to everyone"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Space (Abhishek Srivastava)", email = "abhishek@example.com"}
+]
+keywords = [
+    "ai", "distributed", "consciousness", "phi", "golden-ratio",
+    "rag", "embeddings", "llm", "groq", "vector-database"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+    "httpx>=0.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/0x-auth/bazinga-indeed"
+Documentation = "https://github.com/0x-auth/bazinga-indeed#readme"
+Repository = "https://github.com/0x-auth/bazinga-indeed"
+Issues = "https://github.com/0x-auth/bazinga-indeed/issues"
+
+[project.scripts]
+bazinga = "bazinga:main_sync"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "bazinga*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.md", "*.txt"]
