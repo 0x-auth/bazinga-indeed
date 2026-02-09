@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bazinga-ai"
-version = "2.0.0"
+name = "bazinga-indeed"
+version = "2.0.1"
 description = "BAZINGA - Distributed AI that belongs to everyone"
 readme = "README.md"
 license = {text = "MIT"}
