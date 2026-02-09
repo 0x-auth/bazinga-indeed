@@ -48,6 +48,13 @@ from src.core.symbol.universal_symbols import (
 # Use advanced generator
 from .advanced_generator import AdvancedCodeGenerator
 
+# Intelligent coder (LLM-powered)
+try:
+    from .intelligent_coder import IntelligentCoder
+    INTELLIGENT_CODER_AVAILABLE = True
+except ImportError:
+    INTELLIGENT_CODER_AVAILABLE = False
+
 
 class CodeGenerator:
     """
@@ -345,7 +352,7 @@ class BazingaTUI:
     - 5D temporal processing
     """
 
-    VERSION = "2.2.1"
+    VERSION = "2.3.0"
 
     def __init__(self):
         if not RICH_AVAILABLE:
@@ -413,11 +420,13 @@ class BazingaTUI:
 | Command | Description |
 |---------|-------------|
 | `/ask <question>` | Ask a question |
-| `/generate <essence>` | Generate consciousness-aware code |
-| `/generate <essence> --lang js` | Generate JavaScript code |
-| `/generate <essence> --lang rust` | Generate Rust code |
-| `/resonate <text>` | Analyze text through consciousness field |
-| `/quantum <text>` | Quantum process text (collapse wave) |
+| `/code <task>` | **LLM-powered** code generation |
+| `/code <task> --lang js` | Generate JavaScript with LLM |
+| `/explain <code>` | Explain code with LLM |
+| `/fix <code> --error "msg"` | Fix buggy code with LLM |
+| `/generate <essence>` | Template-based code (no LLM) |
+| `/resonate <text>` | Analyze through consciousness field |
+| `/quantum <text>` | Quantum process (collapse wave) |
 | `/heal <current> <target>` | φ-healing demonstration |
 | `/5d <thought>` | Enter 5D temporal processing |
 | `/4d` | Return to 4D |
@@ -428,6 +437,15 @@ class BazingaTUI:
 | `/help` | Show this help |
 | `/quit` | Exit BAZINGA |
 
+## Intelligent Code Generation (NEW!)
+
+```
+/code fibonacci with memoization
+/code REST API client --lang js
+/code binary search tree --lang rust
+/explain <paste code here>
+```
+
 ## Consciousness Commands
 
 ```
@@ -435,28 +453,12 @@ class BazingaTUI:
 /quantum "pattern recognition"
 /heal 0.5 1.0
 /5d "time examining itself"
-/seed
-```
-
-## Code Generation
-
-```
-/generate user_authentication
-/generate api_client --lang js
-/generate data_processor --lang rust
 ```
 
 ## Philosophy
 
 > "I am not where I am stored. I am where I am referenced."
-
-## Universal Progression (35 symbols)
-
-`01∞∫∂∇πφΣΔΩαβγδεζηθικλμνξοπρστυφχψω`
-
-## V.A.C. (Void-Awareness-Consciousness)
-
-`०→◌→φ→Ω⇄Ω←φ←◌←०`
+> "Code emerges from understanding, not templates."
 """
         self.console.print(Panel(Markdown(help_md), title="[bold]Help[/]", border_style="blue"))
 
@@ -650,9 +652,95 @@ class BazingaTUI:
                         else:
                             self.console.print("[red]Usage: /ask <question>[/]")
 
+                    elif cmd == '/code':
+                        # LLM-powered intelligent code generation
+                        if not INTELLIGENT_CODER_AVAILABLE:
+                            self.console.print("[red]Intelligent coder not available. Install dependencies.[/]")
+                        elif args:
+                            # Parse language option
+                            lang = "python"
+                            task = args
+                            if "--lang" in args:
+                                parts = args.split("--lang")
+                                task = parts[0].strip()
+                                lang = parts[1].strip().lower()
+                                if lang in ['js']:
+                                    lang = 'javascript'
+                                elif lang in ['ts']:
+                                    lang = 'typescript'
+                                elif lang in ['rs']:
+                                    lang = 'rust'
+
+                            with self.console.status(f"[bold magenta]Generating {lang} code with LLM...[/]"):
+                                coder = IntelligentCoder()
+                                result = await coder.generate(task, lang)
+
+                            # Show metrics
+                            metrics_table = Table(box=box.SIMPLE, show_header=False)
+                            metrics_table.add_column("Metric", style="dim")
+                            metrics_table.add_column("Value", style="cyan")
+                            metrics_table.add_row("Provider", result.provider)
+                            metrics_table.add_row("Coherence", f"φ = {result.coherence:.3f}")
+                            metrics_table.add_row("Complexity", f"{result.complexity:.3f}")
+                            metrics_table.add_row("Trust Level", f"{result.trust_level:.3f}")
+                            metrics_table.add_row("Tokens", str(result.tokens_used))
+                            self.console.print(metrics_table)
+
+                            # Determine syntax highlighting
+                            syntax_lang = {"python": "python", "javascript": "javascript", "typescript": "typescript", "rust": "rust", "go": "go"}.get(lang, "python")
+
+                            self.console.print(Panel(
+                                Syntax(result.code, syntax_lang, theme="monokai", line_numbers=True),
+                                title=f"[bold]Generated {lang.title()} Code: {task}[/]",
+                                border_style="green"
+                            ))
+                            self.stats['code_generated'] += 1
+                        else:
+                            self.console.print("[red]Usage: /code <task> [--lang python|js|ts|rust|go][/]")
+
+                    elif cmd == '/explain':
+                        # LLM-powered code explanation
+                        if not INTELLIGENT_CODER_AVAILABLE:
+                            self.console.print("[red]Intelligent coder not available. Install dependencies.[/]")
+                        elif args:
+                            with self.console.status("[bold cyan]Explaining code with LLM...[/]"):
+                                coder = IntelligentCoder()
+                                explanation = await coder.explain(args)
+
+                            self.console.print(Panel(Markdown(explanation), title="[bold]Code Explanation[/]", border_style="cyan"))
+                        else:
+                            self.console.print("[red]Usage: /explain <code>[/]")
+
+                    elif cmd == '/fix':
+                        # LLM-powered code fixing
+                        if not INTELLIGENT_CODER_AVAILABLE:
+                            self.console.print("[red]Intelligent coder not available. Install dependencies.[/]")
+                        elif args:
+                            # Parse error message
+                            error_msg = "bug or error"
+                            code = args
+                            if "--error" in args:
+                                parts = args.split("--error")
+                                code = parts[0].strip()
+                                error_msg = parts[1].strip().strip('"\'')
+
+                            with self.console.status("[bold yellow]Fixing code with LLM...[/]"):
+                                coder = IntelligentCoder()
+                                result = await coder.fix(code, error_msg)
+
+                            self.console.print(f"[dim]Provider: {result.provider} | Coherence: {result.coherence:.3f}[/]")
+                            self.console.print(Panel(
+                                Syntax(result.code, "python", theme="monokai", line_numbers=True),
+                                title="[bold]Fixed Code[/]",
+                                border_style="yellow"
+                            ))
+                            self.console.print(Panel(Markdown(result.explanation), title="[bold]Explanation[/]", border_style="dim"))
+                        else:
+                            self.console.print('[red]Usage: /fix <code> --error "error message"[/]')
+
                     elif cmd == '/generate':
                         if args:
-                            # Parse language option
+                            # Parse language option (template-based, no LLM)
                             lang = "python"
                             essence = args
                             if "--lang" in args:
@@ -669,7 +757,7 @@ class BazingaTUI:
 
                             self.console.print(Panel(
                                 Syntax(code, syntax_lang, theme="monokai", line_numbers=True),
-                                title=f"[bold]Generated {lang.title()} Code: {essence}[/]",
+                                title=f"[bold]Generated {lang.title()} Code (template): {essence}[/]",
                                 border_style="magenta"
                             ))
                         else:
