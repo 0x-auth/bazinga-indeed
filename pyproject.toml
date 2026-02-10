@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bazinga-indeed"
-version = "4.0.1"
+version = "4.0.2"
 description = "BAZINGA - Distributed AI with P2P Consciousness Network (Proof-of-Boundary Consensus)"
 readme = "README.md"
 license = {text = "MIT"}
