@@ -256,25 +256,17 @@ class BAZINGA:
                     self.memory.record_interaction(question, response, 'claude', 0.85)
                     return response
 
-            # 5. Fallback to RAG only (handled below)
-            if LOCAL_LLM_AVAILABLE or self.use_local:
-                response = self._call_local_llm(question, full_context)
-                if response:
-                    self.stats['llm_called'] += 1
-                    self.memory.record_interaction(question, response, 'local', 0.7)
-                    return response
+            # 5. All APIs exhausted, fall through to RAG
 
-        # Fallback to RAG if LLM unavailable or RAG is very relevant
-        if results and best_similarity > 0.4:
+        # Fallback to RAG (always works if you've indexed docs)
+        if results and best_similarity > 0.3:
             self.stats['rag_answered'] += 1
             response = self._format_rag_response(question, results)
             self.memory.record_interaction(question, response, 'rag', best_similarity)
             return response
 
-        # No good answer
-        if not self.groq_key and not LOCAL_LLM_AVAILABLE:
-            return "No AI available. Either:\n  - Set GROQ_API_KEY for cloud AI\n  - pip install llama-cpp-python for local AI\n  - bazinga --index ~/path to index docs"
-        return "I don't have relevant information for this question."
+        # Final fallback - helpful message, never an error
+        return self._friendly_fallback(question)
 
     def quantum_analyze(self, text: str) -> Dict[str, Any]:
         """Analyze text through quantum processor."""
@@ -477,6 +469,36 @@ Be accurate and informative. Keep responses brief."""
             return self.local_llm.generate(prompt)
         except Exception:
             return None
+
+    def _friendly_fallback(self, question: str) -> str:
+        """Friendly message when no AI is available. Never errors!"""
+        # Check what's available
+        has_groq = bool(self.groq_key)
+        has_gemini = bool(self.gemini_key)
+        has_claude = bool(self.anthropic_key)
+        has_local = LOCAL_LLM_AVAILABLE
+        has_docs = self.ai.get_stats().get('total_chunks', 0) > 0
+
+        # Build helpful response
+        response = f"I couldn't find an answer for: \"{question[:50]}...\"\n\n"
+
+        if not has_groq and not has_gemini and not has_local:
+            response += "To get AI-powered answers, try one of these FREE options:\n\n"
+            response += "1. Get a FREE Groq key (fastest):\n"
+            response += "   → https://console.groq.com\n"
+            response += "   → export GROQ_API_KEY=\"your-key\"\n\n"
+            response += "2. Get a FREE Gemini key (1M tokens/month):\n"
+            response += "   → https://aistudio.google.com\n"
+            response += "   → export GEMINI_API_KEY=\"your-key\"\n\n"
+            response += "3. Install local AI (works offline):\n"
+            response += "   → pip install llama-cpp-python\n"
+        elif not has_docs:
+            response += "Try indexing some documents:\n"
+            response += "   → bazinga --index ~/Documents\n"
+        else:
+            response += "All APIs are currently unavailable. Try again later!"
+
+        return response
 
     async def interactive(self):
         """Run interactive mode."""
