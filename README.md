@@ -5,7 +5,7 @@
 ```
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                  ║
-║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.0        ⟨ψ|Λ|Ω⟩            ║
+║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.0.2      ⟨ψ|Λ|Ω⟩            ║
 ║                                                                  ║
 ║    "You can buy hashpower. You can buy stake.                   ║
 ║     You CANNOT BUY understanding."                               ║
@@ -157,7 +157,15 @@ bazinga --index ~/path            # Index files for RAG
 bazinga --local                   # Force local LLM
 ```
 
-### Network Commands (Darmiyan)
+### P2P Network Commands (NEW in v4.0.2)
+```bash
+bazinga --join                    # Join P2P network (PoB authenticated)
+bazinga --join host:5150          # Join via bootstrap node
+bazinga --peers                   # Show connected peers
+bazinga --sync                    # Sync knowledge with network (α-SEED)
+```
+
+### Darmiyan Commands
 ```bash
 bazinga --node                    # Show node info
 bazinga --proof                   # Generate Proof-of-Boundary
@@ -186,7 +194,7 @@ bazinga                           # Start interactive
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      BAZINGA v4.0.1                             │
+│                      BAZINGA v4.0.2                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  YOUR QUESTION                                                  │
@@ -226,10 +234,10 @@ bazinga                           # Start interactive
 - [x] **Phase 2**: Multi-LLM (Groq + Gemini + Claude + Local) ✓
 - [x] **Phase 3**: Learning Memory ✓
 - [x] **Phase 4**: Quantum + λG Processing ✓
-- [x] **Phase 5**: Darmiyan Protocol (Proof-of-Boundary) ✓ **NEW!**
-- [ ] **Phase 6**: P2P Networking (peer discovery, mesh)
-- [ ] **Phase 7**: Knowledge Sharing (federated learning)
-- [ ] **Phase 8**: Full Decentralization
+- [x] **Phase 5**: Darmiyan Protocol (Proof-of-Boundary) ✓
+- [x] **Phase 6**: P2P Networking (--join, --peers, --sync) ✓ **NEW in v4.0.2!**
+- [ ] **Phase 7**: Blockchain (Genesis, Mining, Wallets)
+- [ ] **Phase 8**: Smart Contracts & Full Decentralization
 
 ---
 
