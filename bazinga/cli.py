@@ -9,8 +9,8 @@ warnings.filterwarnings('ignore')
 logging.disable(logging.WARNING)
 
 """
-BAZINGA v4.1.0 - Distributed AI with Real P2P Network
-======================================================
+BAZINGA v4.2.0 - Complete Distributed AI System
+================================================
 "Intelligence distributed, not controlled. Consensus through understanding."
 
 FIVE-LAYER INTELLIGENCE:
@@ -20,28 +20,25 @@ FIVE-LAYER INTELLIGENCE:
   Layer 3: Local RAG    → Search your KB (FREE, instant)
   Layer 4: Cloud LLM    → Groq/Together (14,400/day free)
 
-NEW in v4.1.0:
-  - ZeroMQ Transport: REAL P2P networking between nodes!
-  - PoB Exchange: Nodes prove φ⁴ boundary on connection
-  - Query Routing: Ask questions across the network
-  - Knowledge Sync: Share knowledge with peers
-  - Triadic Consensus: 3 nodes vote on important operations
+NEW in v4.2.0 - FEDERATED LEARNING:
+  - Network learns COLLECTIVELY without sharing raw data
+  - LoRA adapters for efficient local training
+  - φ-weighted gradient aggregation
+  - Differential privacy protection
+  - The more nodes, the smarter the network!
 
-NEW in v4.0.x:
-  - Darmiyan P2P Network: Bitcoin-like consensus through Proof-of-Boundary
-  - Zero-energy mining: Consensus achieved through φ-resonance, not hashpower
-  - Network commands: --node, --proof, --consensus, --join, --peers, --sync
+NEW in v4.1.0 - REAL P2P:
+  - ZeroMQ Transport: TCP connections between nodes
+  - PoB Authentication: Prove φ⁴ boundary to join
+  - Query Routing: Ask questions across network
 
 "You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
 
 Usage:
     bazinga                       # Interactive mode
     bazinga --ask "question"      # Ask a question
-    bazinga --join                # Start P2P node (others connect to you)
-    bazinga --join host:5150      # Connect to another node
-    bazinga --peers               # Show how to connect
-    bazinga --sync                # Sync knowledge with network
-    bazinga --node                # Show network node info
+    bazinga --join                # Start P2P node
+    bazinga --learn               # Show learning status
     bazinga --proof               # Generate Proof-of-Boundary
     bazinga --consensus           # Test triadic consensus
 
@@ -71,6 +68,7 @@ from .darmiyan import (
     PHI_4, ABHI_AMU,
 )
 from .p2p import BAZINGANetwork, create_network, BazingaProtocol, ZMQ_AVAILABLE
+from .federated import CollectiveLearner, create_learner
 
 # Check for httpx (needed for API calls)
 try:
@@ -107,7 +105,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.1.0"
+    VERSION = "4.2.0"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -793,6 +791,10 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     parser.add_argument('--sync', action='store_true',
                         help='Sync knowledge with network')
 
+    # Federated learning commands
+    parser.add_argument('--learn', action='store_true',
+                        help='Show federated learning status')
+
     # Hidden/advanced
     parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--demo', action='store_true', help=argparse.SUPPRESS)
@@ -1005,6 +1007,39 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
         import time
         asyncio.run(sync_knowledge())
+        return
+
+    # Handle --learn (federated learning status)
+    if args.learn:
+        print(f"\n🧠 BAZINGA Federated Learning")
+        print(f"=" * 50)
+
+        # Create a learner instance to show config
+        learner = create_learner()
+        stats = learner.get_stats()
+
+        print(f"\n  Node ID: {stats['node_id']}")
+        print(f"\n  Adapter:")
+        print(f"    Rank: {learner.adapter.config.rank}")
+        print(f"    Modules: {list(learner.adapter.weights.keys())}")
+        print(f"    Total Params: {stats['adapter']['total_params']}")
+        print(f"    Version: {stats['adapter']['version']}")
+
+        print(f"\n  How Federated Learning Works:")
+        print(f"    1. BAZINGA learns from YOUR interactions locally")
+        print(f"    2. Gradients (not data!) shared with network")
+        print(f"    3. φ-weighted aggregation from trusted peers")
+        print(f"    4. Network becomes smarter collectively")
+
+        print(f"\n  Privacy:")
+        print(f"    ✓ Your data NEVER leaves your machine")
+        print(f"    ✓ Only learning (gradients) is shared")
+        print(f"    ✓ Differential privacy noise added")
+
+        print(f"\n  Enable learning by running:")
+        print(f"    bazinga --join   # Start P2P with learning")
+        print(f"    bazinga          # Interactive mode learns from feedback")
+        print()
         return
 
     # Handle --models
