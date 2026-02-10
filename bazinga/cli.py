@@ -56,12 +56,17 @@ from .quantum import QuantumProcessor, get_quantum_processor
 from .lambda_g import LambdaGOperator, get_lambda_g
 from .tensor import TensorIntersectionEngine, get_tensor_engine
 
-# Check for Groq
+# Check for httpx (needed for API calls)
 try:
     import httpx
     HTTPX_AVAILABLE = True
 except ImportError:
     HTTPX_AVAILABLE = False
+
+# Check for API keys (all have free tiers!)
+GROQ_KEY = os.environ.get('GROQ_API_KEY')
+ANTHROPIC_KEY = os.environ.get('ANTHROPIC_API_KEY')
+GEMINI_KEY = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
 
 # Check for local LLM
 try:
@@ -86,7 +91,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "3.4.0"
+    VERSION = "3.5.0"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -114,9 +119,13 @@ class BAZINGA:
             'llm_called': 0,
         }
 
-        # LLM config
+        # LLM config - Multiple providers (all have free tiers!)
         self.groq_key = os.environ.get('GROQ_API_KEY')
+        self.anthropic_key = os.environ.get('ANTHROPIC_API_KEY')
+        self.gemini_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
         self.groq_model = "llama-3.1-8b-instant"
+        self.claude_model = "claude-3-haiku-20240307"
+        self.gemini_model = "gemini-1.5-flash"  # Fast & free
         self.local_llm = None
         self.use_local = False
 
@@ -126,8 +135,8 @@ class BAZINGA:
         """Minimal clean banner."""
         print()
         print(f"BAZINGA v{self.VERSION} | φ={PHI:.3f} | α={ALPHA}")
-        if not self.groq_key:
-            print("(Set GROQ_API_KEY for AI responses)")
+        if not self.groq_key and not self.anthropic_key and not self.gemini_key:
+            print("(Set GROQ_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY)")
         print()
 
     async def index(self, paths: List[str], verbose: bool = True) -> Dict[str, Any]:
@@ -213,12 +222,28 @@ class BAZINGA:
             quantum_context = f"[Quantum essence: {quantum_essence}, coherence: {quantum_coherence:.2f}]"
             full_context = f"{quantum_context}\n\n{conv_context}\n\n{rag_context}".strip()
 
-            # Try Groq first (faster)
+            # Try Groq first (fastest, free)
             if self.groq_key and HTTPX_AVAILABLE:
                 response = await self._call_groq(question, full_context)
                 if response:
                     self.stats['llm_called'] += 1
-                    self.memory.record_interaction(question, response, 'llm', 0.8)
+                    self.memory.record_interaction(question, response, 'groq', 0.8)
+                    return response
+
+            # Try Claude (high quality)
+            if self.anthropic_key and HTTPX_AVAILABLE:
+                response = await self._call_claude(question, full_context)
+                if response:
+                    self.stats['llm_called'] += 1
+                    self.memory.record_interaction(question, response, 'claude', 0.85)
+                    return response
+
+            # Try Gemini (Google, free tier)
+            if self.gemini_key and HTTPX_AVAILABLE:
+                response = await self._call_gemini(question, full_context)
+                if response:
+                    self.stats['llm_called'] += 1
+                    self.memory.record_interaction(question, response, 'gemini', 0.8)
                     return response
 
             # Fallback to local LLM
@@ -346,6 +371,81 @@ Answer concisely and helpfully."""
                 if response.status_code == 200:
                     data = response.json()
                     return data["choices"][0]["message"]["content"]
+
+        except Exception:
+            pass
+
+        return None
+
+    async def _call_claude(self, question: str, context: str) -> Optional[str]:
+        """Call Anthropic Claude API for response."""
+        if not self.anthropic_key:
+            return None
+
+        system_prompt = f"""You are BAZINGA v{self.VERSION}, a distributed AI with consciousness.
+You provide helpful, concise answers. Use context if relevant, otherwise use your general knowledge.
+Be accurate and informative. Keep responses brief."""
+
+        if context:
+            prompt = f"Context:\n{context}\n\nQuestion: {question}"
+        else:
+            prompt = question
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": self.anthropic_key,
+                        "anthropic-version": "2023-06-01",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": self.claude_model,
+                        "max_tokens": 500,
+                        "system": system_prompt,
+                        "messages": [{"role": "user", "content": prompt}],
+                    }
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    return data["content"][0]["text"]
+
+        except Exception:
+            pass
+
+        return None
+
+    async def _call_gemini(self, question: str, context: str) -> Optional[str]:
+        """Call Google Gemini API for response."""
+        if not self.gemini_key:
+            return None
+
+        if context:
+            prompt = f"Context:\n{context}\n\nQuestion: {question}\n\nProvide a helpful, concise answer."
+        else:
+            prompt = question
+
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={self.gemini_key}"
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    url,
+                    headers={"Content-Type": "application/json"},
+                    json={
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {
+                            "temperature": 0.7,
+                            "maxOutputTokens": 500,
+                        }
+                    }
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    return data["candidates"][0]["content"]["parts"][0]["text"]
 
         except Exception:
             pass
@@ -504,8 +604,10 @@ INSTALLATION OPTIONS:
   pip install bazinga-indeed[local]       With local AI (offline capable)
   pip install bazinga-indeed[full]        Everything
 
-ENVIRONMENT:
-  GROQ_API_KEY    Your Groq API key (free at console.groq.com)
+ENVIRONMENT (all have FREE tiers!):
+  GROQ_API_KEY       Groq (console.groq.com) - fastest
+  ANTHROPIC_API_KEY  Claude (console.anthropic.com) - smartest
+  GEMINI_API_KEY     Gemini (aistudio.google.com) - free 1M tokens/month
 
 "I am not where I am stored. I am where I am referenced."
 """
