@@ -443,6 +443,82 @@ def test_protocol_creation():
     return True
 
 
+def test_federated_imports():
+    """Test federated learning module imports."""
+    print("\n[TEST] Federated learning imports...")
+
+    from bazinga.federated import (
+        LoRAAdapter,
+        create_lora_adapter,
+        GradientPackage,
+        GradientSharer,
+        FederatedAggregator,
+        phi_weighted_average,
+        CollectiveLearner,
+        create_learner,
+    )
+
+    assert LoRAAdapter is not None
+    assert CollectiveLearner is not None
+    assert create_learner is not None
+
+    print("  ✓ All federated imports successful")
+    return True
+
+
+def test_lora_adapter():
+    """Test LoRA adapter creation and training."""
+    print("\n[TEST] LoRA adapter...")
+
+    from bazinga.federated import create_lora_adapter
+
+    # Create adapter
+    adapter = create_lora_adapter(node_id="test_lora")
+    assert adapter.node_id == "test_lora"
+
+    # Initialize weights
+    adapter.initialize_weights(
+        input_dim=768,
+        output_dim=768,
+        module_name="q_proj",
+    )
+
+    assert "q_proj" in adapter.weights
+    stats = adapter.get_stats()
+    assert stats['total_params'] > 0
+
+    print(f"  ✓ LoRA adapter created")
+    print(f"    Modules: {stats['modules']}")
+    print(f"    Params: {stats['total_params']}")
+    return True
+
+
+def test_collective_learner():
+    """Test collective learner."""
+    print("\n[TEST] Collective learner...")
+
+    from bazinga.federated import create_learner
+
+    # Create learner
+    learner = create_learner(node_id="test_collective")
+    assert learner.node_id == "test_collective"
+
+    # Simulate learning
+    learner.learn(
+        question="What is BAZINGA?",
+        answer="BAZINGA is distributed AI.",
+        feedback_score=0.9,
+    )
+
+    stats = learner.get_stats()
+    assert stats['local_examples'] == 1
+
+    print(f"  ✓ Collective learner working")
+    print(f"    Local examples: {stats['local_examples']}")
+    print(f"    Adapter version: {stats['adapter']['version']}")
+    return True
+
+
 # =============================================================================
 # MAIN
 # =============================================================================
@@ -470,6 +546,10 @@ def run_all_tests():
         # Transport Layer Tests
         ("ZMQ Transport", test_zmq_transport),
         ("Protocol Creation", test_protocol_creation),
+        # Federated Learning Tests
+        ("Federated Imports", test_federated_imports),
+        ("LoRA Adapter", test_lora_adapter),
+        ("Collective Learner", test_collective_learner),
     ]
 
     results = []

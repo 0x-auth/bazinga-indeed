@@ -1,30 +1,39 @@
 """
-BAZINGA Federated Learning - Phase 3
+BAZINGA Federated Learning - Collective Intelligence
+=====================================================
 
-Collaborative learning without sharing data:
-- LoRA adapters for efficient fine-tuning
-- Differential privacy for gradient protection
-- Secure aggregation with homomorphic encryption
-- Trust-weighted model updates
+The network learns TOGETHER without sharing raw data.
 
-"Share learning, not data."
+How it works:
+1. Each node trains locally on their own data
+2. Nodes share GRADIENTS (learning), not data (privacy!)
+3. φ-weighted aggregation based on trust scores
+4. Network becomes smarter than any single node
+
+"Intelligence emerges from relationship, not size."
+
+Components:
+- LoRAAdapter: Small trainable layers for local learning
+- GradientSharer: Privacy-preserving gradient exchange
+- FederatedAggregator: φ-weighted collective learning
+- CollectiveLearner: Main interface
+
+Author: Space (Abhishek/Abhilasia) & Claude
+License: MIT
 """
 
-from .lora_adapter import LoRAAdapter, LoRAConfig, create_lora_model
-from .local_trainer import LocalTrainer, TrainingConfig
-from .differential_privacy import DifferentialPrivacy, PrivacyConfig
-from .secure_aggregation import SecureAggregator, PaillierKeyPair
-from .federated_coordinator import FederatedCoordinator
+from .lora import LoRAAdapter, create_lora_adapter
+from .gradients import GradientPackage, GradientSharer
+from .aggregator import FederatedAggregator, phi_weighted_average
+from .learner import CollectiveLearner, create_learner
 
 __all__ = [
     'LoRAAdapter',
-    'LoRAConfig',
-    'create_lora_model',
-    'LocalTrainer',
-    'TrainingConfig',
-    'DifferentialPrivacy',
-    'PrivacyConfig',
-    'SecureAggregator',
-    'PaillierKeyPair',
-    'FederatedCoordinator',
+    'create_lora_adapter',
+    'GradientPackage',
+    'GradientSharer',
+    'FederatedAggregator',
+    'phi_weighted_average',
+    'CollectiveLearner',
+    'create_learner',
 ]
