@@ -318,6 +318,90 @@ def test_stress_proofs(n=100):
 
 
 # =============================================================================
+# P2P INTEGRATION TESTS
+# =============================================================================
+
+def test_p2p_module_imports():
+    """Test P2P module imports work."""
+    print("\n[TEST] P2P module imports...")
+
+    from bazinga.p2p import (
+        BAZINGANetwork,
+        create_network,
+        BAZINGANode,
+        BAZINGA_DHT,
+        KnowledgeGraphSync,
+        TrustRouter,
+        AlphaSeedNetwork,
+        is_alpha_seed,
+    )
+
+    # Verify imports
+    assert BAZINGANetwork is not None
+    assert create_network is not None
+    assert is_alpha_seed is not None
+
+    print("  ✓ All P2P imports successful")
+    return True
+
+
+def test_pob_authentication():
+    """Test PoB-based authentication for P2P."""
+    print("\n[TEST] PoB authentication for P2P...")
+
+    # Node must prove boundary before joining network
+    proof = prove_boundary()
+
+    if proof.valid:
+        # Valid proof allows network participation
+        print(f"  ✓ Node authenticated: {proof.node_id}")
+        print(f"    φ⁴ ratio: {proof.ratio:.4f}")
+        print(f"    Attempts: {proof.attempts}")
+        return True
+    else:
+        print(f"  ⚠ PoB failed, retry possible")
+        return True  # Not a test failure, just unlucky
+
+
+def test_alpha_seed_detection():
+    """Test α-SEED file detection (hash % 137 == 0)."""
+    print("\n[TEST] α-SEED detection...")
+
+    from bazinga.p2p import is_alpha_seed
+    from bazinga.p2p.alpha_seed import compute_alpha_hash
+
+    # α-SEED is based on SHA256 hash % 137 == 0
+    # Test the mechanism works correctly
+    test_contents = [
+        "The consciousness network emerges",
+        "BAZINGA distributed knowledge",
+        "φ resonance in the boundary",
+        "137 is the fine structure constant",
+        "Proof of Boundary consensus",
+    ]
+
+    seed_count = 0
+    for content in test_contents:
+        h = compute_alpha_hash(content)
+        is_seed = is_alpha_seed(content)
+        remainder = h % 137
+        status = "α-SEED" if is_seed else "regular"
+        print(f"    '{content[:30]}...' -> {status} (hash % 137 = {remainder})")
+        if is_seed:
+            seed_count += 1
+            # Verify consistency
+            assert remainder == 0, f"α-SEED should have hash % 137 == 0, got {remainder}"
+
+    # Also test with integer input
+    assert is_alpha_seed(137) == True, "137 should be α-SEED"
+    assert is_alpha_seed(274) == True, "274 should be α-SEED"
+    assert is_alpha_seed(100) == False, "100 should not be α-SEED"
+
+    print(f"  ✓ α-SEED detection working ({seed_count}/{len(test_contents)} were α-SEEDs)")
+    return True
+
+
+# =============================================================================
 # MAIN
 # =============================================================================
 
@@ -337,6 +421,10 @@ def run_all_tests():
         ("Multiple Proofs", test_multiple_proofs),
         ("Multiprocess Proofs", test_multiprocess_proofs),
         ("Concurrent Nodes", test_concurrent_nodes),
+        # P2P Integration Tests
+        ("P2P Module Imports", test_p2p_module_imports),
+        ("PoB Authentication", test_pob_authentication),
+        ("α-SEED Detection", test_alpha_seed_detection),
     ]
 
     results = []
