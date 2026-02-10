@@ -729,6 +729,52 @@ def test_chain_validation():
     return True
 
 
+def test_trust_oracle():
+    """Test trust oracle."""
+    print("\n[TEST] Trust oracle...")
+
+    import tempfile
+    from bazinga.blockchain import create_chain, create_trust_oracle
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        chain = create_chain(data_dir=tmpdir)
+        oracle = create_trust_oracle(chain)
+
+        # Record activities for a good node
+        for i in range(5):
+            oracle.record_activity(
+                node_address="node_test_good",
+                activity_type="pob",
+                success=True,
+                block_number=i,
+            )
+
+        # Record activities for a bad node
+        for i in range(5):
+            oracle.record_activity(
+                node_address="node_test_bad",
+                activity_type="pob",
+                success=False,
+                block_number=i,
+            )
+
+        # Check trust scores
+        good_trust = oracle.get_trust_score("node_test_good")
+        bad_trust = oracle.get_trust_score("node_test_bad")
+        unknown_trust = oracle.get_trust_score("node_unknown")
+
+        assert good_trust > 0.5, f"Good node should have trust > 0.5, got {good_trust}"
+        assert bad_trust < 0.5, f"Bad node should have trust < 0.5, got {bad_trust}"
+        assert unknown_trust == 0.5, f"Unknown node should have trust = 0.5, got {unknown_trust}"
+
+        print(f"  ✓ Trust oracle working")
+        print(f"    Good node: {good_trust:.3f}")
+        print(f"    Bad node: {bad_trust:.3f}")
+        print(f"    Unknown: {unknown_trust:.3f}")
+
+    return True
+
+
 # =============================================================================
 # MAIN
 # =============================================================================
@@ -768,6 +814,8 @@ def run_all_tests():
         ("Chain Creation", test_chain_creation),
         ("PoB Mining", test_pob_mining),
         ("Chain Validation", test_chain_validation),
+        # Trust Layer Tests
+        ("Trust Oracle", test_trust_oracle),
     ]
 
     results = []
