@@ -113,7 +113,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.3.0"
+    VERSION = "4.3.1"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
