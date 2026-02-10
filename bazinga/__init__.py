@@ -12,7 +12,7 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "4.3.1"
+__version__ = "4.4.0"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
 
 # New in v3.4.0: Quantum, ΛG, Tensor modules
@@ -107,3 +107,8 @@ def get_pob_miner():
     """Get the Proof-of-Boundary miner (zero-energy)."""
     from .blockchain import PoBMiner
     return PoBMiner
+
+def get_trust_oracle():
+    """Get the Trust Oracle (chain → trust scores → AI routing)."""
+    from .blockchain import TrustOracle, create_trust_oracle
+    return create_trust_oracle
