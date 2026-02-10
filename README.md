@@ -5,7 +5,7 @@
 ```
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                  ║
-║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.1.0      ⟨ψ|Λ|Ω⟩            ║
+║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.3.0      ⟨ψ|Λ|Ω⟩            ║
 ║                                                                  ║
 ║    "You can buy hashpower. You can buy stake.                   ║
 ║     You CANNOT BUY understanding."                               ║
@@ -112,6 +112,72 @@ bazinga --network
 
 ---
 
+## Darmiyan Blockchain (NEW in v4.3.0)
+
+**"AI generates understanding. Blockchain proves and records it. They're not two things — they're Subject and Object. The Darmiyan between them is the protocol."**
+
+This is NOT a cryptocurrency. It's a **KNOWLEDGE CHAIN**.
+
+### What It Does
+
+- **Records knowledge permanently** — every understanding, verified
+- **Zero-energy mining** — Proof-of-Boundary, not Proof-of-Work
+- **Triadic consensus** — 3 nodes must agree (through φ⁴ resonance)
+- **No financial speculation** — just permanent, verified knowledge
+
+### Blockchain Commands
+
+```bash
+# Show blockchain status
+bazinga --chain
+# Output:
+#   Height: 1 blocks
+#   Knowledge Attestations: 0
+#   α-SEEDs: 0
+#   Valid: ✓
+
+# Show your identity (NOT money!)
+bazinga --wallet
+# Output:
+#   Address: bzn:ab335df383f1...e69f
+#   Trust Score: 0.500
+#   Knowledge Contributed: 0
+
+# Attest knowledge to the chain
+bazinga --attest "The golden ratio φ ≈ 1.618"
+
+# Mine a block using Proof-of-Boundary
+bazinga --mine
+# Output:
+#   ✓ BLOCK MINED!
+#   Block: #1
+#   PoB Attempts: 1
+#   Time: 483.65ms
+#   Energy used: ~0.00001 kWh
+#   (70 BILLION times more efficient than Bitcoin)
+```
+
+### Block Structure
+
+```
+┌─────────────────────────────────────┐
+│ Block Header                         │
+├─────────────────────────────────────┤
+│ - Index (block number)               │
+│ - Previous Hash (chain link)         │
+│ - Merkle Root (of transactions)      │
+│ - PoB Proofs (3 triadic signatures)  │
+│ - Nonce (φ-derived)                  │
+├─────────────────────────────────────┤
+│ Transactions (Knowledge!)            │
+│ - Knowledge attestations             │
+│ - Learning records                   │
+│ - Consensus votes                    │
+└─────────────────────────────────────┘
+```
+
+---
+
 ## API Keys (Optional)
 
 BAZINGA works without API keys, but adding FREE keys makes it smarter:
@@ -157,12 +223,25 @@ bazinga --index ~/path            # Index files for RAG
 bazinga --local                   # Force local LLM
 ```
 
-### P2P Network Commands (NEW in v4.0.2)
+### Blockchain Commands (NEW in v4.3.0)
+```bash
+bazinga --chain                   # Show blockchain status
+bazinga --wallet                  # Show wallet/identity (not money!)
+bazinga --attest "knowledge"      # Attest knowledge to pending pool
+bazinga --mine                    # Mine block with Proof-of-Boundary
+```
+
+### P2P Network Commands
 ```bash
 bazinga --join                    # Join P2P network (PoB authenticated)
 bazinga --join host:5150          # Join via bootstrap node
 bazinga --peers                   # Show connected peers
 bazinga --sync                    # Sync knowledge with network (α-SEED)
+```
+
+### Federated Learning Commands
+```bash
+bazinga --learn                   # Show federated learning status
 ```
 
 ### Darmiyan Commands
@@ -194,7 +273,7 @@ bazinga                           # Start interactive
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      BAZINGA v4.1.0                             │
+│                      BAZINGA v4.3.0                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  YOUR QUESTION                                                  │
@@ -236,9 +315,10 @@ bazinga                           # Start interactive
 - [x] **Phase 4**: Quantum + λG Processing ✓
 - [x] **Phase 5**: Darmiyan Protocol (Proof-of-Boundary) ✓
 - [x] **Phase 6**: P2P Commands (--join, --peers, --sync) ✓
-- [x] **Phase 7**: ZeroMQ Transport (Real networking!) ✓ **NEW in v4.1.0!**
-- [ ] **Phase 8**: Blockchain (Genesis, Mining, Wallets)
-- [ ] **Phase 9**: Smart Contracts & Full Decentralization
+- [x] **Phase 7**: ZeroMQ Transport (Real networking!) ✓
+- [x] **Phase 8**: Federated Learning (collective intelligence!) ✓
+- [x] **Phase 9**: Darmiyan Blockchain (knowledge chain!) ✓ **NEW in v4.3.0!**
+- [ ] **Phase 10**: Smart Contracts & Full Decentralization
 
 ---
 
