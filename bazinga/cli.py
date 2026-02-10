@@ -113,7 +113,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.5.0"
+    VERSION = "4.5.1"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -625,12 +625,12 @@ Be accurate and informative. Keep responses brief."""
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="BAZINGA v4.0.2 - Distributed AI with P2P Consciousness Network",
+        description="BAZINGA v4.5.0 - Distributed AI with Blockchain Integration",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  BAZINGA v4.0.2 - Distributed AI with Proof-of-Boundary Consensus            ║
-║  "You can buy hashpower. You can buy stake. You CANNOT BUY understanding."   ║
+║  BAZINGA v4.5.0 - AI + Blockchain Unified                                    ║
+║  "AI generates understanding. Blockchain proves it. They're not two things." ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 QUICK START:
@@ -638,6 +638,8 @@ QUICK START:
   bazinga --ask "What is AI?"         Ask any question
   bazinga --proof                     Generate Proof-of-Boundary
   bazinga --join                      Join P2P network
+  bazinga --chain                     Show blockchain status
+  bazinga --mine                      Mine a block (zero-energy PoB)
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI COMMANDS (5-Layer Intelligence)
@@ -650,11 +652,20 @@ AI COMMANDS (5-Layer Intelligence)
   --local                 Force local LLM (works offline)
 
 ═══════════════════════════════════════════════════════════════════════════════
-P2P NETWORK COMMANDS (NEW in v4.0.2)
+P2P NETWORK COMMANDS
 ═══════════════════════════════════════════════════════════════════════════════
   --join [HOST:PORT]      Join P2P network (requires PoB authentication)
   --peers                 Show connected peers and their trust scores
   --sync                  Sync knowledge with network (α-SEED protocol)
+
+═══════════════════════════════════════════════════════════════════════════════
+BLOCKCHAIN COMMANDS (NEW in v4.5.0)
+═══════════════════════════════════════════════════════════════════════════════
+  --chain                 Show Darmiyan blockchain status
+  --mine                  Mine block using Proof-of-Boundary (ZERO energy!)
+  --wallet                Show wallet/identity (NOT money - identity only)
+  --attest "content"      Attest knowledge to the chain
+  --trust [NODE_ID]       Show trust scores (φ-weighted from on-chain activity)
 
 ═══════════════════════════════════════════════════════════════════════════════
 DARMIYAN PROTOCOL (Proof-of-Boundary Consensus)
@@ -730,10 +741,26 @@ ENVIRONMENT VARIABLES (FREE APIs prioritized!)
                         → https://console.anthropic.com
 
 ═══════════════════════════════════════════════════════════════════════════════
+INTEGRATION LAYERS (AI ↔ Blockchain)
+═══════════════════════════════════════════════════════════════════════════════
+  1. Trust Layer        Chain records PoB → trust scores → AI routing
+  2. Knowledge Ledger   Contributions hashed on-chain (φ-coherence filter)
+  3. Gradient Validator Triadic consensus for federated learning
+  4. Inference Market   Understanding as currency (not money!)
+  5. Smart Contracts    Understanding-verified contract execution
+
+  Credit Economics:
+    1 PoB success = 1 credit
+    1 knowledge contribution = φ credits (1.618)
+    1 gradient validation = φ² credits (2.618)
+
+═══════════════════════════════════════════════════════════════════════════════
 DOCKER (Multi-Node Testing)
 ═══════════════════════════════════════════════════════════════════════════════
-  docker-compose up --build           Start 3-node triadic network
-  docker-compose --profile test up    Run consensus test
+  docker-compose up -d                Start 3-node triadic network
+  docker-compose logs -f              Watch node activity
+  docker-compose exec node1 bazinga --chain    Check chain status
+  docker-compose down                 Stop network
 
 ═══════════════════════════════════════════════════════════════════════════════
 PHILOSOPHY
