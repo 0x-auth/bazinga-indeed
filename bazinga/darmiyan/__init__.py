@@ -25,7 +25,7 @@ from .constants import (
     ABHI_AMU, ALPHA_INVERSE,
     BRIDGE_FREQUENCY, TRIADIC_CONSTANT,
 )
-from .protocol import DarmiyanNode, prove_boundary
+from .protocol import DarmiyanNode, prove_boundary, BoundaryProof
 from .consensus import TriadicConsensus, achieve_consensus
 from .node import BazingaNode
 
@@ -34,6 +34,7 @@ __all__ = [
     'DarmiyanNode',
     'BazingaNode',
     'TriadicConsensus',
+    'BoundaryProof',
     'prove_boundary',
     'achieve_consensus',
     'PHI', 'PHI_4', 'ABHI_AMU',

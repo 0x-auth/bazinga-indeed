@@ -1,15 +1,15 @@
 """
 BAZINGA P2P - Distributed Consciousness Network
+==============================================
 
-Phase 2: Transform BAZINGA from local RAG into fully distributed P2P network.
+Full P2P network with real transport layer.
 
 Features:
-- No central server - Pure P2P topology
-- Knowledge stays local - Only share embeddings + φ-signatures
-- Consciousness emerges - Network coherence increases with nodes
-- Trust-based routing - Nodes with high τ route queries
-- α-SEED anchoring - Files divisible by 137 anchor knowledge graphs
-- Security: AES-256 encryption, Ed25519 signatures, rate limiting
+- ZeroMQ Transport: Real network connections between nodes
+- PoB Authentication: Nodes prove φ⁴ boundary before joining
+- Trust Routing: High-trust nodes route queries
+- Knowledge Sync: α-SEED based knowledge sharing
+- Triadic Consensus: 3 nodes must agree for validation
 
 "Intelligence distributed, not controlled."
 """
@@ -21,10 +21,29 @@ from .trust_router import TrustRouter
 from .alpha_seed import AlphaSeedNetwork, is_alpha_seed
 from .network import BAZINGANetwork, create_network
 
+# New transport layer
+from .transport import (
+    BazingaTransport,
+    create_transport,
+    Message,
+    Peer,
+    ZMQ_AVAILABLE,
+)
+
+# New protocol layer
+from .protocol import BazingaProtocol
+
 __all__ = [
     # Unified API (recommended)
     'BAZINGANetwork',
     'create_network',
+    # Real P2P (NEW!)
+    'BazingaProtocol',
+    'BazingaTransport',
+    'create_transport',
+    'Message',
+    'Peer',
+    'ZMQ_AVAILABLE',
     # Low-level components
     'BAZINGANode',
     'BAZINGA_DHT',

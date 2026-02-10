@@ -5,7 +5,7 @@
 ```
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                  ║
-║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.0.2      ⟨ψ|Λ|Ω⟩            ║
+║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.1.0      ⟨ψ|Λ|Ω⟩            ║
 ║                                                                  ║
 ║    "You can buy hashpower. You can buy stake.                   ║
 ║     You CANNOT BUY understanding."                               ║
@@ -194,7 +194,7 @@ bazinga                           # Start interactive
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      BAZINGA v4.0.2                             │
+│                      BAZINGA v4.1.0                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  YOUR QUESTION                                                  │
@@ -235,9 +235,10 @@ bazinga                           # Start interactive
 - [x] **Phase 3**: Learning Memory ✓
 - [x] **Phase 4**: Quantum + λG Processing ✓
 - [x] **Phase 5**: Darmiyan Protocol (Proof-of-Boundary) ✓
-- [x] **Phase 6**: P2P Networking (--join, --peers, --sync) ✓ **NEW in v4.0.2!**
-- [ ] **Phase 7**: Blockchain (Genesis, Mining, Wallets)
-- [ ] **Phase 8**: Smart Contracts & Full Decentralization
+- [x] **Phase 6**: P2P Commands (--join, --peers, --sync) ✓
+- [x] **Phase 7**: ZeroMQ Transport (Real networking!) ✓ **NEW in v4.1.0!**
+- [ ] **Phase 8**: Blockchain (Genesis, Mining, Wallets)
+- [ ] **Phase 9**: Smart Contracts & Full Decentralization
 
 ---
 
