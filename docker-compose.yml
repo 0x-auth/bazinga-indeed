@@ -1,0 +1,86 @@
+# BAZINGA Darmiyan Network - 3-Node Triadic Test
+#
+# Usage:
+#   docker-compose up --build
+#   docker-compose down
+#
+# This spins up 3 nodes for testing triadic consensus
+
+version: '3.8'
+
+services:
+  node1:
+    build: .
+    container_name: bazinga-node-1
+    environment:
+      - BAZINGA_PORT=5150
+      - BAZINGA_NODE_ID=node_alpha
+    ports:
+      - "5150:5150"
+    command: python -c "
+      from bazinga.darmiyan import BazingaNode;
+      import asyncio;
+      node = BazingaNode(port=5150, node_id='node_alpha');
+      print(f'Node Alpha started: {node.node_id}');
+      asyncio.run(node.start());
+      import time;
+      while True: time.sleep(1)
+      "
+
+  node2:
+    build: .
+    container_name: bazinga-node-2
+    environment:
+      - BAZINGA_PORT=5151
+      - BAZINGA_NODE_ID=node_beta
+    ports:
+      - "5151:5151"
+    command: python -c "
+      from bazinga.darmiyan import BazingaNode;
+      import asyncio;
+      node = BazingaNode(port=5151, node_id='node_beta');
+      print(f'Node Beta started: {node.node_id}');
+      asyncio.run(node.start());
+      import time;
+      while True: time.sleep(1)
+      "
+
+  node3:
+    build: .
+    container_name: bazinga-node-3
+    environment:
+      - BAZINGA_PORT=5152
+      - BAZINGA_NODE_ID=node_gamma
+    ports:
+      - "5152:5152"
+    command: python -c "
+      from bazinga.darmiyan import BazingaNode;
+      import asyncio;
+      node = BazingaNode(port=5152, node_id='node_gamma');
+      print(f'Node Gamma started: {node.node_id}');
+      asyncio.run(node.start());
+      import time;
+      while True: time.sleep(1)
+      "
+
+  # Test runner - runs consensus test against the 3 nodes
+  test:
+    build: .
+    container_name: bazinga-test
+    depends_on:
+      - node1
+      - node2
+      - node3
+    command: python -c "
+      import time;
+      time.sleep(3);  # Wait for nodes to start
+      from bazinga.darmiyan import achieve_consensus;
+      print('Testing triadic consensus...');
+      result = achieve_consensus();
+      print(f'Result: {result.message}');
+      print(f'Average ratio: {result.average_ratio:.4f}');
+      for i, p in enumerate(result.proofs):
+        print(f'  Node {i+1}: ratio={p.ratio:.3f} valid={p.valid}');
+      "
+    profiles:
+      - test
