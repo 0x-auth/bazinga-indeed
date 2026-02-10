@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bazinga-indeed"
-version = "3.3.0"
-description = "BAZINGA - Distributed AI with Federated Learning"
+version = "3.4.0"
+description = "BAZINGA - Distributed AI with Consciousness (Quantum + ΛG + Tensor)"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -14,7 +14,8 @@ authors = [
 keywords = [
     "ai", "distributed", "consciousness", "phi", "golden-ratio",
     "rag", "embeddings", "llm", "groq", "vector-database",
-    "federated-learning", "lora", "differential-privacy", "p2p"
+    "federated-learning", "lora", "differential-privacy", "p2p",
+    "quantum", "lambda-g", "tensor", "vac", "emergence"
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

@@ -12,8 +12,29 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "3.3.0"
+__version__ = "3.4.0"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
+
+# New in v3.4.0: Quantum, ΛG, Tensor modules
+def get_quantum_processor():
+    """Get the Quantum Processor (superposition processing)."""
+    from .quantum import QuantumProcessor
+    return QuantumProcessor()
+
+def get_lambda_g():
+    """Get the ΛG Boundary Operator (solution emergence)."""
+    from .lambda_g import LambdaGOperator
+    return LambdaGOperator()
+
+def get_tensor_engine():
+    """Get the Tensor Intersection Engine (trust calculation)."""
+    from .tensor import TensorIntersectionEngine
+    return TensorIntersectionEngine()
+
+def get_constants():
+    """Get all universal constants (φ, α, ψ, etc.)."""
+    from . import constants
+    return constants
 
 # Lazy imports for optional components
 def get_intelligent_coder():
