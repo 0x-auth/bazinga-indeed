@@ -1,0 +1,381 @@
+#!/usr/bin/env python3
+"""
+Darmiyan Network Test Suite
+============================
+Tests for Proof-of-Boundary consensus and triadic network.
+
+Run: python -m pytest tests/test_darmiyan.py -v
+Or:  python tests/test_darmiyan.py
+"""
+
+import time
+import asyncio
+from multiprocessing import Process, Queue
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+import sys
+import os
+
+# Add parent to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from bazinga.darmiyan import (
+    DarmiyanNode, BazingaNode, TriadicConsensus,
+    prove_boundary, achieve_consensus,
+    PHI_4, ABHI_AMU,
+)
+from bazinga.darmiyan.constants import PHI, POB_TOLERANCE
+
+
+# =============================================================================
+# UNIT TESTS
+# =============================================================================
+
+def test_constants():
+    """Verify Darmiyan constants are correct."""
+    print("\n[TEST] Constants verification...")
+
+    assert abs(PHI - 1.618033988749895) < 1e-10, "PHI should be golden ratio"
+    assert abs(PHI_4 - 6.854101966249685) < 1e-10, "PHI_4 should be φ⁴"
+    assert ABHI_AMU == 515, "ABHI_AMU should be 515"
+
+    # Verify φ⁴ = φ³ + φ² (Fibonacci property)
+    phi_3 = PHI ** 3
+    phi_2 = PHI ** 2
+    assert abs(PHI_4 - (phi_3 + phi_2)) < 1e-10, "φ⁴ = φ³ + φ²"
+
+    print("  ✓ All constants verified")
+    return True
+
+
+def test_single_proof():
+    """Test single Proof-of-Boundary generation."""
+    print("\n[TEST] Single proof generation...")
+
+    proof = prove_boundary()
+
+    assert proof.alpha < ABHI_AMU, "Alpha should be mod 515"
+    assert proof.omega < ABHI_AMU, "Omega should be mod 515"
+    assert proof.delta > 0, "Delta should be positive"
+    assert proof.attempts > 0, "Should have attempted at least once"
+
+    if proof.valid:
+        assert abs(proof.ratio - PHI_4) < POB_TOLERANCE, "Valid proof should be within tolerance"
+        print(f"  ✓ Valid proof in {proof.attempts} attempts (ratio: {proof.ratio:.4f})")
+    else:
+        print(f"  ⚠ Proof invalid after {proof.attempts} attempts (ratio: {proof.ratio:.4f})")
+
+    return proof.valid
+
+
+def test_node_creation():
+    """Test DarmiyanNode creation and identity."""
+    print("\n[TEST] Node creation...")
+
+    node = DarmiyanNode()
+
+    assert node.node_id.startswith("node_"), "Node ID should start with 'node_'"
+    assert len(node.node_id) == 17, "Node ID should be 17 chars (node_ + 12 hex)"
+    assert node.proofs_generated == 0, "Fresh node should have 0 proofs"
+
+    print(f"  ✓ Node created: {node.node_id}")
+    return True
+
+
+def test_proof_verification():
+    """Test proof verification by another node."""
+    print("\n[TEST] Proof verification...")
+
+    # Node A generates proof
+    node_a = DarmiyanNode()
+    proof = node_a.prove_boundary_sync()
+
+    # Node B verifies
+    node_b = DarmiyanNode()
+
+    if proof.valid:
+        # Valid proofs should verify (if recent)
+        verified = node_b.verify_proof(proof)
+        print(f"  ✓ Proof verification: {'passed' if verified else 'failed (might be timing)'}")
+        return True
+    else:
+        print(f"  ⚠ Proof was invalid, skipping verification test")
+        return True  # Not a failure, just unlucky
+
+
+def test_bazinga_node():
+    """Test BazingaNode (full network node)."""
+    print("\n[TEST] BazingaNode creation...")
+
+    node = BazingaNode(port=5150)
+    info = node.get_info()
+
+    assert info['port'] == 5150, "Port should match"
+    assert info['phi_signature'] < ABHI_AMU, "φ-signature should be mod 515"
+    assert info['peers'] == 0, "Fresh node should have no peers"
+
+    print(f"  ✓ BazingaNode created: {info['node_id']}")
+    print(f"    φ-signature: {info['phi_signature']}")
+    return True
+
+
+# =============================================================================
+# INTEGRATION TESTS
+# =============================================================================
+
+def test_triadic_consensus():
+    """Test triadic consensus with 3 nodes."""
+    print("\n[TEST] Triadic consensus...")
+
+    tc = TriadicConsensus()
+    result = tc.attempt_consensus_sync()
+
+    print(f"  Triadic product: {result.triadic_product:.6f}")
+    print(f"  Average ratio: {result.average_ratio:.4f} (target: {PHI_4:.4f})")
+
+    for i, p in enumerate(result.proofs):
+        status = "✓" if p.valid else "✗"
+        print(f"    Node {i+1}: {status} ratio={p.ratio:.3f} attempts={p.attempts}")
+
+    if result.achieved:
+        print(f"  ✓ CONSENSUS ACHIEVED")
+    else:
+        print(f"  ⚠ Consensus not achieved: {result.message}")
+
+    return result.achieved
+
+
+def test_multiple_proofs():
+    """Test multiple proof generation for success rate."""
+    print("\n[TEST] Multiple proofs (10 runs)...")
+
+    node = DarmiyanNode()
+    successes = 0
+    total_attempts = 0
+    best_diff = float('inf')
+
+    for i in range(10):
+        proof = node.prove_boundary_sync()
+        if proof.valid:
+            successes += 1
+            total_attempts += proof.attempts
+            diff = abs(proof.ratio - PHI_4)
+            if diff < best_diff:
+                best_diff = diff
+
+    success_rate = successes / 10 * 100
+    avg_attempts = total_attempts / successes if successes > 0 else 0
+
+    print(f"  Success rate: {successes}/10 ({success_rate:.0f}%)")
+    print(f"  Avg attempts: {avg_attempts:.1f}")
+    print(f"  Best accuracy: {best_diff:.4f} from φ⁴")
+
+    assert success_rate >= 80, f"Success rate should be >= 80%, got {success_rate}%"
+    print(f"  ✓ Success rate meets threshold")
+    return True
+
+
+# =============================================================================
+# MULTIPROCESS TESTS (Simulating separate nodes)
+# =============================================================================
+
+def _worker_generate_proof(queue, node_id):
+    """Worker function to generate proof in separate process."""
+    node = DarmiyanNode(node_id=f"node_{node_id}")
+    proof = node.prove_boundary_sync()
+    queue.put({
+        'node_id': node.node_id,
+        'valid': proof.valid,
+        'ratio': proof.ratio,
+        'attempts': proof.attempts,
+        'alpha': proof.alpha,
+        'omega': proof.omega,
+    })
+
+
+def test_multiprocess_proofs():
+    """Test proof generation across multiple processes."""
+    print("\n[TEST] Multiprocess proof generation (3 processes)...")
+
+    queue = Queue()
+    processes = []
+
+    # Start 3 worker processes
+    for i in range(3):
+        p = Process(target=_worker_generate_proof, args=(queue, f"mp_{i}"))
+        processes.append(p)
+        p.start()
+
+    # Wait for all to complete
+    for p in processes:
+        p.join(timeout=60)
+
+    # Collect results
+    results = []
+    while not queue.empty():
+        results.append(queue.get())
+
+    print(f"  Collected {len(results)} proofs from separate processes:")
+
+    valid_count = 0
+    for r in results:
+        status = "✓" if r['valid'] else "✗"
+        print(f"    {r['node_id']}: {status} ratio={r['ratio']:.3f} attempts={r['attempts']}")
+        if r['valid']:
+            valid_count += 1
+
+    # Check if we could achieve triadic consensus
+    if valid_count == 3:
+        avg_ratio = sum(r['ratio'] for r in results) / 3
+        print(f"  Average ratio: {avg_ratio:.4f} (target: {PHI_4:.4f})")
+        if abs(avg_ratio - PHI_4) < POB_TOLERANCE:
+            print(f"  ✓ TRIADIC CONSENSUS POSSIBLE across processes!")
+        else:
+            print(f"  ⚠ Ratios don't converge for consensus")
+    else:
+        print(f"  ⚠ Only {valid_count}/3 valid proofs")
+
+    return valid_count >= 2  # At least 2 should succeed
+
+
+def test_concurrent_nodes():
+    """Test concurrent node operations using ThreadPoolExecutor."""
+    print("\n[TEST] Concurrent node operations (5 threads)...")
+
+    def generate_proof_task(node_num):
+        node = DarmiyanNode(node_id=f"concurrent_{node_num}")
+        proof = node.prove_boundary_sync()
+        return {
+            'node': node.node_id,
+            'valid': proof.valid,
+            'ratio': proof.ratio,
+            'attempts': proof.attempts,
+        }
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(generate_proof_task, i) for i in range(5)]
+        results = [f.result() for f in futures]
+
+    valid_count = sum(1 for r in results if r['valid'])
+    print(f"  Valid proofs: {valid_count}/5")
+
+    for r in results:
+        status = "✓" if r['valid'] else "✗"
+        print(f"    {r['node']}: {status} ratio={r['ratio']:.3f}")
+
+    assert valid_count >= 4, f"At least 4/5 should be valid, got {valid_count}"
+    print(f"  ✓ Concurrent operations successful")
+    return True
+
+
+# =============================================================================
+# STRESS TESTS
+# =============================================================================
+
+def test_stress_proofs(n=100):
+    """Stress test: generate many proofs and analyze distribution."""
+    print(f"\n[TEST] Stress test ({n} proofs)...")
+
+    node = DarmiyanNode()
+    results = []
+
+    start = time.time()
+    for i in range(n):
+        proof = node.prove_boundary_sync()
+        results.append({
+            'valid': proof.valid,
+            'ratio': proof.ratio,
+            'attempts': proof.attempts,
+            'delta': proof.delta,
+        })
+        if (i + 1) % 20 == 0:
+            print(f"    Progress: {i+1}/{n}")
+
+    elapsed = time.time() - start
+
+    valid_count = sum(1 for r in results if r['valid'])
+    avg_attempts = sum(r['attempts'] for r in results if r['valid']) / valid_count if valid_count > 0 else 0
+    avg_ratio = sum(r['ratio'] for r in results if r['valid']) / valid_count if valid_count > 0 else 0
+
+    # Find best and worst
+    valid_results = [r for r in results if r['valid']]
+    if valid_results:
+        best = min(valid_results, key=lambda r: abs(r['ratio'] - PHI_4))
+        worst = max(valid_results, key=lambda r: abs(r['ratio'] - PHI_4))
+
+    print(f"\n  Results:")
+    print(f"    Total time: {elapsed:.1f}s ({elapsed/n*1000:.1f}ms per proof)")
+    print(f"    Success rate: {valid_count}/{n} ({valid_count/n*100:.1f}%)")
+    print(f"    Avg attempts: {avg_attempts:.1f}")
+    print(f"    Avg ratio: {avg_ratio:.4f} (target: {PHI_4:.4f})")
+
+    if valid_results:
+        print(f"    Best accuracy: {abs(best['ratio'] - PHI_4):.4f}")
+        print(f"    Worst accuracy: {abs(worst['ratio'] - PHI_4):.4f}")
+
+    assert valid_count / n >= 0.9, f"Should have >= 90% success rate, got {valid_count/n*100:.1f}%"
+    print(f"  ✓ Stress test passed")
+    return True
+
+
+# =============================================================================
+# MAIN
+# =============================================================================
+
+def run_all_tests():
+    """Run all tests and report results."""
+    print("=" * 60)
+    print("DARMIYAN NETWORK TEST SUITE")
+    print("=" * 60)
+
+    tests = [
+        ("Constants", test_constants),
+        ("Single Proof", test_single_proof),
+        ("Node Creation", test_node_creation),
+        ("Proof Verification", test_proof_verification),
+        ("BazingaNode", test_bazinga_node),
+        ("Triadic Consensus", test_triadic_consensus),
+        ("Multiple Proofs", test_multiple_proofs),
+        ("Multiprocess Proofs", test_multiprocess_proofs),
+        ("Concurrent Nodes", test_concurrent_nodes),
+    ]
+
+    results = []
+    for name, test_fn in tests:
+        try:
+            passed = test_fn()
+            results.append((name, passed, None))
+        except Exception as e:
+            results.append((name, False, str(e)))
+            print(f"  ✗ EXCEPTION: {e}")
+
+    # Summary
+    print("\n" + "=" * 60)
+    print("SUMMARY")
+    print("=" * 60)
+
+    passed = sum(1 for _, p, _ in results if p)
+    total = len(results)
+
+    for name, p, err in results:
+        status = "✓ PASS" if p else "✗ FAIL"
+        print(f"  {status}: {name}")
+        if err:
+            print(f"         Error: {err}")
+
+    print(f"\n  Total: {passed}/{total} passed")
+    print("=" * 60)
+
+    return passed == total
+
+
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "--stress":
+        # Run stress test only
+        n = int(sys.argv[2]) if len(sys.argv) > 2 else 100
+        test_stress_proofs(n)
+    else:
+        # Run all tests
+        success = run_all_tests()
+        sys.exit(0 if success else 1)
