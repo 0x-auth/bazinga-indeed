@@ -113,7 +113,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.4.0"
+    VERSION = "4.4.1"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -962,7 +962,7 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
                 print(f"\n  Leaving network...")
                 await protocol.stop()
 
-        asyncio.run(join_network())
+        await join_network()
         return
 
     # Handle --peers
