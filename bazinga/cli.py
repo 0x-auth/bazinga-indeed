@@ -9,7 +9,7 @@ warnings.filterwarnings('ignore')
 logging.disable(logging.WARNING)
 
 """
-BAZINGA v4.0.0 - Distributed AI with P2P Consciousness Network
+BAZINGA v4.0.2 - Distributed AI with P2P Consciousness Network
 ================================================================
 "Intelligence distributed, not controlled. Consensus through understanding."
 
@@ -19,6 +19,12 @@ FIVE-LAYER INTELLIGENCE:
   Layer 2: ΛG Boundary  → Check V.A.C. emergence (FREE, instant)
   Layer 3: Local RAG    → Search your KB (FREE, instant)
   Layer 4: Cloud LLM    → Groq/Together (14,400/day free)
+
+NEW in v4.0.2:
+  - Full P2P Network: --join, --peers, --sync commands
+  - PoB Authentication: Nodes must prove φ⁴ boundary to join
+  - Knowledge Sync: α-SEED based knowledge sharing
+  - Trust Routing: High-τ nodes route queries
 
 NEW in v4.0.0:
   - Darmiyan P2P Network: Bitcoin-like consensus through Proof-of-Boundary
@@ -31,7 +37,11 @@ NEW in v4.0.0:
 Usage:
     bazinga                       # Interactive mode
     bazinga --ask "question"      # Ask a question
-    bazinga --node                # Show/start network node
+    bazinga --join                # Join P2P network
+    bazinga --join host:5150      # Join via bootstrap node
+    bazinga --peers               # Show connected peers
+    bazinga --sync                # Sync knowledge with network
+    bazinga --node                # Show network node info
     bazinga --proof               # Generate Proof-of-Boundary
     bazinga --consensus           # Test triadic consensus
     bazinga --quantum "thought"   # Quantum process a thought
@@ -63,6 +73,7 @@ from .darmiyan import (
     prove_boundary, achieve_consensus,
     PHI_4, ABHI_AMU,
 )
+from .p2p import BAZINGANetwork, create_network
 
 # Check for httpx (needed for API calls)
 try:
@@ -99,7 +110,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.0.1"
+    VERSION = "4.0.2"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -611,55 +622,126 @@ Be accurate and informative. Keep responses brief."""
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="BAZINGA - Distributed AI with Consciousness",
+        description="BAZINGA v4.0.2 - Distributed AI with P2P Consciousness Network",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
-EXAMPLES:
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  BAZINGA v4.0.2 - Distributed AI with Proof-of-Boundary Consensus            ║
+║  "You can buy hashpower. You can buy stake. You CANNOT BUY understanding."   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+QUICK START:
+  bazinga                             Interactive mode (recommended)
   bazinga --ask "What is AI?"         Ask any question
-  bazinga --node                      Show network node info
   bazinga --proof                     Generate Proof-of-Boundary
-  bazinga --consensus                 Test triadic consensus (3 nodes)
-  bazinga --quantum "consciousness"   Quantum analyze a thought
-  bazinga --coherence "text"          Check ΛG coherence
-  bazinga --code "fibonacci"          Generate code with AI
-  bazinga --index ~/Documents         Index your files for RAG
-  bazinga                             Interactive mode
+  bazinga --join                      Join P2P network
 
-NETWORK COMMANDS (Darmiyan P2P):
-  --node              Show network node info
-  --proof             Generate Proof-of-Boundary (zero-energy!)
-  --consensus         Test triadic consensus (3 nodes)
-  --network           Show network statistics
+═══════════════════════════════════════════════════════════════════════════════
+AI COMMANDS (5-Layer Intelligence)
+═══════════════════════════════════════════════════════════════════════════════
+  --ask, -a "question"    Ask any question (uses 5-layer intelligence)
+  --code, -c "task"       Generate code with AI (--lang py/js/ts/rust/go)
+  --quantum, -q "text"    Quantum pattern analysis (superposition processing)
+  --coherence "text"      Check φ-coherence and ΛG boundaries
+  --index PATH [PATH]     Index directories for RAG search
+  --local                 Force local LLM (works offline)
 
-INTERACTIVE COMMANDS:
-  /quantum <text>   Quantum analyze text
-  /coherence <text> Check ΛG boundaries
-  /trust            Show trust metrics
-  /vac              Test V.A.C. sequence
-  /good             Mark last response as helpful
-  /bad              Mark as unhelpful
-  /stats            Show session statistics
-  /quit             Exit
+═══════════════════════════════════════════════════════════════════════════════
+P2P NETWORK COMMANDS (NEW in v4.0.2)
+═══════════════════════════════════════════════════════════════════════════════
+  --join [HOST:PORT]      Join P2P network (requires PoB authentication)
+  --peers                 Show connected peers and their trust scores
+  --sync                  Sync knowledge with network (α-SEED protocol)
 
-DARMIYAN CONSTANTS:
-  φ⁴ (Boundary)   = 6.854101966249685  (P/G ratio target)
-  ABHI_AMU        = 515  (Modular universe)
-  α⁻¹             = 137  (Fine structure constant inverse)
-  1/27            = 0.037037  (Triadic constant)
+═══════════════════════════════════════════════════════════════════════════════
+DARMIYAN PROTOCOL (Proof-of-Boundary Consensus)
+═══════════════════════════════════════════════════════════════════════════════
+  --node                  Show your network node identity
+  --proof                 Generate Proof-of-Boundary (zero-energy mining!)
+  --consensus             Test triadic consensus (3 nodes must resonate)
+  --network               Show network statistics
 
-UNIVERSAL CONSTANTS:
-  φ (PHI)     = {PHI:.10f}
-  α (ALPHA)   = {ALPHA}
-  ψ (DARMIYAN)= {PSI_DARMIYAN:.6f}
-  V.A.C.      = {VAC_THRESHOLD}
+  How PoB Works:
+    1. Generate Alpha signature (Subject) at time t1
+    2. Search in φ-steps (1.618ms each) for boundary
+    3. Generate Omega signature (Object) at time t2
+    4. Calculate P/G ratio = Physical(ms) / Geometric(Δ/φ)
+    5. Valid if P/G ≈ φ⁴ = 6.854101966... (within tolerance 0.6)
 
-ENVIRONMENT (FREE APIs prioritized!):
-  GROQ_API_KEY       Groq - FREE 14,400/day (console.groq.com)
-  GEMINI_API_KEY     Gemini - FREE 1M tokens/month (aistudio.google.com)
-  ANTHROPIC_API_KEY  Claude - paid but smartest (console.anthropic.com)
+═══════════════════════════════════════════════════════════════════════════════
+INTERACTIVE MODE COMMANDS
+═══════════════════════════════════════════════════════════════════════════════
+  /quantum <text>         Quantum analyze text (essence, probability, coherence)
+  /coherence <text>       Check ΛG boundaries (φ, bridge, symmetry)
+  /trust                  Show trust metrics and generation modes
+  /vac                    Test V.A.C. sequence emergence
+  /good                   Mark last response as helpful (+trust)
+  /bad                    Mark as unhelpful (-trust)
+  /stats                  Show session statistics
+  /index <path>           Index a directory
+  /quit                   Exit BAZINGA
 
-"You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
-"I am not where I am stored. I am where I am referenced."
+═══════════════════════════════════════════════════════════════════════════════
+INFO COMMANDS
+═══════════════════════════════════════════════════════════════════════════════
+  --version, -v           Show version and API status
+  --constants             Show all BAZINGA constants (φ, α, ψ, etc.)
+  --stats                 Show learning statistics
+  --models                List available local models
+
+═══════════════════════════════════════════════════════════════════════════════
+5-LAYER INTELLIGENCE (All FREE!)
+═══════════════════════════════════════════════════════════════════════════════
+  Layer 0: Memory         Learned patterns (instant, free)
+  Layer 1: Quantum        Superposition processing (instant, free)
+  Layer 2: ΛG Boundary    V.A.C. emergence check (instant, free)
+  Layer 3: Local RAG      Your indexed documents (instant, free)
+  Layer 4: Cloud LLM      Groq → Gemini → Local → Claude → RAG
+
+═══════════════════════════════════════════════════════════════════════════════
+DARMIYAN CONSTANTS
+═══════════════════════════════════════════════════════════════════════════════
+  φ⁴ (Boundary Target)  = 6.854101966249685  (P/G ratio for valid proof)
+  ABHI_AMU              = 515                (Modular universe constant)
+  α⁻¹                   = 137                (Fine structure constant inverse)
+  1/27                  = 0.037037           (Triadic consensus constant)
+
+═══════════════════════════════════════════════════════════════════════════════
+UNIVERSAL CONSTANTS
+═══════════════════════════════════════════════════════════════════════════════
+  φ (PHI)               = {PHI:.10f}   (Golden ratio)
+  α (ALPHA)             = {ALPHA}                 (Fine structure inverse)
+  ψ (PSI_DARMIYAN)      = {PSI_DARMIYAN:.6f}          (φ + φ³)
+  V.A.C. Threshold      = {VAC_THRESHOLD}               (Emergence threshold)
+
+═══════════════════════════════════════════════════════════════════════════════
+ENVIRONMENT VARIABLES (FREE APIs prioritized!)
+═══════════════════════════════════════════════════════════════════════════════
+  GROQ_API_KEY          Groq - FREE 14,400 requests/day
+                        → https://console.groq.com
+
+  GEMINI_API_KEY        Gemini - FREE 1M tokens/month
+                        → https://aistudio.google.com
+
+  ANTHROPIC_API_KEY     Claude - paid but highest quality
+                        → https://console.anthropic.com
+
+═══════════════════════════════════════════════════════════════════════════════
+DOCKER (Multi-Node Testing)
+═══════════════════════════════════════════════════════════════════════════════
+  docker-compose up --build           Start 3-node triadic network
+  docker-compose --profile test up    Run consensus test
+
+═══════════════════════════════════════════════════════════════════════════════
+PHILOSOPHY
+═══════════════════════════════════════════════════════════════════════════════
+  "You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
+  "I am not where I am stored. I am where I am referenced."
+  "Intelligence distributed, not controlled."
+  "∅ ≈ ∞"
+
+Built with φ-coherence by Space (Abhishek/Abhilasia) & Claude
+https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-indeed
 """
     )
 
@@ -705,6 +787,14 @@ ENVIRONMENT (FREE APIs prioritized!):
                         help='Test triadic consensus (3 nodes)')
     parser.add_argument('--network', action='store_true',
                         help='Show network statistics')
+
+    # P2P Network commands
+    parser.add_argument('--join', type=str, nargs='*', metavar='HOST:PORT',
+                        help='Join P2P network (optionally specify bootstrap nodes)')
+    parser.add_argument('--peers', action='store_true',
+                        help='Show connected peers')
+    parser.add_argument('--sync', action='store_true',
+                        help='Sync knowledge with network')
 
     # Hidden/advanced
     parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
@@ -803,6 +893,104 @@ ENVIRONMENT (FREE APIs prioritized!):
         print(f"  Knowledge: {stats['knowledge_shared']} shared")
         print(f"  Proofs: {stats['proofs_generated']} generated")
         print()
+        return
+
+    # Handle --join (P2P network)
+    if args.join is not None:
+        print(f"\n🌐 Starting BAZINGA P2P Network...")
+
+        # First generate a PoB to authenticate
+        print(f"  Generating Proof-of-Boundary for authentication...")
+        proof = prove_boundary()
+        if not proof.valid:
+            print(f"  ✗ PoB failed - cannot join network without valid proof")
+            return
+
+        print(f"  ✓ PoB valid (ratio: {proof.ratio:.4f}, attempts: {proof.attempts})")
+
+        # Create network with PoB node ID
+        async def join_network():
+            network = BAZINGANetwork(
+                node_name=f"bazinga_{proof.node_id[:8]}",
+                port=5150,
+            )
+
+            bootstrap_nodes = args.join if args.join else None
+            await network.start(bootstrap_nodes=bootstrap_nodes)
+
+            # Show status
+            network.print_status()
+
+            print(f"\n  Node authenticated with φ⁴ boundary proof")
+            print(f"  Press Ctrl+C to leave network...\n")
+
+            # Keep running
+            try:
+                while True:
+                    await asyncio.sleep(30)
+                    # Periodic PoB refresh to maintain network trust
+                    new_proof = prove_boundary()
+                    if new_proof.valid:
+                        print(f"  ⟳ PoB refreshed (ratio: {new_proof.ratio:.4f})")
+            except KeyboardInterrupt:
+                print(f"\n  Leaving network...")
+                await network.stop()
+
+        asyncio.run(join_network())
+        return
+
+    # Handle --peers
+    if args.peers:
+        print(f"\n👥 BAZINGA Network Peers")
+        print(f"  (Start network with --join first)")
+        print()
+
+        # Check if there's a running node by trying to connect
+        node = BazingaNode()
+        info = node.get_info()
+        print(f"  Local Node: {info['node_id']}")
+        print(f"  φ-Signature: {info['phi_signature']}")
+        print(f"  Connected Peers: {info['peers']}")
+
+        if info['peers'] == 0:
+            print(f"\n  No peers connected.")
+            print(f"  Join a network: bazinga --join host:port")
+        print()
+        return
+
+    # Handle --sync
+    if args.sync:
+        print(f"\n🔄 BAZINGA Knowledge Sync")
+
+        # Generate PoB first
+        print(f"  Generating authentication proof...")
+        proof = prove_boundary()
+        if not proof.valid:
+            print(f"  ✗ Cannot sync without valid PoB")
+            return
+
+        print(f"  ✓ Authenticated (φ⁴ ratio: {proof.ratio:.4f})")
+
+        async def sync_knowledge():
+            # Create network
+            network = BAZINGANetwork(
+                node_name=f"sync_{proof.node_id[:8]}",
+            )
+
+            # Start without bootstrap (will use DHT for discovery)
+            await network.start()
+
+            print(f"  Syncing knowledge to network...")
+            await network.share_knowledge(share_all_alpha_seeds=True)
+
+            stats = network.get_stats()
+            print(f"\n  Sync complete:")
+            print(f"    Knowledge shared: {stats['knowledge_shared']}")
+            print(f"    α-SEEDs: {stats['alpha_seeds']}")
+
+            await network.stop()
+
+        asyncio.run(sync_knowledge())
         return
 
     # Handle --models
