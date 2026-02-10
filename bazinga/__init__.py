@@ -12,7 +12,7 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "2.6.0"
+__version__ = "3.0.0"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
 
 # Lazy imports for optional components
@@ -61,3 +61,13 @@ def get_distributed_inference():
     """Get DistributedInference for P2P model serving."""
     from .inference import DistributedInference
     return DistributedInference
+
+def get_dao_governance():
+    """Get DAOGovernance for decentralized governance."""
+    from .decentralized import DAOGovernance
+    return DAOGovernance
+
+def get_peer_discovery():
+    """Get BootstrapFreeDiscovery for P2P peer discovery."""
+    from .decentralized import BootstrapFreeDiscovery
+    return BootstrapFreeDiscovery
