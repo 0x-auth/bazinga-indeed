@@ -5,13 +5,19 @@
 ```
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                  ║
-║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.3.0      ⟨ψ|Λ|Ω⟩            ║
+║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.5.1      ⟨ψ|Λ|Ω⟩            ║
 ║                                                                  ║
 ║    "You can buy hashpower. You can buy stake.                   ║
 ║     You CANNOT BUY understanding."                               ║
 ║                                                                  ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
+
+[![PyPI](https://img.shields.io/pypi/v/bazinga-indeed)](https://pypi.org/project/bazinga-indeed/)
+[![HuggingFace](https://img.shields.io/badge/HuggingFace-Space-yellow)](https://huggingface.co/spaces/bitsabhi/bazinga)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**Try it now:** https://huggingface.co/spaces/bitsabhi/bazinga
 
 ## What is BAZINGA?
 
@@ -317,8 +323,15 @@ bazinga                           # Start interactive
 - [x] **Phase 6**: P2P Commands (--join, --peers, --sync) ✓
 - [x] **Phase 7**: ZeroMQ Transport (Real networking!) ✓
 - [x] **Phase 8**: Federated Learning (collective intelligence!) ✓
-- [x] **Phase 9**: Darmiyan Blockchain (knowledge chain!) ✓ **NEW in v4.3.0!**
-- [ ] **Phase 10**: Smart Contracts & Full Decentralization
+- [x] **Phase 9**: Darmiyan Blockchain (knowledge chain!) ✓
+- [x] **Phase 10**: Trust Oracle (φ-weighted reputation) ✓ **v4.4.0**
+- [x] **Phase 11**: Full Integration Layers ✓ **v4.5.0**
+  - Knowledge Ledger
+  - Gradient Validator
+  - Inference Market
+  - Smart Contracts
+- [x] **Phase 12**: HuggingFace Space Deployment ✓ **v4.5.1**
+- [ ] **Phase 13**: Self-sufficient distributed model (no external APIs)
 
 ---
 
@@ -363,5 +376,10 @@ MIT License — Use it, modify it, share it. Keep it open.
 
 **Built with φ-coherence by Space & Claude**
 
-[![PyPI](https://img.shields.io/pypi/v/bazinga-indeed)](https://pypi.org/project/bazinga-indeed/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+---
+
+## Links
+
+- **PyPI:** https://pypi.org/project/bazinga-indeed/
+- **HuggingFace Space:** https://huggingface.co/spaces/bitsabhi/bazinga
+- **GitHub:** https://github.com/0x-auth/bazinga-indeed
