@@ -42,6 +42,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.core.intelligence.real_ai import RealAI
 from src.core.lambda_g import LambdaGOperator, PHI
 from src.core.symbol import SymbolShell
+from .learning import get_memory, LearningMemory
 
 # Check for Groq
 try:
@@ -64,7 +65,7 @@ class BAZINGA:
     Layer 3 only called when necessary.
     """
 
-    VERSION = "3.1.0"
+    VERSION = "3.2.0"
 
     def __init__(self):
         self.symbol_shell = SymbolShell()
@@ -73,11 +74,16 @@ class BAZINGA:
         self.session_start = datetime.now()
         self.queries = []
 
+        # Learning memory
+        self.memory = get_memory()
+        self.memory.start_session()
+
         # Stats
         self.stats = {
             'vac_emerged': 0,
             'rag_answered': 0,
             'llm_called': 0,
+            'from_memory': 0,
         }
 
         # Groq config
@@ -117,39 +123,54 @@ class BAZINGA:
 
     async def ask(self, question: str, verbose: bool = False) -> str:
         """
-        Ask a question using 3-layer intelligence.
+        Ask a question using 4-layer intelligence with learning.
         """
         self.queries.append(question)
+
+        # Layer 0: Check learned patterns (instant)
+        cached = self.memory.find_similar_question(question)
+        if cached and cached.get('coherence', 0) > 0.7:
+            self.stats['from_memory'] += 1
+            return cached['answer']
 
         # Layer 1: Check V.A.C. (Symbol Shell)
         vac_result = self.symbol_shell.analyze(question)
         if vac_result.is_vac:
             self.stats['vac_emerged'] += 1
+            self.memory.record_interaction(question, vac_result.emerged_solution, 'vac', 0.9)
             return vac_result.emerged_solution
 
-        # Layer 2: Local RAG
+        # Layer 2: Local RAG - only use if VERY relevant
         results = self.ai.search(question, limit=5)
+        best_similarity = results[0].similarity if results else 0
 
-        if results:
-            avg_coherence = sum(r.coherence_boost for r in results) / len(results)
-            best_similarity = results[0].similarity if results else 0
+        # Only trust RAG for high similarity (>0.75) - otherwise use LLM
+        use_rag_only = best_similarity > 0.75
 
-            # If good local match, use it
-            if best_similarity > 0.5 and avg_coherence > 0.6:
-                self.stats['rag_answered'] += 1
-                return self._format_rag_response(question, results)
+        # Layer 3: Cloud LLM (Groq) - prefer this for general questions
+        if self.groq_key and HTTPX_AVAILABLE and not use_rag_only:
+            # Add conversation context for continuity
+            conv_context = self.memory.get_context(2)
+            rag_context = self._build_context(results) if best_similarity > 0.3 else ""
+            full_context = f"{conv_context}\n\n{rag_context}".strip()
 
-        # Layer 3: Cloud LLM (Groq)
-        if self.groq_key and HTTPX_AVAILABLE:
-            context = self._build_context(results)
-            response = await self._call_groq(question, context)
+            response = await self._call_groq(question, full_context)
             if response:
                 self.stats['llm_called'] += 1
+                self.memory.record_interaction(question, response, 'llm', 0.8)
                 return response
 
-        # Fallback: Return RAG results
-        self.stats['rag_answered'] += 1
-        return self._format_rag_response(question, results)
+        # Fallback to RAG if LLM unavailable or RAG is very relevant
+        if results and best_similarity > 0.4:
+            self.stats['rag_answered'] += 1
+            response = self._format_rag_response(question, results)
+            self.memory.record_interaction(question, response, 'rag', best_similarity)
+            return response
+
+        # No good answer
+        if not self.groq_key:
+            return "Set GROQ_API_KEY for AI answers, or index relevant docs with: bazinga --index ~/path"
+        return "I don't have relevant information for this question."
 
     def _build_context(self, results) -> str:
         """Build context string from RAG results."""
@@ -227,14 +248,10 @@ Answer concisely and helpfully."""
     async def interactive(self):
         """Run interactive mode."""
         print("◊ BAZINGA INTERACTIVE MODE ◊")
-        print("-" * 50)
-        print("Commands:")
-        print("  /index <path>  - Index a directory")
-        print("  /stats         - Show statistics")
-        print("  /vac           - Test V.A.C. sequence")
-        print("  /quit          - Exit")
-        print("-" * 50)
+        print("Commands: /index /stats /good /bad /quit")
         print()
+
+        last_response = ""
 
         while True:
             try:
@@ -244,6 +261,7 @@ Answer concisely and helpfully."""
                     continue
 
                 if query.lower() in ['/quit', '/exit', '/q']:
+                    self.memory.end_session()
                     print("\n✨ BAZINGA signing off.")
                     break
 
@@ -256,8 +274,17 @@ Answer concisely and helpfully."""
                     self._show_stats()
                     continue
 
+                if query == '/good' and last_response:
+                    self.memory.record_feedback(self.queries[-1] if self.queries else "", last_response, 1)
+                    print("👍 Thanks! I'll remember that.\n")
+                    continue
+
+                if query == '/bad' and last_response:
+                    self.memory.record_feedback(self.queries[-1] if self.queries else "", last_response, -1)
+                    print("👎 Got it. I'll try to do better.\n")
+                    continue
+
                 if query == '/vac':
-                    # Test V.A.C. sequence
                     test = "०→◌→φ→Ω⇄Ω←φ←◌←०"
                     print(f"\nTesting: {test}")
                     response = await self.ask(test)
@@ -265,9 +292,11 @@ Answer concisely and helpfully."""
                     continue
 
                 response = await self.ask(query)
+                last_response = response
                 print(f"\nBAZINGA: {response}\n")
 
             except KeyboardInterrupt:
+                self.memory.end_session()
                 print("\n\n✨ BAZINGA signing off.")
                 break
             except EOFError:
@@ -276,18 +305,13 @@ Answer concisely and helpfully."""
     def _show_stats(self):
         """Show current statistics."""
         ai_stats = self.ai.get_stats()
-        shell_stats = self.symbol_shell.get_stats()
+        memory_stats = self.memory.get_stats()
 
         print(f"\n📊 BAZINGA Stats:")
-        print(f"   Knowledge chunks: {ai_stats.get('total_chunks', 0)}")
         print(f"   Queries this session: {len(self.queries)}")
-        print()
-        print(f"   Layer 1 (V.A.C. emerged): {self.stats['vac_emerged']}")
-        print(f"   Layer 2 (RAG answered): {self.stats['rag_answered']}")
-        print(f"   Layer 3 (LLM called): {self.stats['llm_called']}")
-        print()
-        print(f"   φ = {shell_stats['phi']}")
-        print(f"   α = {shell_stats['alpha']}")
+        print(f"   Memory: {self.stats['from_memory']} | VAC: {self.stats['vac_emerged']} | RAG: {self.stats['rag_answered']} | LLM: {self.stats['llm_called']}")
+        print(f"   Patterns learned: {memory_stats['patterns_learned']}")
+        print(f"   Feedback: {memory_stats['positive_feedback']}👍 {memory_stats['negative_feedback']}👎")
         print()
 
 
