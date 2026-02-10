@@ -12,7 +12,7 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "3.5.0"
+__version__ = "3.5.1"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
 
 # New in v3.4.0: Quantum, ΛG, Tensor modules
