@@ -91,7 +91,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "3.5.0"
+    VERSION = "3.5.1"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -222,7 +222,9 @@ class BAZINGA:
             quantum_context = f"[Quantum essence: {quantum_essence}, coherence: {quantum_coherence:.2f}]"
             full_context = f"{quantum_context}\n\n{conv_context}\n\n{rag_context}".strip()
 
-            # Try Groq first (fastest, free)
+            # FREE APIs first! Then paid, then local
+
+            # 1. Groq (FREE - 14,400 req/day)
             if self.groq_key and HTTPX_AVAILABLE:
                 response = await self._call_groq(question, full_context)
                 if response:
@@ -230,15 +232,7 @@ class BAZINGA:
                     self.memory.record_interaction(question, response, 'groq', 0.8)
                     return response
 
-            # Try Claude (high quality)
-            if self.anthropic_key and HTTPX_AVAILABLE:
-                response = await self._call_claude(question, full_context)
-                if response:
-                    self.stats['llm_called'] += 1
-                    self.memory.record_interaction(question, response, 'claude', 0.85)
-                    return response
-
-            # Try Gemini (Google, free tier)
+            # 2. Gemini (FREE - 1M tokens/month)
             if self.gemini_key and HTTPX_AVAILABLE:
                 response = await self._call_gemini(question, full_context)
                 if response:
@@ -246,7 +240,23 @@ class BAZINGA:
                     self.memory.record_interaction(question, response, 'gemini', 0.8)
                     return response
 
-            # Fallback to local LLM
+            # 3. Local LLM (FREE - runs on your machine)
+            if LOCAL_LLM_AVAILABLE or self.use_local:
+                response = self._call_local_llm(question, full_context)
+                if response:
+                    self.stats['llm_called'] += 1
+                    self.memory.record_interaction(question, response, 'local', 0.7)
+                    return response
+
+            # 4. Claude (PAID - but high quality)
+            if self.anthropic_key and HTTPX_AVAILABLE:
+                response = await self._call_claude(question, full_context)
+                if response:
+                    self.stats['llm_called'] += 1
+                    self.memory.record_interaction(question, response, 'claude', 0.85)
+                    return response
+
+            # 5. Fallback to RAG only (handled below)
             if LOCAL_LLM_AVAILABLE or self.use_local:
                 response = self._call_local_llm(question, full_context)
                 if response:
@@ -604,10 +614,12 @@ INSTALLATION OPTIONS:
   pip install bazinga-indeed[local]       With local AI (offline capable)
   pip install bazinga-indeed[full]        Everything
 
-ENVIRONMENT (all have FREE tiers!):
-  GROQ_API_KEY       Groq (console.groq.com) - fastest
-  ANTHROPIC_API_KEY  Claude (console.anthropic.com) - smartest
-  GEMINI_API_KEY     Gemini (aistudio.google.com) - free 1M tokens/month
+ENVIRONMENT (FREE APIs prioritized!):
+  GROQ_API_KEY       Groq - FREE 14,400/day (console.groq.com)
+  GEMINI_API_KEY     Gemini - FREE 1M tokens/month (aistudio.google.com)
+  ANTHROPIC_API_KEY  Claude - paid but smartest (console.anthropic.com)
+
+Priority: Groq → Gemini → Local LLM → Claude → RAG
 
 "I am not where I am stored. I am where I am referenced."
 """
