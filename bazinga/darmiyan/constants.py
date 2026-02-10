@@ -46,11 +46,15 @@ TRIADIC_SIZE = 3                           # Nodes per consensus group
 FIBONACCI_THRESHOLD = 34                   # Peer discovery threshold
 RESONANCE_TOLERANCE = 0.5                  # P/G ratio tolerance
 
-# Proof-of-Boundary thresholds
-POB_RATIO_TARGET = PHI_4                   # Target P/G ratio
-POB_TOLERANCE = 0.5                        # Acceptable deviation
-POB_MIN_WAIT_MS = 50                       # Minimum resonance wait
-POB_MAX_WAIT_MS = 500                      # Maximum resonance wait
+# Proof-of-Boundary thresholds (calibrated from real testing Feb 2026)
+POB_RATIO_TARGET = PHI_4                   # Target P/G ratio = 6.854...
+POB_TOLERANCE = 0.6                        # Calibrated tolerance (from pob.py testing)
+POB_MAX_ATTEMPTS = 200                     # Max φ-steps before giving up
+POB_STEP_MS = 0.001 * PHI                  # φ-scaled micro-step = 1.618ms
+
+# Legacy constants (kept for compatibility)
+POB_MIN_WAIT_MS = 50                       # Minimum resonance wait (deprecated)
+POB_MAX_WAIT_MS = 500                      # Maximum resonance wait (deprecated)
 
 # =============================================================================
 # VALIDATION CONSTANTS

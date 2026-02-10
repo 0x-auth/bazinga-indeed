@@ -99,7 +99,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.0.0"
+    VERSION = "4.0.1"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -754,15 +754,18 @@ ENVIRONMENT (FREE APIs prioritized!):
     # Handle --proof (Proof-of-Boundary)
     if args.proof:
         print(f"\n⚡ Generating Proof-of-Boundary...")
+        print(f"  (Adaptive φ-step search, max 200 attempts)")
         proof = prove_boundary()
         status = "✓ VALID" if proof.valid else "✗ INVALID"
-        print(f"\n  Status: {status}")
+        diff = abs(proof.ratio - PHI_4)
+        print(f"\n  Status: {status} (found on attempt {proof.attempts})")
         print(f"  Alpha (Subject): {proof.alpha}")
         print(f"  Omega (Object): {proof.omega}")
         print(f"  Delta: {proof.delta}")
         print(f"  Physical: {proof.physical_ms:.2f}ms")
         print(f"  Geometric: {proof.geometric:.2f}")
-        print(f"  P/G Ratio: {proof.ratio:.3f} (target: {PHI_4:.3f})")
+        print(f"  P/G Ratio: {proof.ratio:.4f} (target: {PHI_4:.4f})")
+        print(f"  Accuracy: {diff:.4f} from φ⁴")
         print(f"  Node: {proof.node_id}")
         print()
         print(f"  Energy used: ~0 (understanding, not hashpower)")
