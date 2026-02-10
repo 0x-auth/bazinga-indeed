@@ -12,7 +12,7 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "3.2.0"
+__version__ = "3.3.0"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
 
 # Lazy imports for optional components
