@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bazinga-indeed"
-version = "3.2.0"
+version = "3.3.0"
 description = "BAZINGA - Distributed AI with Federated Learning"
 readme = "README.md"
 license = {text = "MIT"}
@@ -42,6 +42,10 @@ dev = [
     "black>=23.0.0",
     "mypy>=1.0.0",
 ]
+local = [
+    "llama-cpp-python>=0.2.0",
+    "huggingface_hub>=0.20.0",
+]
 federated = [
     "torch>=2.0.0",
 ]
@@ -49,6 +53,8 @@ full = [
     "torch>=2.0.0",
     "chromadb>=0.4.0",
     "sentence-transformers>=2.2.0",
+    "llama-cpp-python>=0.2.0",
+    "huggingface_hub>=0.20.0",
 ]
 
 [project.urls]

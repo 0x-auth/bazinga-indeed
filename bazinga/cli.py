@@ -51,6 +51,13 @@ try:
 except ImportError:
     HTTPX_AVAILABLE = False
 
+# Check for local LLM
+try:
+    from .local_llm import LocalLLM, get_local_llm
+    LOCAL_LLM_AVAILABLE = LocalLLM.is_available()
+except ImportError:
+    LOCAL_LLM_AVAILABLE = False
+
 
 class BAZINGA:
     """
@@ -65,7 +72,7 @@ class BAZINGA:
     Layer 3 only called when necessary.
     """
 
-    VERSION = "3.2.0"
+    VERSION = "3.3.0"
 
     def __init__(self):
         self.symbol_shell = SymbolShell()
@@ -86,9 +93,11 @@ class BAZINGA:
             'from_memory': 0,
         }
 
-        # Groq config
+        # LLM config
         self.groq_key = os.environ.get('GROQ_API_KEY')
         self.groq_model = "llama-3.1-8b-instant"
+        self.local_llm = None
+        self.use_local = False
 
         self._print_banner()
 
@@ -147,18 +156,27 @@ class BAZINGA:
         # Only trust RAG for high similarity (>0.75) - otherwise use LLM
         use_rag_only = best_similarity > 0.75
 
-        # Layer 3: Cloud LLM (Groq) - prefer this for general questions
-        if self.groq_key and HTTPX_AVAILABLE and not use_rag_only:
-            # Add conversation context for continuity
+        # Layer 3: LLM (Cloud or Local)
+        if not use_rag_only:
             conv_context = self.memory.get_context(2)
             rag_context = self._build_context(results) if best_similarity > 0.3 else ""
             full_context = f"{conv_context}\n\n{rag_context}".strip()
 
-            response = await self._call_groq(question, full_context)
-            if response:
-                self.stats['llm_called'] += 1
-                self.memory.record_interaction(question, response, 'llm', 0.8)
-                return response
+            # Try Groq first (faster)
+            if self.groq_key and HTTPX_AVAILABLE:
+                response = await self._call_groq(question, full_context)
+                if response:
+                    self.stats['llm_called'] += 1
+                    self.memory.record_interaction(question, response, 'llm', 0.8)
+                    return response
+
+            # Fallback to local LLM
+            if LOCAL_LLM_AVAILABLE or self.use_local:
+                response = self._call_local_llm(question, full_context)
+                if response:
+                    self.stats['llm_called'] += 1
+                    self.memory.record_interaction(question, response, 'local', 0.7)
+                    return response
 
         # Fallback to RAG if LLM unavailable or RAG is very relevant
         if results and best_similarity > 0.4:
@@ -168,8 +186,8 @@ class BAZINGA:
             return response
 
         # No good answer
-        if not self.groq_key:
-            return "Set GROQ_API_KEY for AI answers, or index relevant docs with: bazinga --index ~/path"
+        if not self.groq_key and not LOCAL_LLM_AVAILABLE:
+            return "No AI available. Either:\n  - Set GROQ_API_KEY for cloud AI\n  - pip install llama-cpp-python for local AI\n  - bazinga --index ~/path to index docs"
         return "I don't have relevant information for this question."
 
     def _build_context(self, results) -> str:
@@ -245,6 +263,22 @@ Answer concisely and helpfully."""
 
         return None
 
+    def _call_local_llm(self, question: str, context: str) -> Optional[str]:
+        """Call local LLM for response."""
+        try:
+            if self.local_llm is None:
+                from .local_llm import get_local_llm
+                self.local_llm = get_local_llm()
+
+            if context:
+                prompt = f"Context: {context[:500]}\n\nQuestion: {question}\n\nAnswer:"
+            else:
+                prompt = question
+
+            return self.local_llm.generate(prompt)
+        except Exception:
+            return None
+
     async def interactive(self):
         """Run interactive mode."""
         print("◊ BAZINGA INTERACTIVE MODE ◊")
@@ -317,33 +351,95 @@ Answer concisely and helpfully."""
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="BAZINGA - Distributed AI",
+        description="BAZINGA - Distributed AI that belongs to everyone",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  bazinga                          # Interactive TUI mode
-  bazinga --ask "What is AI?"      # Ask a question
-  bazinga --code "fibonacci"       # LLM-powered code generation (NEW!)
-  bazinga --code "api client" --lang js  # Generate JavaScript with LLM
-  bazinga --generate user_auth     # Template-based code generation
-  bazinga --index ~/Documents      # Index a directory
-  bazinga --vac                    # Test V.A.C. sequence
+EXAMPLES:
+  bazinga --ask "What is AI?"         Ask any question
+  bazinga --ask "explain quantum"     Get detailed explanations
+  bazinga --code "fibonacci"          Generate code with AI
+  bazinga --index ~/Documents         Index your files for RAG
+  bazinga --local                     Use local AI (no internet)
+  bazinga                             Interactive mode
 
-Philosophy: "I am not where I am stored. I am where I am referenced."
+INTERACTIVE COMMANDS:
+  /good      Mark last response as helpful (learns)
+  /bad       Mark as unhelpful (adapts)
+  /stats     Show session statistics
+  /index     Index a directory
+  /quit      Exit
+
+INSTALLATION OPTIONS:
+  pip install bazinga-indeed              Basic (needs GROQ_API_KEY)
+  pip install bazinga-indeed[local]       With local AI (offline capable)
+  pip install bazinga-indeed[full]        Everything
+
+ENVIRONMENT:
+  GROQ_API_KEY    Your Groq API key (free at console.groq.com)
+
+"I am not where I am stored. I am where I am referenced."
 """
     )
-    parser.add_argument('--ask', type=str, help='Ask a question')
-    parser.add_argument('--code', type=str, help='LLM-powered intelligent code generation')
-    parser.add_argument('--generate', type=str, help='Template-based code generation (no LLM)')
-    parser.add_argument('--lang', type=str, default='python',
+
+    # Main options
+    parser.add_argument('--ask', '-a', type=str, metavar='QUESTION',
+                        help='Ask a question (uses AI)')
+    parser.add_argument('--code', '-c', type=str, metavar='TASK',
+                        help='Generate code for a task')
+    parser.add_argument('--lang', '-l', type=str, default='python',
                         choices=['python', 'javascript', 'js', 'typescript', 'ts', 'rust', 'go'],
                         help='Language for code generation (default: python)')
-    parser.add_argument('--index', nargs='+', help='Directories to index')
-    parser.add_argument('--demo', action='store_true', help='Run demo')
-    parser.add_argument('--vac', action='store_true', help='Test V.A.C. sequence')
-    parser.add_argument('--simple', action='store_true', help='Use simple CLI instead of TUI')
+    parser.add_argument('--index', '-i', nargs='+', metavar='PATH',
+                        help='Index directories for RAG search')
+
+    # Mode options
+    parser.add_argument('--local', action='store_true',
+                        help='Use local LLM (downloads model on first use, then offline)')
+    parser.add_argument('--simple', '-s', action='store_true',
+                        help='Simple CLI mode (no TUI)')
+
+    # Info options
+    parser.add_argument('--stats', action='store_true',
+                        help='Show learning statistics')
+    parser.add_argument('--models', action='store_true',
+                        help='List available local models')
+    parser.add_argument('--version', '-v', action='store_true',
+                        help='Show version')
+
+    # Hidden/advanced
+    parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--demo', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--generate', type=str, help=argparse.SUPPRESS)
 
     args = parser.parse_args()
+
+    # Handle --version
+    if args.version:
+        print(f"BAZINGA v{BAZINGA.VERSION}")
+        print(f"  Groq API: {'configured' if os.environ.get('GROQ_API_KEY') else 'not set'}")
+        print(f"  Local LLM: {'available' if LOCAL_LLM_AVAILABLE else 'not installed'}")
+        return
+
+    # Handle --models
+    if args.models:
+        from .local_llm import MODELS
+        print("Available local models:")
+        for name, config in MODELS.items():
+            print(f"  {name}: {config['size_mb']}MB - {config['file']}")
+        print("\nInstall local AI: pip install llama-cpp-python")
+        return
+
+    # Handle --stats
+    if args.stats:
+        memory = get_memory()
+        stats = memory.get_stats()
+        print(f"\nBAZINGA Learning Stats:")
+        print(f"  Sessions: {stats['total_sessions']}")
+        print(f"  Patterns learned: {stats['patterns_learned']}")
+        print(f"  Feedback: {stats['positive_feedback']} good, {stats['negative_feedback']} bad")
+        if stats['total_feedback'] > 0:
+            print(f"  Approval rate: {stats['approval_rate']*100:.1f}%")
+        return
 
     # Handle LLM-powered code generation (NEW!)
     if args.code:
@@ -390,6 +486,8 @@ Philosophy: "I am not where I am stored. I am where I am referenced."
     # Handle ask
     if args.ask:
         bazinga = BAZINGA()
+        if args.local:
+            bazinga.use_local = True
         response = await bazinga.ask(args.ask)
         print(f"\n{response}\n")
         return
@@ -404,8 +502,11 @@ Philosophy: "I am not where I am stored. I am where I am referenced."
         return
 
     # Default: Interactive mode
+    bazinga = BAZINGA()
+    if args.local:
+        bazinga.use_local = True
+
     if args.simple:
-        bazinga = BAZINGA()
         await bazinga.interactive()
     else:
         # Try TUI mode
@@ -413,9 +514,7 @@ Philosophy: "I am not where I am stored. I am where I am referenced."
             from .tui import run_tui
             run_tui()
         except ImportError:
-            print("TUI requires 'rich'. Install with: pip install rich")
             print("Falling back to simple mode...\n")
-            bazinga = BAZINGA()
             await bazinga.interactive()
 
 
