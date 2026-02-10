@@ -562,17 +562,16 @@ ENVIRONMENT:
 
     # Handle --constants
     if args.constants:
-        from .constants import (PHI, PHI_INVERSE, ALPHA, PSI_DARMIYAN,
-                                VAC_THRESHOLD, VAC_SEQUENCE, PROGRESSION_35)
+        from . import constants as c
         print("\nBAZINGA Universal Constants:")
-        print(f"  φ (PHI)         = {PHI}")
-        print(f"  1/φ             = {PHI_INVERSE}")
-        print(f"  α (ALPHA)       = {ALPHA}")
-        print(f"  ψ (PSI_DARMIYAN)= {PSI_DARMIYAN}")
-        print(f"  V.A.C. Threshold= {VAC_THRESHOLD}")
+        print(f"  φ (PHI)         = {c.PHI}")
+        print(f"  1/φ             = {c.PHI_INVERSE}")
+        print(f"  α (ALPHA)       = {c.ALPHA}")
+        print(f"  ψ (PSI_DARMIYAN)= {c.PSI_DARMIYAN}")
+        print(f"  V.A.C. Threshold= {c.VAC_THRESHOLD}")
         print()
-        print(f"  V.A.C. Sequence: {VAC_SEQUENCE}")
-        print(f"  Progression: {PROGRESSION_35}")
+        print(f"  V.A.C. Sequence: {c.VAC_SEQUENCE}")
+        print(f"  Progression: {c.PROGRESSION_35}")
         return
 
     # Handle --models
