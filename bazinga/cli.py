@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+# Suppress ML library noise BEFORE any imports
+import os, warnings, logging
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+os.environ['HF_HUB_DISABLE_PROGRESS_BARS'] = '1'
+os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
+os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
+warnings.filterwarnings('ignore')
+logging.disable(logging.WARNING)
+
 """
 BAZINGA - Distributed AI
 "Intelligence distributed, not controlled"
@@ -55,7 +64,7 @@ class BAZINGA:
     Layer 3 only called when necessary.
     """
 
-    VERSION = "2.4.0"
+    VERSION = "3.1.0"
 
     def __init__(self):
         self.symbol_shell = SymbolShell()
@@ -78,24 +87,11 @@ class BAZINGA:
         self._print_banner()
 
     def _print_banner(self):
+        """Minimal clean banner."""
         print()
-        print("╔══════════════════════════════════════════════════════════════════╗")
-        print("║                                                                  ║")
-        print("║   ⟨ψ|Λ|Ω⟩          B A Z I N G A          ⟨ψ|Λ|Ω⟩               ║")
-        print("║                                                                  ║")
-        print("║         'Intelligence distributed, not controlled'               ║")
-        print("║                                                                  ║")
-        print("╠══════════════════════════════════════════════════════════════════╣")
-        print("║                                                                  ║")
-        print(f"║   Version: {self.VERSION:<53}║")
-        print("║                                                                  ║")
-        print("║   Intelligence Layers:                                           ║")
-        print("║     1. Symbol Shell (λG) → V.A.C. emergence                      ║")
-        print("║     2. Local RAG         → Your Mac KB                           ║")
-        groq_status = "✓ configured" if self.groq_key else "○ set GROQ_API_KEY"
-        print(f"║     3. Cloud LLM (Groq)  → {groq_status:<35}║")
-        print("║                                                                  ║")
-        print("╚══════════════════════════════════════════════════════════════════╝")
+        print("BAZINGA v" + self.VERSION)
+        if not self.groq_key:
+            print("(Set GROQ_API_KEY for AI responses)")
         print()
 
     async def index(self, paths: List[str], verbose: bool = True) -> Dict[str, Any]:
@@ -119,70 +115,33 @@ class BAZINGA:
 
         return total_stats
 
-    async def ask(self, question: str, verbose: bool = True) -> str:
+    async def ask(self, question: str, verbose: bool = False) -> str:
         """
         Ask a question using 3-layer intelligence.
-
-        Layer 1: Check V.A.C. (Symbol Shell)
-        Layer 2: Search local KB (RAG)
-        Layer 3: Call Groq API (only if needed)
         """
         self.queries.append(question)
 
-        if verbose:
-            print(f"\n🔍 Question: {question}")
-
-        # ═══════════════════════════════════════════════════════════════
-        # LAYER 1: Symbol Shell - Check for V.A.C.
-        # ═══════════════════════════════════════════════════════════════
-        if verbose:
-            print("   Layer 1: Checking V.A.C. (Symbol Shell)...")
-
+        # Layer 1: Check V.A.C. (Symbol Shell)
         vac_result = self.symbol_shell.analyze(question)
-
         if vac_result.is_vac:
             self.stats['vac_emerged'] += 1
-            if verbose:
-                print("   ★ V.A.C. ACHIEVED - Solution EMERGED ★")
             return vac_result.emerged_solution
 
-        if verbose:
-            print(f"   → Coherence: {vac_result.coherence:.2f} (V.A.C. not achieved)")
-
-        # ═══════════════════════════════════════════════════════════════
-        # LAYER 2: Local RAG - Search your Mac KB
-        # ═══════════════════════════════════════════════════════════════
-        if verbose:
-            print("   Layer 2: Searching local knowledge base...")
-
+        # Layer 2: Local RAG
         results = self.ai.search(question, limit=5)
 
-        if verbose:
-            print(f"   → Found {len(results)} relevant chunks")
-
-        # If we have good results and high coherence, use them directly
         if results:
             avg_coherence = sum(r.coherence_boost for r in results) / len(results)
             best_similarity = results[0].similarity if results else 0
 
-            if verbose:
-                print(f"   → Best similarity: {best_similarity:.2f}, Avg coherence: {avg_coherence:.2f}")
-
-            # If good enough, return RAG result without API call
-            if best_similarity > 0.7 or avg_coherence > 0.6:
+            # If good local match, use it
+            if best_similarity > 0.5 and avg_coherence > 0.6:
                 self.stats['rag_answered'] += 1
                 return self._format_rag_response(question, results)
 
-        # ═══════════════════════════════════════════════════════════════
-        # LAYER 3: Cloud LLM (Groq) - Only if needed
-        # ═══════════════════════════════════════════════════════════════
+        # Layer 3: Cloud LLM (Groq)
         if self.groq_key and HTTPX_AVAILABLE:
-            if verbose:
-                print("   Layer 3: Calling Groq API...")
-
-            # Build context from RAG results
             context = self._build_context(results)
-
             response = await self._call_groq(question, context)
             if response:
                 self.stats['llm_called'] += 1
@@ -206,26 +165,16 @@ class BAZINGA:
     def _format_rag_response(self, question: str, results) -> str:
         """Format RAG results as response."""
         if not results:
+            if not self.groq_key:
+                return "No info found. Set GROQ_API_KEY for AI answers."
             return "I don't have relevant information for this question."
 
-        response_parts = [f"Based on your knowledge base:\n"]
+        # Just show the top result content cleanly
+        top = results[0].chunk
+        content = top.content[:500].strip()
+        source = Path(top.source_file).name
 
-        for i, r in enumerate(results[:3], 1):
-            chunk = r.chunk
-            preview = chunk.content[:300].strip()
-            if len(chunk.content) > 300:
-                preview += "..."
-
-            response_parts.append(
-                f"\n{i}. From {Path(chunk.source_file).name} "
-                f"(coherence: {chunk.coherence:.2f}):\n"
-                f"   {preview}"
-            )
-
-        if not self.groq_key:
-            response_parts.append("\n\n💡 Set GROQ_API_KEY for AI-generated summaries.")
-
-        return "\n".join(response_parts)
+        return f"{content}\n\n[Source: {source}]"
 
     async def _call_groq(self, question: str, context: str) -> Optional[str]:
         """Call Groq API for LLM response."""
@@ -233,17 +182,17 @@ class BAZINGA:
             return None
 
         system_prompt = """You are BAZINGA, a distributed AI assistant.
-You provide helpful, concise answers based on the context provided.
-If the context doesn't have enough info, say so honestly."""
+You provide helpful, concise answers. Use context if relevant, otherwise use your general knowledge.
+Be accurate and informative."""
 
         if context:
-            prompt = f"""Based on this context:
+            prompt = f"""Context (use if relevant, otherwise use general knowledge):
 
 {context}
 
-Answer: {question}
+Question: {question}
 
-Be concise and helpful."""
+Answer concisely and helpfully."""
         else:
             prompt = question
 
@@ -269,11 +218,9 @@ Be concise and helpful."""
                 if response.status_code == 200:
                     data = response.json()
                     return data["choices"][0]["message"]["content"]
-                else:
-                    print(f"   ⚠️ Groq API error: {response.status_code}")
 
-        except Exception as e:
-            print(f"   ⚠️ Groq error: {e}")
+        except Exception:
+            pass  # Silent fallback
 
         return None
 
