@@ -34,28 +34,58 @@ import subprocess
 # Add parent paths for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-# Core imports
+# Suppress ALL noisy output from ML libs
+import warnings
+import logging
+import os
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+os.environ['HF_HUB_DISABLE_PROGRESS_BARS'] = '1'
+os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
+os.environ['HF_HUB_DISABLE_IMPLICIT_TOKEN'] = '1'
+os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
+os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
+warnings.filterwarnings('ignore')
+logging.getLogger('sentence_transformers').setLevel(logging.CRITICAL)
+logging.getLogger('chromadb').setLevel(logging.CRITICAL)
+logging.getLogger('transformers').setLevel(logging.CRITICAL)
+logging.getLogger('huggingface_hub').setLevel(logging.CRITICAL)
+logging.getLogger('filelock').setLevel(logging.CRITICAL)
+logging.getLogger('urllib3').setLevel(logging.CRITICAL)
+
+# Disable tqdm globally
+try:
+    from tqdm import tqdm
+    from functools import partialmethod
+    tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
+except:
+    pass
+
+# Suppress HF warnings about authentication
+try:
+    import huggingface_hub
+    huggingface_hub.utils.logging.set_verbosity_error()
+except:
+    pass
+
+# Core imports (silent)
 try:
     import chromadb
     from chromadb.config import Settings
     CHROMADB_AVAILABLE = True
 except ImportError:
     CHROMADB_AVAILABLE = False
-    print("⚠️  ChromaDB not installed. Run: pip install chromadb")
 
 try:
     from sentence_transformers import SentenceTransformer
     EMBEDDINGS_AVAILABLE = True
 except ImportError:
     EMBEDDINGS_AVAILABLE = False
-    print("⚠️  sentence-transformers not installed. Run: pip install sentence-transformers")
 
 try:
     import httpx
     HTTPX_AVAILABLE = True
 except ImportError:
     HTTPX_AVAILABLE = False
-    print("⚠️  httpx not installed. Run: pip install httpx")
 
 # BAZINGA imports
 from src.core.lambda_g import LambdaGOperator, PHI, CoherenceState
@@ -155,17 +185,21 @@ class RealAI:
         if PHI_COHERENCE_AVAILABLE:
             self.phi_coherence = PhiCoherence()
 
-        # Initialize embedding model
+        # Initialize embedding model (silent)
         self.embedding_model_name = embedding_model
         self.embedder = None
         if EMBEDDINGS_AVAILABLE:
-            print(f"Loading embedding model: {embedding_model}")
-            self.embedder = SentenceTransformer(embedding_model)
+            import sys, io
+            old_stderr = sys.stderr
+            sys.stderr = io.StringIO()
+            try:
+                self.embedder = SentenceTransformer(embedding_model, device='cpu')
+            finally:
+                sys.stderr = old_stderr
 
-        # Initialize ChromaDB
+        # Initialize ChromaDB (silent)
         self.collection = None
         if CHROMADB_AVAILABLE:
-            print(f"Initializing vector database at: {self.persist_dir}")
             self.client = chromadb.PersistentClient(path=self.persist_dir)
             self.collection = self.client.get_or_create_collection(
                 name="bazinga_knowledge",
@@ -187,27 +221,8 @@ class RealAI:
         self._print_banner()
 
     def _print_banner(self):
-        """Print initialization banner."""
-        print()
-        print("◊════════════════════════════════════════════════════════════◊")
-        print("          BAZINGA REAL AI - Practical Intelligence            ")
-        print("◊════════════════════════════════════════════════════════════◊")
-        print()
-        print(f"  Version: {self.VERSION}")
-        print(f"  Embedding Model: {self.embedding_model_name}")
-        print(f"  Vector DB: {self.persist_dir}")
-        print(f"  LLM: {'Ollama (' + self.ollama_model + ')' if self.ollama_available else 'API fallback'}")
-        print()
-        print("  Components:")
-        print(f"    ChromaDB: {'✓' if CHROMADB_AVAILABLE else '✗'}")
-        print(f"    Embeddings: {'✓' if EMBEDDINGS_AVAILABLE else '✗'}")
-        print(f"    Ollama: {'✓' if self.ollama_available else '✗'}")
-        print(f"    λG Coherence: ✓")
-        print()
-        print("  'Your Mac IS the training data - now with real AI'")
-        print()
-        print("◊════════════════════════════════════════════════════════════◊")
-        print()
+        """Silent - no banner for clean UX."""
+        pass
 
     def _check_ollama(self) -> bool:
         """Check if Ollama is available."""
