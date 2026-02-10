@@ -776,6 +776,212 @@ def test_trust_oracle():
 
 
 # =============================================================================
+# INTEGRATION LAYER TESTS (v4.5.0)
+# =============================================================================
+
+def test_knowledge_ledger():
+    """Test knowledge ledger."""
+    print("\n[TEST] Knowledge ledger...")
+
+    from bazinga.blockchain import KnowledgeLedger, create_ledger
+
+    ledger = create_ledger()
+
+    # Record a contribution
+    contribution = ledger.record_contribution(
+        contributor="node_test_1",
+        content="The golden ratio φ = 1.618...",
+        contribution_type="knowledge",
+        metadata={"topic": "mathematics"}
+    )
+
+    if contribution:
+        print(f"  ✓ Contribution recorded")
+        print(f"    Hash: {contribution.payload_hash[:16]}...")
+        print(f"    Coherence: {contribution.coherence_score:.3f}")
+        print(f"    Credits: {contribution.get_credit_value():.3f}")
+
+        # Check credits
+        credits = ledger.get_contributor_credits("node_test_1")
+        assert credits > 0, "Contributor should have credits"
+        print(f"    Total credits: {credits:.3f}")
+    else:
+        print(f"  ⚠ Contribution rejected (coherence too low)")
+
+    return True
+
+
+def test_gradient_validator():
+    """Test gradient validator."""
+    print("\n[TEST] Gradient validator...")
+
+    from bazinga.blockchain import GradientValidator, create_validator
+
+    validator = create_validator()
+
+    # Register validators
+    validator.register_validator("val_1")
+    validator.register_validator("val_2")
+    validator.register_validator("val_3")
+
+    # Submit a gradient
+    update = validator.submit_gradient(
+        submitter="trainer_1",
+        gradient_hash="abc123def456",
+        model_version="v1.0",
+        loss_improvement=0.05,
+    )
+
+    assert update is not None
+    print(f"  ✓ Gradient submitted")
+    print(f"    Hash: {update.gradient_hash}")
+
+    # Submit validations
+    validator.validate_gradient(
+        validator="val_1",
+        gradient_hash="abc123def456",
+        approved=True,
+        improvement_verified=True,
+        coherence_score=0.8,
+    )
+
+    validator.validate_gradient(
+        validator="val_2",
+        gradient_hash="abc123def456",
+        approved=True,
+        improvement_verified=True,
+        coherence_score=0.75,
+    )
+
+    validator.validate_gradient(
+        validator="val_3",
+        gradient_hash="abc123def456",
+        approved=True,
+        improvement_verified=True,
+        coherence_score=0.85,
+    )
+
+    # Check if accepted
+    accepted = validator.get_accepted_gradients()
+    assert len(accepted) > 0, "Gradient should be accepted"
+    print(f"  ✓ Gradient accepted by triadic consensus")
+
+    stats = validator.get_stats()
+    print(f"    Validators: {stats['validators']}")
+    print(f"    Accepted: {stats['accepted_updates']}")
+
+    return True
+
+
+def test_inference_market():
+    """Test inference market."""
+    print("\n[TEST] Inference market...")
+
+    from bazinga.blockchain import InferenceMarket, create_market
+
+    market = create_market()
+
+    # Register providers
+    market.register_provider("provider_1", capacity=5)
+    market.register_provider("provider_2", capacity=5)
+
+    # Give requester some credits
+    market.add_credits("requester_1", 10.0, "test")
+
+    # Request inference
+    request = market.request_inference(
+        requester="requester_1",
+        query="What is the golden ratio?",
+    )
+
+    assert request is not None
+    print(f"  ✓ Request created")
+    print(f"    ID: {request.request_id}")
+    print(f"    Status: {request.status.value}")
+
+    if request.provider:
+        # Complete the request
+        completed = market.complete_inference(
+            request_id=request.request_id,
+            response="The golden ratio φ ≈ 1.618",
+            coherence_score=0.9,
+        )
+
+        print(f"  ✓ Request completed")
+        print(f"    Provider: {completed.provider}")
+        print(f"    Coherence: {completed.coherence_score}")
+
+    stats = market.get_market_stats()
+    print(f"    Providers: {stats['providers']}")
+    print(f"    Completed: {stats['completed_requests']}")
+
+    return True
+
+
+def test_smart_contracts():
+    """Test smart contracts."""
+    print("\n[TEST] Smart contracts...")
+
+    from bazinga.blockchain import ContractEngine, create_engine
+    from bazinga.blockchain import create_market
+
+    market = create_market()
+    engine = create_engine(inference_market=market)
+
+    # Give creator credits for bounty
+    market.add_credits("creator_1", 100.0, "test")
+
+    # Create a bounty contract
+    contract = engine.create_bounty(
+        creator="creator_1",
+        description="Explain quantum entanglement",
+        bounty_credits=10.0,
+        required_coherence=0.7,
+    )
+
+    assert contract is not None
+    print(f"  ✓ Contract created")
+    print(f"    ID: {contract.contract_id}")
+    print(f"    Type: {contract.contract_type.value}")
+    print(f"    Bounty: {contract.terms.bounty_credits}")
+
+    # Register reviewers
+    engine.register_reviewer("reviewer_1")
+    engine.register_reviewer("reviewer_2")
+    engine.register_reviewer("reviewer_3")
+
+    # Submit a solution
+    submission = engine.submit_solution(
+        contract_id=contract.contract_id,
+        submitter="solver_1",
+        content="Quantum entanglement is when particles share correlated states...",
+    )
+
+    print(f"  ✓ Solution submitted")
+    print(f"    Coherence: {submission.coherence_score:.3f}")
+
+    # Submit reviews
+    for reviewer in ["reviewer_1", "reviewer_2", "reviewer_3"]:
+        engine.review_submission(
+            contract_id=contract.contract_id,
+            submission_hash=submission.content_hash,
+            reviewer=reviewer,
+            approved=True,
+            comments="Good explanation",
+        )
+
+    # Check if executed
+    updated_contract = engine.get_contract(contract.contract_id)
+    print(f"  ✓ Contract status: {updated_contract.status.value}")
+
+    stats = engine.get_stats()
+    print(f"    Total contracts: {stats['total_contracts']}")
+    print(f"    Executed: {stats['executed']}")
+
+    return True
+
+
+# =============================================================================
 # MAIN
 # =============================================================================
 
@@ -816,6 +1022,11 @@ def run_all_tests():
         ("Chain Validation", test_chain_validation),
         # Trust Layer Tests
         ("Trust Oracle", test_trust_oracle),
+        # Integration Layer Tests (v4.5.0)
+        ("Knowledge Ledger", test_knowledge_ledger),
+        ("Gradient Validator", test_gradient_validator),
+        ("Inference Market", test_inference_market),
+        ("Smart Contracts", test_smart_contracts),
     ]
 
     results = []

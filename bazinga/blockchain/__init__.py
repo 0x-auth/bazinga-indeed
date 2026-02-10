@@ -29,9 +29,14 @@ from .chain import DarmiyanChain, create_chain
 from .wallet import Wallet, create_wallet
 from .miner import PoBMiner, mine_block
 from .trust_oracle import TrustOracle, NodeTrust, create_trust_oracle
+from .knowledge_ledger import KnowledgeLedger, KnowledgeContribution, create_ledger
+from .gradient_validator import GradientValidator, GradientUpdate, create_validator
+from .inference_market import InferenceMarket, InferenceRequest, create_market
+from .smart_contracts import ContractEngine, UnderstandingContract, create_engine
 
-__version__ = "1.1.0"
+__version__ = "2.0.0"
 __all__ = [
+    # Core Chain (v1.0.0)
     'Block',
     'BlockHeader',
     'create_genesis_block',
@@ -47,4 +52,17 @@ __all__ = [
     'TrustOracle',
     'NodeTrust',
     'create_trust_oracle',
+    # Integration Layers (v2.0.0)
+    'KnowledgeLedger',
+    'KnowledgeContribution',
+    'create_ledger',
+    'GradientValidator',
+    'GradientUpdate',
+    'create_validator',
+    'InferenceMarket',
+    'InferenceRequest',
+    'create_market',
+    'ContractEngine',
+    'UnderstandingContract',
+    'create_engine',
 ]
