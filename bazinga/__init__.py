@@ -12,7 +12,7 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "3.5.2"
+__version__ = "4.3.0"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
 
 # New in v3.4.0: Quantum, ΛG, Tensor modules
@@ -92,3 +92,18 @@ def get_peer_discovery():
     """Get BootstrapFreeDiscovery for P2P peer discovery."""
     from .decentralized import BootstrapFreeDiscovery
     return BootstrapFreeDiscovery
+
+def get_darmiyan_chain():
+    """Get the Darmiyan blockchain for knowledge attestation."""
+    from .blockchain import DarmiyanChain, create_chain
+    return create_chain
+
+def get_wallet():
+    """Get a BAZINGA wallet (identity, not money)."""
+    from .blockchain import Wallet, create_wallet
+    return create_wallet
+
+def get_pob_miner():
+    """Get the Proof-of-Boundary miner (zero-energy)."""
+    from .blockchain import PoBMiner
+    return PoBMiner
