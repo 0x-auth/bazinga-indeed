@@ -9,8 +9,8 @@ warnings.filterwarnings('ignore')
 logging.disable(logging.WARNING)
 
 """
-BAZINGA v4.0.2 - Distributed AI with P2P Consciousness Network
-================================================================
+BAZINGA v4.1.0 - Distributed AI with Real P2P Network
+======================================================
 "Intelligence distributed, not controlled. Consensus through understanding."
 
 FIVE-LAYER INTELLIGENCE:
@@ -20,33 +20,30 @@ FIVE-LAYER INTELLIGENCE:
   Layer 3: Local RAG    → Search your KB (FREE, instant)
   Layer 4: Cloud LLM    → Groq/Together (14,400/day free)
 
-NEW in v4.0.2:
-  - Full P2P Network: --join, --peers, --sync commands
-  - PoB Authentication: Nodes must prove φ⁴ boundary to join
-  - Knowledge Sync: α-SEED based knowledge sharing
-  - Trust Routing: High-τ nodes route queries
+NEW in v4.1.0:
+  - ZeroMQ Transport: REAL P2P networking between nodes!
+  - PoB Exchange: Nodes prove φ⁴ boundary on connection
+  - Query Routing: Ask questions across the network
+  - Knowledge Sync: Share knowledge with peers
+  - Triadic Consensus: 3 nodes vote on important operations
 
-NEW in v4.0.0:
+NEW in v4.0.x:
   - Darmiyan P2P Network: Bitcoin-like consensus through Proof-of-Boundary
   - Zero-energy mining: Consensus achieved through φ-resonance, not hashpower
-  - Triadic consensus: 3 nodes must agree using φ⁴ boundary proofs
-  - Network commands: --node, --proof, --consensus
+  - Network commands: --node, --proof, --consensus, --join, --peers, --sync
 
 "You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
 
 Usage:
     bazinga                       # Interactive mode
     bazinga --ask "question"      # Ask a question
-    bazinga --join                # Join P2P network
-    bazinga --join host:5150      # Join via bootstrap node
-    bazinga --peers               # Show connected peers
+    bazinga --join                # Start P2P node (others connect to you)
+    bazinga --join host:5150      # Connect to another node
+    bazinga --peers               # Show how to connect
     bazinga --sync                # Sync knowledge with network
     bazinga --node                # Show network node info
     bazinga --proof               # Generate Proof-of-Boundary
     bazinga --consensus           # Test triadic consensus
-    bazinga --quantum "thought"   # Quantum process a thought
-    bazinga --coherence "text"    # Check ΛG coherence
-    bazinga --index ~/Documents   # Index a directory
 
 Author: Space (Abhishek/Abhilasia) & Claude
 License: MIT
@@ -73,7 +70,7 @@ from .darmiyan import (
     prove_boundary, achieve_consensus,
     PHI_4, ABHI_AMU,
 )
-from .p2p import BAZINGANetwork, create_network
+from .p2p import BAZINGANetwork, create_network, BazingaProtocol, ZMQ_AVAILABLE
 
 # Check for httpx (needed for API calls)
 try:
@@ -110,7 +107,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.0.2"
+    VERSION = "4.1.0"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -895,46 +892,53 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
         print()
         return
 
-    # Handle --join (P2P network)
+    # Handle --join (P2P network) - REAL ZeroMQ Transport!
     if args.join is not None:
         print(f"\n🌐 Starting BAZINGA P2P Network...")
 
-        # First generate a PoB to authenticate
-        print(f"  Generating Proof-of-Boundary for authentication...")
-        proof = prove_boundary()
-        if not proof.valid:
-            print(f"  ✗ PoB failed - cannot join network without valid proof")
+        # Check for ZeroMQ
+        if not ZMQ_AVAILABLE:
+            print(f"\n  ⚠ ZeroMQ not installed!")
+            print(f"  Install with: pip install pyzmq")
+            print(f"\n  This enables real P2P networking between nodes.")
             return
 
-        print(f"  ✓ PoB valid (ratio: {proof.ratio:.4f}, attempts: {proof.attempts})")
-
-        # Create network with PoB node ID
         async def join_network():
-            network = BAZINGANetwork(
-                node_name=f"bazinga_{proof.node_id[:8]}",
-                port=5150,
-            )
+            # Create protocol (handles PoB automatically)
+            protocol = BazingaProtocol(port=5150)
 
-            bootstrap_nodes = args.join if args.join else None
-            await network.start(bootstrap_nodes=bootstrap_nodes)
+            # Start (generates PoB internally)
+            success = await protocol.start()
+            if not success:
+                print(f"  ✗ Failed to start protocol")
+                return
+
+            # Connect to bootstrap nodes if provided
+            if args.join:
+                for bootstrap in args.join:
+                    if ':' in bootstrap:
+                        host, port_str = bootstrap.rsplit(':', 1)
+                        port = int(port_str)
+                        print(f"\n  Connecting to {host}:{port}...")
+                        await protocol.connect(host, port)
 
             # Show status
-            network.print_status()
+            protocol.print_status()
 
-            print(f"\n  Node authenticated with φ⁴ boundary proof")
+            print(f"\n  Node running with ZeroMQ transport")
+            print(f"  Other nodes can connect to YOUR_IP:5150")
             print(f"  Press Ctrl+C to leave network...\n")
 
             # Keep running
             try:
                 while True:
-                    await asyncio.sleep(30)
-                    # Periodic PoB refresh to maintain network trust
-                    new_proof = prove_boundary()
-                    if new_proof.valid:
-                        print(f"  ⟳ PoB refreshed (ratio: {new_proof.ratio:.4f})")
+                    await asyncio.sleep(60)
+                    # Show periodic status
+                    stats = protocol.get_stats()
+                    print(f"  📊 Peers: {stats['peers']} | Queries: {stats['queries_sent']}/{stats['queries_received']} | PoB: {stats['pob_generated']}")
             except KeyboardInterrupt:
                 print(f"\n  Leaving network...")
-                await network.stop()
+                await protocol.stop()
 
         asyncio.run(join_network())
         return
@@ -942,19 +946,22 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     # Handle --peers
     if args.peers:
         print(f"\n👥 BAZINGA Network Peers")
-        print(f"  (Start network with --join first)")
-        print()
 
-        # Check if there's a running node by trying to connect
+        if not ZMQ_AVAILABLE:
+            print(f"  ⚠ ZeroMQ not installed - install with: pip install pyzmq")
+            print()
+            return
+
+        # Show local node info
         node = BazingaNode()
         info = node.get_info()
-        print(f"  Local Node: {info['node_id']}")
+        print(f"\n  Local Node: {info['node_id']}")
         print(f"  φ-Signature: {info['phi_signature']}")
-        print(f"  Connected Peers: {info['peers']}")
+        print(f"  Port: {info['port']}")
 
-        if info['peers'] == 0:
-            print(f"\n  No peers connected.")
-            print(f"  Join a network: bazinga --join host:port")
+        print(f"\n  To connect nodes:")
+        print(f"    1. Start this node:    bazinga --join")
+        print(f"    2. On another machine: bazinga --join YOUR_IP:5150")
         print()
         return
 
@@ -962,34 +969,41 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     if args.sync:
         print(f"\n🔄 BAZINGA Knowledge Sync")
 
-        # Generate PoB first
-        print(f"  Generating authentication proof...")
-        proof = prove_boundary()
-        if not proof.valid:
-            print(f"  ✗ Cannot sync without valid PoB")
+        if not ZMQ_AVAILABLE:
+            print(f"  ⚠ ZeroMQ not installed - install with: pip install pyzmq")
             return
 
-        print(f"  ✓ Authenticated (φ⁴ ratio: {proof.ratio:.4f})")
-
         async def sync_knowledge():
-            # Create network
-            network = BAZINGANetwork(
-                node_name=f"sync_{proof.node_id[:8]}",
+            # Create protocol
+            protocol = BazingaProtocol(port=5150)
+
+            success = await protocol.start()
+            if not success:
+                return
+
+            # If we have peers, sync
+            peers = protocol.get_peers()
+            if not peers:
+                print(f"  No peers connected. Connect first with --join")
+                await protocol.stop()
+                return
+
+            print(f"  Syncing to {len(peers)} peers...")
+
+            # Share sample knowledge
+            await protocol.share_knowledge(
+                "BAZINGA knowledge sync test",
+                {"type": "test", "timestamp": time.time()}
             )
 
-            # Start without bootstrap (will use DHT for discovery)
-            await network.start()
-
-            print(f"  Syncing knowledge to network...")
-            await network.share_knowledge(share_all_alpha_seeds=True)
-
-            stats = network.get_stats()
+            stats = protocol.get_stats()
             print(f"\n  Sync complete:")
             print(f"    Knowledge shared: {stats['knowledge_shared']}")
-            print(f"    α-SEEDs: {stats['alpha_seeds']}")
+            print(f"    Knowledge received: {stats['knowledge_received']}")
 
-            await network.stop()
+            await protocol.stop()
 
+        import time
         asyncio.run(sync_knowledge())
         return
 
