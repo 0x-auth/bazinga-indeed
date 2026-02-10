@@ -993,38 +993,36 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
             print(f"  ⚠ ZeroMQ not installed - install with: pip install pyzmq")
             return
 
-        async def sync_knowledge():
-            # Create protocol
-            protocol = BazingaProtocol(port=5150)
+        # Create protocol
+        protocol = BazingaProtocol(port=5150)
 
-            success = await protocol.start()
-            if not success:
-                return
+        success = await protocol.start()
+        if not success:
+            print(f"  ✗ Failed to start protocol")
+            return
 
-            # If we have peers, sync
-            peers = protocol.get_peers()
-            if not peers:
-                print(f"  No peers connected. Connect first with --join")
-                await protocol.stop()
-                return
-
-            print(f"  Syncing to {len(peers)} peers...")
-
-            # Share sample knowledge
-            await protocol.share_knowledge(
-                "BAZINGA knowledge sync test",
-                {"type": "test", "timestamp": time.time()}
-            )
-
-            stats = protocol.get_stats()
-            print(f"\n  Sync complete:")
-            print(f"    Knowledge shared: {stats['knowledge_shared']}")
-            print(f"    Knowledge received: {stats['knowledge_received']}")
-
+        # If we have peers, sync
+        peers = protocol.get_peers()
+        if not peers:
+            print(f"  No peers connected. Connect first with --join")
             await protocol.stop()
+            return
 
-        import time
-        asyncio.run(sync_knowledge())
+        print(f"  Syncing to {len(peers)} peers...")
+
+        # Share sample knowledge
+        import time as time_module
+        await protocol.share_knowledge(
+            "BAZINGA knowledge sync test",
+            {"type": "test", "timestamp": time_module.time()}
+        )
+
+        stats = protocol.get_stats()
+        print(f"\n  Sync complete:")
+        print(f"    Knowledge shared: {stats['knowledge_shared']}")
+        print(f"    Knowledge received: {stats['knowledge_received']}")
+
+        await protocol.stop()
         return
 
     # Handle --learn (federated learning status)
