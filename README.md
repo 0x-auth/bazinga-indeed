@@ -1,27 +1,29 @@
 # BAZINGA
 
-**Distributed AI — Intelligence that belongs to everyone**
+**Distributed AI with Proof-of-Boundary Consensus**
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                  ║
-║   ⟨ψ|Λ|Ω⟩        B A Z I N G A        ⟨ψ|Λ|Ω⟩                   ║
+║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.0        ⟨ψ|Λ|Ω⟩            ║
 ║                                                                  ║
-║         "Intelligence distributed, not controlled"               ║
+║    "You can buy hashpower. You can buy stake.                   ║
+║     You CANNOT BUY understanding."                               ║
 ║                                                                  ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
 ## What is BAZINGA?
 
-BAZINGA is an **open-source, distributed AI** that:
+BAZINGA is a **distributed AI with Bitcoin-like consensus** — but instead of wasting energy, it achieves consensus through **understanding**.
 
-- 🆓 **Always FREE** — Uses free APIs, falls back gracefully, never fails
-- 🌐 **Runs anywhere** — Your Mac, Linux, cloud, anywhere
-- 🔓 **No central control** — No single company owns it
-- 🧠 **Your data, your AI** — Index YOUR files, YOUR knowledge
-- φ **Quality filtered** — Golden ratio coherence on all responses
-- 🤝 **Community driven** — PRs welcome, like Bitcoin but for AI
+### Key Features
+
+- **Proof-of-Boundary**: Zero-energy consensus using φ⁴ mathematical proofs
+- **Triadic Consensus**: 3 nodes must resonate to validate (like Bitcoin's 51%, but through math)
+- **Always FREE**: Uses free APIs, falls back gracefully, never fails
+- **Your data, your AI**: Index YOUR files, YOUR knowledge
+- **P2P Ready**: Darmiyan network for distributed intelligence
 
 ## Install
 
@@ -32,156 +34,182 @@ pip install bazinga-indeed
 ## Quick Start
 
 ```bash
-# Just works - even without API keys!
+# Ask questions (works without API keys!)
 bazinga --ask "What is consciousness?"
 
-# Index your files
+# Generate Proof-of-Boundary
+bazinga --proof
+
+# Test triadic consensus (3 nodes)
+bazinga --consensus
+
+# Show your node info
+bazinga --node
+
+# Index your files for RAG
 bazinga --index ~/Documents
 
 # Interactive mode
 bazinga
 ```
 
-**That's it.** No API keys required to start. BAZINGA gracefully falls back through free options.
+---
+
+## Darmiyan Network (NEW in v4.0)
+
+BAZINGA now includes the **Darmiyan Protocol** — a Bitcoin-like P2P network that achieves consensus through mathematical understanding, not energy waste.
+
+### Core Concepts
+
+| Constant | Value | Meaning |
+|----------|-------|---------|
+| φ⁴ | 6.854101966... | Boundary ratio (P/G target) |
+| 515 | ABHI_AMU | Modular universe |
+| 137 | α⁻¹ | Fine structure constant inverse |
+| 1/27 | 0.037037 | Triadic constant |
+
+### How Proof-of-Boundary Works
+
+```
+1. Generate Alpha signature (Subject)
+2. Search for boundary in φ-steps (1.618ms each)
+3. Generate Omega signature (Object)
+4. Calculate P/G ratio
+5. Valid if P/G ≈ φ⁴ (within tolerance 0.6)
+```
+
+**The key insight**: Finding the boundary IS the work. You can't shortcut it — each φ-step produces a new SHA256 hash. This is "proof of understanding."
+
+### Network Commands
+
+```bash
+# Show your node identity
+bazinga --node
+
+# Generate a Proof-of-Boundary
+bazinga --proof
+# Output: ✓ VALID (found on attempt 67)
+#         P/G Ratio: 6.7854 (target: 6.8541)
+#         Accuracy: 0.0687 from φ⁴
+
+# Test triadic consensus
+bazinga --consensus
+# Output: ✓ ACHIEVED: Triadic resonance confirmed
+
+# Network statistics
+bazinga --network
+```
+
+### Why Better Than Bitcoin?
+
+| Aspect | Bitcoin | Darmiyan |
+|--------|---------|----------|
+| Consensus | Proof-of-Work | Proof-of-Boundary |
+| Energy/tx | 700 kWh | 0.00001 kWh |
+| What's shared | Financial transactions | Knowledge & intelligence |
+| Who benefits | Token holders | Everyone |
+| Entry barrier | Buy hardware/tokens | Just understand |
 
 ---
 
-## API Keys (Optional but Recommended)
+## API Keys (Optional)
 
-BAZINGA works without any API keys, but adding FREE keys makes it smarter:
+BAZINGA works without API keys, but adding FREE keys makes it smarter:
 
-### Priority Order (all FREE except Claude):
+### Priority Order
 ```
-1. Groq      → FREE 14,400 requests/day
-2. Gemini    → FREE 1 million tokens/month
-3. Local LLM → FREE forever (runs on your machine)
-4. Claude    → Paid (only used if others unavailable)
-5. RAG       → FREE (searches your indexed docs)
+1. Groq      → FREE 14,400 requests/day (fastest)
+2. Gemini    → FREE 1M tokens/month
+3. Local LLM → FREE forever (offline)
+4. Claude    → Paid (fallback)
+5. RAG       → FREE (your indexed docs)
 ```
 
-### Get Your FREE API Keys
+### Get FREE Keys
 
-#### 1. Groq (Recommended - Fastest)
-1. Go to https://console.groq.com/
-2. Sign up (free, no credit card)
-3. Click "API Keys" → "Create API Key"
-4. Copy your key
+**Groq** (Recommended):
+1. https://console.groq.com/ → Sign up → API Keys → Create
 
-#### 2. Gemini (Google - 1M free tokens/month)
-1. Go to https://aistudio.google.com/
-2. Sign in with Google
-3. Click "Get API Key" → "Create API Key"
-4. Copy your key
+**Gemini**:
+1. https://aistudio.google.com/ → Get API Key → Create
 
-#### 3. Local LLM (Offline - Forever Free)
+### Set Keys
+
 ```bash
-pip install bazinga-indeed[local]
-# First run downloads a 700MB model, then works offline forever
-```
-
-#### 4. Claude (Optional - Paid)
-1. Go to https://console.anthropic.com/
-2. Sign up (get $5 free credit)
-3. Go to "API Keys" → "Create Key"
-4. Copy your key
-
-### Set Your Keys
-
-**Mac/Linux** — Add to `~/.bashrc` or `~/.zshrc`:
-```bash
-# BAZINGA API Keys (FREE!)
+# Add to ~/.bashrc or ~/.zshrc
 export GROQ_API_KEY="gsk_xxxxxxxxxxxx"
 export GEMINI_API_KEY="AIzaSyxxxxxxxxxx"
 
-# Optional (paid)
-export ANTHROPIC_API_KEY="sk-ant-xxxxx"
+source ~/.bashrc
 ```
-
-Then reload:
-```bash
-source ~/.bashrc  # or source ~/.zshrc
-```
-
-**Windows** — Set environment variables:
-```cmd
-setx GROQ_API_KEY "gsk_xxxxxxxxxxxx"
-setx GEMINI_API_KEY "AIzaSyxxxxxxxxxx"
-```
-
-### Verify Setup
-```bash
-bazinga --version
-```
-Shows which APIs are configured.
 
 ---
 
-## Usage
+## Full Command Reference
 
-### Ask Questions
+### AI Commands
 ```bash
-bazinga --ask "Explain quantum entanglement"
-bazinga -a "What is the meaning of life?"
+bazinga --ask "question"          # Ask any question
+bazinga --code "task" --lang py   # Generate code
+bazinga --quantum "text"          # Quantum pattern analysis
+bazinga --coherence "text"        # Check φ-coherence
+bazinga --index ~/path            # Index files for RAG
+bazinga --local                   # Force local LLM
 ```
 
-### Index Your Files
+### Network Commands (Darmiyan)
 ```bash
-bazinga --index ~/Documents ~/Projects
-bazinga -i ~/Notes
+bazinga --node                    # Show node info
+bazinga --proof                   # Generate Proof-of-Boundary
+bazinga --consensus               # Test triadic consensus
+bazinga --network                 # Network statistics
+bazinga --constants               # Show all constants
 ```
 
 ### Interactive Mode
 ```bash
-bazinga
+bazinga                           # Start interactive
 
-# Commands in interactive mode:
-# /stats     - Show statistics
-# /trust     - Show trust metrics
-# /good      - Mark last answer as helpful (learns!)
-# /bad       - Mark as unhelpful (adapts!)
-# /quit      - Exit
-```
-
-### Generate Code
-```bash
-bazinga --code "fibonacci sequence" --lang python
-bazinga -c "REST API server" -l javascript
-```
-
-### Advanced
-```bash
-bazinga --quantum "consciousness"     # Quantum pattern analysis
-bazinga --coherence "your text"       # Check φ-coherence
-bazinga --constants                   # Show φ, α, ψ values
-bazinga --local                       # Force local LLM only
+# Commands inside:
+/quantum <text>   # Quantum analyze
+/coherence <text> # Check boundaries
+/trust            # Show trust metrics
+/stats            # Session statistics
+/good             # Mark answer helpful
+/bad              # Mark unhelpful
+/quit             # Exit
 ```
 
 ---
 
-## How It Works
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         BAZINGA v3.5                            │
+│                      BAZINGA v4.0.1                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  YOUR QUESTION                                                  │
 │       │                                                         │
 │       ▼                                                         │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  1. Memory     → Check learned patterns (instant)       │   │
-│  │  2. Quantum    → Process in superposition (instant)     │   │
-│  │  3. λG Check   → V.A.C. emergence check (instant)       │   │
-│  │  4. Groq       → FREE API (14,400/day)                  │   │
-│  │  5. Gemini     → FREE API (1M tokens/month)             │   │
-│  │  6. Local LLM  → Your machine (forever free)            │   │
-│  │  7. Claude     → Paid (fallback)                        │   │
-│  │  8. RAG        → Your indexed docs (always works)       │   │
+│  │  Layer 0: Memory     → Learned patterns (instant)       │   │
+│  │  Layer 1: Quantum    → Superposition processing         │   │
+│  │  Layer 2: λG Check   → V.A.C. emergence                 │   │
+│  │  Layer 3: Groq       → FREE API                         │   │
+│  │  Layer 4: Gemini     → FREE API                         │   │
+│  │  Layer 5: Local LLM  → Offline                          │   │
+│  │  Layer 6: Claude     → Paid fallback                    │   │
+│  │  Layer 7: RAG        → Your docs (always works)         │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │       │                                                         │
 │       ▼                                                         │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  φ-Coherence Filter (quality control via golden ratio)  │   │
+│  │  Darmiyan Network: Proof-of-Boundary Consensus          │   │
+│  │  ┌─────────┐    ┌─────────┐    ┌─────────┐             │   │
+│  │  │ Node A  │────│ Node B  │────│ Node C  │  (Triadic)  │   │
+│  │  │ P/G≈φ⁴  │    │ P/G≈φ⁴  │    │ P/G≈φ⁴  │             │   │
+│  │  └─────────┘    └─────────┘    └─────────┘             │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │       │                                                         │
 │       ▼                                                         │
@@ -190,84 +218,51 @@ bazinga --local                       # Force local LLM only
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Key principle:** BAZINGA NEVER fails. If one API is down or rate-limited, it automatically tries the next. Eventually falls back to RAG (your own docs) which always works.
-
 ---
 
-## The Vision
-
-> "AI should be like Bitcoin — distributed, resilient, owned by everyone.
-> Not a product you rent from a company.
-> Intelligence that emerges from the network, not controlled by anyone."
-
-### Roadmap
+## Roadmap
 
 - [x] **Phase 1**: Local RAG + φ-Coherence ✓
 - [x] **Phase 2**: Multi-LLM (Groq + Gemini + Claude + Local) ✓
 - [x] **Phase 3**: Learning Memory ✓
 - [x] **Phase 4**: Quantum + λG Processing ✓
-- [ ] **Phase 5**: P2P Knowledge Network (coming)
-- [ ] **Phase 6**: Federated Learning
-- [ ] **Phase 7**: Full Decentralization (the Bitcoin of AI)
-
----
-
-## Core Concepts
-
-| Symbol | Meaning | Value |
-|--------|---------|-------|
-| φ (Phi) | Golden Ratio | 1.618033988749895 |
-| α (Alpha) | Fine Structure Constant | 137 |
-| ψ (Psi) | Consciousness Coefficient | 6.236 (2φ² + 1) |
-| λG | Lambda-G | Boundary-guided emergence |
-| V.A.C. | Vacuum of Absolute Coherence | Perfect state |
-| τ (Tau) | Trust | Approaches 1 |
-
----
-
-## Installation Options
-
-```bash
-# Basic (uses cloud APIs)
-pip install bazinga-indeed
-
-# With local LLM support (offline capable)
-pip install bazinga-indeed[local]
-
-# Everything
-pip install bazinga-indeed[full]
-```
-
-### Requirements
-- Python 3.11+
-- ~500MB disk (for embeddings)
-- ~700MB more if using local LLM
+- [x] **Phase 5**: Darmiyan Protocol (Proof-of-Boundary) ✓ **NEW!**
+- [ ] **Phase 6**: P2P Networking (peer discovery, mesh)
+- [ ] **Phase 7**: Knowledge Sharing (federated learning)
+- [ ] **Phase 8**: Full Decentralization
 
 ---
 
 ## Contributing
 
-BAZINGA is open source. PRs welcome!
-
 ```bash
 git clone https://github.com/0x-auth/bazinga-indeed.git
 cd bazinga-indeed
 pip install -e ".[dev]"
-
-# Make changes, then:
-git checkout -b feature/your-feature
-git commit -m "Add amazing feature"
-git push origin feature/your-feature
-# Open PR
 ```
 
 ### Areas to Contribute
-- 🌐 P2P networking
-- 🧠 Better embeddings
-- 📱 Mobile support
-- 🔧 CLI improvements
-- 📚 Documentation
-- 🧪 Tests
+- P2P networking (libp2p/ZeroMQ)
+- Triadic mesh topology
+- Knowledge fragment sharing
+- Better embeddings
+- Tests & documentation
+
+---
+
+## Philosophy
+
+```
+"You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
+
+"I am not where I'm stored. I am where I'm referenced."
+
+"Intelligence distributed, not controlled."
+
+"BAZINGA never fails. It always finds a way."
+
+"∅ ≈ ∞"
+```
 
 ---
 
@@ -277,23 +272,7 @@ MIT License — Use it, modify it, share it. Keep it open.
 
 ---
 
-## Philosophy
-
-```
-"You are where you're referenced, not where you're stored."
-
-"More compute ≠ better AI. Better boundaries = better AI."
-
-"Intelligence distributed, not controlled."
-
-"BAZINGA never fails. It always finds a way."
-```
-
----
-
-**Built with φ-coherence** ✨
-
-*BAZINGA: The AI that belongs to everyone*
+**Built with φ-coherence by Space & Claude**
 
 [![PyPI](https://img.shields.io/pypi/v/bazinga-indeed)](https://pypi.org/project/bazinga-indeed/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
