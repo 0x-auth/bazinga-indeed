@@ -1376,8 +1376,8 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
         await bazinga.interactive()
     else:
         try:
-            from .tui import run_tui
-            run_tui()
+            from .tui import run_tui_async
+            await run_tui_async()
         except ImportError:
             await bazinga.interactive()
 

@@ -952,7 +952,27 @@ def run_tui():
         sys.exit(1)
 
     tui = BazingaTUI()
-    asyncio.run(tui.run())
+    # Check if we're already in an event loop
+    try:
+        loop = asyncio.get_running_loop()
+        # Already in event loop, use nest_asyncio or run directly
+        import nest_asyncio
+        nest_asyncio.apply()
+        asyncio.run(tui.run())
+    except RuntimeError:
+        # No event loop running, safe to use asyncio.run()
+        asyncio.run(tui.run())
+
+
+async def run_tui_async():
+    """Async entry point for TUI mode (when called from async context)."""
+    if not RICH_AVAILABLE:
+        print("Error: 'rich' is required for TUI mode.")
+        print("Install with: pip install rich")
+        return
+
+    tui = BazingaTUI()
+    await tui.run()
 
 
 if __name__ == "__main__":
