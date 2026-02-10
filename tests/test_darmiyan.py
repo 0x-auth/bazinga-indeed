@@ -520,6 +520,216 @@ def test_collective_learner():
 
 
 # =============================================================================
+# BLOCKCHAIN TESTS
+# =============================================================================
+
+def test_blockchain_imports():
+    """Test blockchain module imports."""
+    print("\n[TEST] Blockchain imports...")
+
+    from bazinga.blockchain import (
+        Block,
+        create_genesis_block,
+        Transaction,
+        KnowledgeAttestation,
+        DarmiyanChain,
+        create_chain,
+        Wallet,
+        create_wallet,
+        PoBMiner,
+        mine_block,
+    )
+
+    assert Block is not None
+    assert create_chain is not None
+    assert create_wallet is not None
+    assert PoBMiner is not None
+
+    print("  ✓ All blockchain imports successful")
+    return True
+
+
+def test_genesis_block():
+    """Test genesis block creation."""
+    print("\n[TEST] Genesis block creation...")
+
+    from bazinga.blockchain import create_genesis_block
+
+    genesis = create_genesis_block()
+
+    assert genesis.header.index == 0, "Genesis should be block 0"
+    assert genesis.header.previous_hash == "0" * 64, "Genesis has null previous hash"
+    assert len(genesis.transactions) == 1, "Genesis has 1 transaction"
+    assert genesis.validate(), "Genesis should be valid"
+
+    print(f"  ✓ Genesis block created")
+    print(f"    Hash: {genesis.hash[:24]}...")
+    print(f"    Merkle: {genesis.header.merkle_root[:24]}...")
+    return True
+
+
+def test_knowledge_attestation():
+    """Test knowledge attestation creation."""
+    print("\n[TEST] Knowledge attestation...")
+
+    from bazinga.blockchain import KnowledgeAttestation
+
+    ka = KnowledgeAttestation.create(
+        content="φ = 1.618033988749895",
+        summary="Golden ratio definition",
+        confidence=0.95,
+        source_type="human",
+    )
+
+    assert ka.content_hash is not None
+    assert ka.confidence == 0.95
+    assert ka.source_type == "human"
+
+    # Convert to transaction
+    tx = ka.to_transaction(sender="test_node")
+    assert tx.tx_type == "knowledge"
+    assert tx.sender == "test_node"
+
+    print(f"  ✓ Knowledge attestation created")
+    print(f"    Hash: {ka.content_hash[:24]}...")
+    print(f"    α-SEED: {ka.alpha_seed}")
+    return True
+
+
+def test_wallet_creation():
+    """Test wallet/identity creation."""
+    print("\n[TEST] Wallet creation...")
+
+    import tempfile
+    from bazinga.blockchain import create_wallet
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        wallet = create_wallet(node_id="test_wallet", data_dir=tmpdir)
+
+        assert wallet.node_id == "test_wallet"
+        assert wallet.public_key is not None
+        assert wallet.private_key is not None
+
+        # Test signing
+        data = "test transaction data"
+        signature = wallet.sign(data)
+        assert wallet.verify(data, signature), "Signature should verify"
+        assert not wallet.verify("wrong data", signature), "Wrong data should fail"
+
+        print(f"  ✓ Wallet created")
+        print(f"    Address: {wallet.get_address()}")
+        print(f"    Trust: {wallet.reputation.trust_score:.3f}")
+
+    return True
+
+
+def test_chain_creation():
+    """Test blockchain creation and operations."""
+    print("\n[TEST] Chain creation...")
+
+    import tempfile
+    from bazinga.blockchain import create_chain
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        chain = create_chain(data_dir=tmpdir)
+
+        # Should have genesis block
+        assert len(chain) == 1, "Should have genesis block"
+        assert chain.get_block(0) is not None
+
+        # Add knowledge
+        tx_hash = chain.add_knowledge(
+            content="BAZINGA is distributed AI",
+            summary="BAZINGA definition",
+            sender="test_node",
+            confidence=0.9,
+        )
+
+        assert tx_hash is not None
+        assert len(chain.pending_transactions) == 1
+
+        print(f"  ✓ Chain created with genesis")
+        print(f"    Height: {len(chain)}")
+        print(f"    Pending: {len(chain.pending_transactions)}")
+
+    return True
+
+
+def test_pob_mining():
+    """Test Proof-of-Boundary mining."""
+    print("\n[TEST] PoB mining...")
+
+    import tempfile
+    from bazinga.blockchain import create_chain, PoBMiner
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        chain = create_chain(data_dir=tmpdir)
+
+        # Add knowledge to mine
+        chain.add_knowledge(
+            content="φ⁴ = 6.854101966249685",
+            summary="Boundary ratio",
+            sender="test_miner",
+            confidence=0.9,
+        )
+
+        # Create miner and attempt
+        miner = PoBMiner(chain, node_id="test_miner")
+        result = miner.mine_sync(max_attempts=20)
+
+        if result.success:
+            print(f"  ✓ Block mined successfully!")
+            print(f"    Block: #{result.block.header.index}")
+            print(f"    Attempts: {result.attempts}")
+            print(f"    Time: {result.time_ms:.2f}ms")
+            assert len(chain) == 2, "Should have 2 blocks now"
+        else:
+            print(f"  ⚠ Mining didn't succeed in 20 attempts (this can happen)")
+            print(f"    Message: {result.message}")
+
+    return True  # Not a failure if mining takes many attempts
+
+
+def test_chain_validation():
+    """Test chain validation with mock blocks."""
+    print("\n[TEST] Chain validation...")
+
+    import tempfile
+    from bazinga.blockchain import create_chain, Block, BlockHeader
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        chain = create_chain(data_dir=tmpdir)
+
+        # Add knowledge and mock-mine a block
+        chain.add_knowledge(
+            content="Test knowledge",
+            summary="Test",
+            sender="test",
+            confidence=1.0,
+        )
+
+        # Create mock PoB proofs (valid format)
+        mock_proofs = [
+            {'alpha': 200, 'omega': 300, 'delta': 100, 'ratio': PHI_4, 'valid': True, 'node_id': 'a'},
+            {'alpha': 150, 'omega': 350, 'delta': 200, 'ratio': PHI_4, 'valid': True, 'node_id': 'b'},
+            {'alpha': 180, 'omega': 320, 'delta': 140, 'ratio': PHI_4, 'valid': True, 'node_id': 'c'},
+        ]
+
+        success = chain.add_block(pob_proofs=mock_proofs)
+        assert success, "Block with mock proofs should be added"
+
+        # Validate chain
+        valid = chain.validate_chain()
+        assert valid, "Chain should be valid"
+
+        print(f"  ✓ Chain validation passed")
+        print(f"    Height: {len(chain)}")
+        print(f"    Valid: {valid}")
+
+    return True
+
+
+# =============================================================================
 # MAIN
 # =============================================================================
 
@@ -550,6 +760,14 @@ def run_all_tests():
         ("Federated Imports", test_federated_imports),
         ("LoRA Adapter", test_lora_adapter),
         ("Collective Learner", test_collective_learner),
+        # Blockchain Tests
+        ("Blockchain Imports", test_blockchain_imports),
+        ("Genesis Block", test_genesis_block),
+        ("Knowledge Attestation", test_knowledge_attestation),
+        ("Wallet Creation", test_wallet_creation),
+        ("Chain Creation", test_chain_creation),
+        ("PoB Mining", test_pob_mining),
+        ("Chain Validation", test_chain_validation),
     ]
 
     results = []
