@@ -401,6 +401,48 @@ def test_alpha_seed_detection():
     return True
 
 
+def test_zmq_transport():
+    """Test ZeroMQ transport layer."""
+    print("\n[TEST] ZeroMQ transport...")
+
+    from bazinga.p2p import ZMQ_AVAILABLE, BazingaTransport, create_transport
+
+    if not ZMQ_AVAILABLE:
+        print("  ⚠ ZeroMQ not installed, skipping transport test")
+        return True
+
+    # Test transport creation
+    transport = create_transport(node_id="test_node", port=15150, pub_port=15151)
+    assert transport is not None, "Transport should be created"
+    assert transport.node_id == "test_node", "Node ID should match"
+
+    print("  ✓ Transport created successfully")
+    print(f"    ZMQ Available: {ZMQ_AVAILABLE}")
+    return True
+
+
+def test_protocol_creation():
+    """Test BazingaProtocol creation."""
+    print("\n[TEST] Protocol creation...")
+
+    from bazinga.p2p import BazingaProtocol, ZMQ_AVAILABLE
+
+    if not ZMQ_AVAILABLE:
+        print("  ⚠ ZeroMQ not installed, skipping protocol test")
+        return True
+
+    # Test protocol creation (doesn't start network)
+    protocol = BazingaProtocol(node_id="test_protocol", port=15160)
+    assert protocol is not None, "Protocol should be created"
+    assert protocol.node_id == "test_protocol", "Node ID should match"
+    assert protocol.port == 15160, "Port should match"
+
+    print("  ✓ Protocol created successfully")
+    print(f"    Node ID: {protocol.node_id}")
+    print(f"    Port: {protocol.port}")
+    return True
+
+
 # =============================================================================
 # MAIN
 # =============================================================================
@@ -425,6 +467,9 @@ def run_all_tests():
         ("P2P Module Imports", test_p2p_module_imports),
         ("PoB Authentication", test_pob_authentication),
         ("α-SEED Detection", test_alpha_seed_detection),
+        # Transport Layer Tests
+        ("ZMQ Transport", test_zmq_transport),
+        ("Protocol Creation", test_protocol_creation),
     ]
 
     results = []
