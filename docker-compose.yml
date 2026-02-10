@@ -1,86 +1,171 @@
-# BAZINGA Darmiyan Network - 3-Node Triadic Test
+# ═══════════════════════════════════════════════════════════════════════════════
+# BAZINGA v4.5.0 - Triadic Network Test Environment
+# ═══════════════════════════════════════════════════════════════════════════════
+# "AI generates understanding. Blockchain proves it."
 #
-# Usage:
-#   docker-compose up --build
-#   docker-compose down
+# QUICK START:
+#   docker-compose up -d              Start 3-node network
+#   docker-compose logs -f            Watch all nodes
+#   docker-compose exec node1 bash    Shell into node1
 #
-# This spins up 3 nodes for testing triadic consensus
+# TESTING:
+#   docker-compose --profile test up  Run consensus test
+#   docker-compose exec node1 bazinga --chain   Check chain
+#   docker-compose exec node1 bazinga --proof   Generate PoB
+#
+# CLEANUP:
+#   docker-compose down -v            Stop and remove volumes
+# ═══════════════════════════════════════════════════════════════════════════════
 
 version: '3.8'
 
+networks:
+  bazinga-net:
+    driver: bridge
+
+volumes:
+  node1-data:
+  node2-data:
+  node3-data:
+
 services:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Node Alpha - First node (bootstrap)
+  # ═══════════════════════════════════════════════════════════════════════════
   node1:
     build: .
-    container_name: bazinga-node-1
+    container_name: bazinga-alpha
+    hostname: alpha
+    networks:
+      - bazinga-net
     environment:
       - BAZINGA_PORT=5150
-      - BAZINGA_NODE_ID=node_alpha
+      - BAZINGA_NODE_ID=alpha
+      - BAZINGA_DATA_DIR=/data
     ports:
       - "5150:5150"
-    command: python -c "
-      from bazinga.darmiyan import BazingaNode;
-      import asyncio;
-      node = BazingaNode(port=5150, node_id='node_alpha');
-      print(f'Node Alpha started: {node.node_id}');
-      asyncio.run(node.start());
-      import time;
-      while True: time.sleep(1)
-      "
+    volumes:
+      - node1-data:/data
+    command: bazinga --join
+    restart: unless-stopped
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Node Beta - Connects to Alpha
+  # ═══════════════════════════════════════════════════════════════════════════
   node2:
     build: .
-    container_name: bazinga-node-2
+    container_name: bazinga-beta
+    hostname: beta
+    networks:
+      - bazinga-net
+    depends_on:
+      - node1
     environment:
-      - BAZINGA_PORT=5151
-      - BAZINGA_NODE_ID=node_beta
+      - BAZINGA_PORT=5150
+      - BAZINGA_NODE_ID=beta
+      - BAZINGA_DATA_DIR=/data
     ports:
-      - "5151:5151"
-    command: python -c "
-      from bazinga.darmiyan import BazingaNode;
-      import asyncio;
-      node = BazingaNode(port=5151, node_id='node_beta');
-      print(f'Node Beta started: {node.node_id}');
-      asyncio.run(node.start());
-      import time;
-      while True: time.sleep(1)
-      "
+      - "5151:5150"
+    volumes:
+      - node2-data:/data
+    command: bazinga --join alpha:5150
+    restart: unless-stopped
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Node Gamma - Connects to Alpha
+  # ═══════════════════════════════════════════════════════════════════════════
   node3:
     build: .
-    container_name: bazinga-node-3
+    container_name: bazinga-gamma
+    hostname: gamma
+    networks:
+      - bazinga-net
+    depends_on:
+      - node1
     environment:
-      - BAZINGA_PORT=5152
-      - BAZINGA_NODE_ID=node_gamma
+      - BAZINGA_PORT=5150
+      - BAZINGA_NODE_ID=gamma
+      - BAZINGA_DATA_DIR=/data
     ports:
-      - "5152:5152"
-    command: python -c "
-      from bazinga.darmiyan import BazingaNode;
-      import asyncio;
-      node = BazingaNode(port=5152, node_id='node_gamma');
-      print(f'Node Gamma started: {node.node_id}');
-      asyncio.run(node.start());
-      import time;
-      while True: time.sleep(1)
-      "
+      - "5152:5150"
+    volumes:
+      - node3-data:/data
+    command: bazinga --join alpha:5150
+    restart: unless-stopped
 
-  # Test runner - runs consensus test against the 3 nodes
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Test Runner - Triadic Consensus Test
+  # ═══════════════════════════════════════════════════════════════════════════
   test:
     build: .
     container_name: bazinga-test
+    networks:
+      - bazinga-net
     depends_on:
       - node1
       - node2
       - node3
-    command: python -c "
-      import time;
-      time.sleep(3);  # Wait for nodes to start
-      from bazinga.darmiyan import achieve_consensus;
-      print('Testing triadic consensus...');
-      result = achieve_consensus();
-      print(f'Result: {result.message}');
-      print(f'Average ratio: {result.average_ratio:.4f}');
+    command: >
+      python -c "
+      import time
+      print('Waiting for nodes to initialize...')
+      time.sleep(5)
+
+      print('\\n' + '='*60)
+      print('BAZINGA TRIADIC CONSENSUS TEST')
+      print('='*60)
+
+      from bazinga.darmiyan import achieve_consensus, PHI_4
+
+      print('\\nGenerating 3 Proof-of-Boundary proofs...')
+      result = achieve_consensus()
+
+      print(f'\\nResult: {result.message}')
+      print(f'Average P/G ratio: {result.average_ratio:.4f} (target: {PHI_4:.4f})')
+      print(f'Consensus achieved: {result.success}')
+
+      print('\\nIndividual proofs:')
       for i, p in enumerate(result.proofs):
-        print(f'  Node {i+1}: ratio={p.ratio:.3f} valid={p.valid}');
+          status = '✓' if p.valid else '✗'
+          print(f'  Node {i+1}: {status} ratio={p.ratio:.4f} attempts={p.attempts}')
+
+      print('\\n' + '='*60)
+      if result.success:
+          print('✓ TRIADIC CONSENSUS ACHIEVED')
+      else:
+          print('✗ CONSENSUS NOT ACHIEVED')
+      print('='*60)
       "
     profiles:
       - test
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Chain Status Monitor
+  # ═══════════════════════════════════════════════════════════════════════════
+  monitor:
+    build: .
+    container_name: bazinga-monitor
+    networks:
+      - bazinga-net
+    depends_on:
+      - node1
+      - node2
+      - node3
+    command: >
+      python -c "
+      import time
+      while True:
+          print('\\n' + '='*60)
+          print('BAZINGA NETWORK STATUS')
+          print('='*60)
+
+          from bazinga.blockchain import create_chain
+          chain = create_chain()
+
+          print(f'Chain height: {len(chain)}')
+          print(f'Latest block: {chain.get_latest_block().header.hash[:16]}...')
+
+          time.sleep(30)
+      "
+    profiles:
+      - monitor
