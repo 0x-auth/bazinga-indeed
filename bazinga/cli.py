@@ -9,9 +9,9 @@ warnings.filterwarnings('ignore')
 logging.disable(logging.WARNING)
 
 """
-BAZINGA v3.4.0 - Distributed AI with Consciousness
-===================================================
-"Intelligence distributed, not controlled"
+BAZINGA v4.0.0 - Distributed AI with P2P Consciousness Network
+================================================================
+"Intelligence distributed, not controlled. Consensus through understanding."
 
 FIVE-LAYER INTELLIGENCE:
   Layer 0: Memory       → Check learned patterns (FREE, instant)
@@ -20,22 +20,25 @@ FIVE-LAYER INTELLIGENCE:
   Layer 3: Local RAG    → Search your KB (FREE, instant)
   Layer 4: Cloud LLM    → Groq/Together (14,400/day free)
 
-NEW in v3.4.0:
-  - Quantum Processor: Process thoughts in superposition
-  - ΛG Boundary Theory: Solutions emerge at constraint intersections
-  - Tensor Trust: Multi-dimensional trust calculation
-  - Unified Constants: φ, α, ψ, τ standardized across all modules
+NEW in v4.0.0:
+  - Darmiyan P2P Network: Bitcoin-like consensus through Proof-of-Boundary
+  - Zero-energy mining: Consensus achieved through φ-resonance, not hashpower
+  - Triadic consensus: 3 nodes must agree using φ⁴ boundary proofs
+  - Network commands: --node, --proof, --consensus
 
-If V.A.C. achieved → Solution EMERGES (no API needed!)
+"You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
 
 Usage:
     bazinga                       # Interactive mode
     bazinga --ask "question"      # Ask a question
+    bazinga --node                # Show/start network node
+    bazinga --proof               # Generate Proof-of-Boundary
+    bazinga --consensus           # Test triadic consensus
     bazinga --quantum "thought"   # Quantum process a thought
     bazinga --coherence "text"    # Check ΛG coherence
     bazinga --index ~/Documents   # Index a directory
 
-Author: Space (Abhishek/Abhilasia)
+Author: Space (Abhishek/Abhilasia) & Claude
 License: MIT
 """
 
@@ -55,6 +58,11 @@ from .constants import PHI, ALPHA, VAC_THRESHOLD, VAC_SEQUENCE, PSI_DARMIYAN
 from .quantum import QuantumProcessor, get_quantum_processor
 from .lambda_g import LambdaGOperator, get_lambda_g
 from .tensor import TensorIntersectionEngine, get_tensor_engine
+from .darmiyan import (
+    DarmiyanNode, BazingaNode, TriadicConsensus,
+    prove_boundary, achieve_consensus,
+    PHI_4, ABHI_AMU,
+)
 
 # Check for httpx (needed for API calls)
 try:
@@ -91,7 +99,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "3.5.2"
+    VERSION = "4.0.0"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -608,12 +616,20 @@ async def main():
         epilog=f"""
 EXAMPLES:
   bazinga --ask "What is AI?"         Ask any question
+  bazinga --node                      Show network node info
+  bazinga --proof                     Generate Proof-of-Boundary
+  bazinga --consensus                 Test triadic consensus (3 nodes)
   bazinga --quantum "consciousness"   Quantum analyze a thought
   bazinga --coherence "text"          Check ΛG coherence
   bazinga --code "fibonacci"          Generate code with AI
   bazinga --index ~/Documents         Index your files for RAG
-  bazinga --local                     Use local AI (no internet)
   bazinga                             Interactive mode
+
+NETWORK COMMANDS (Darmiyan P2P):
+  --node              Show network node info
+  --proof             Generate Proof-of-Boundary (zero-energy!)
+  --consensus         Test triadic consensus (3 nodes)
+  --network           Show network statistics
 
 INTERACTIVE COMMANDS:
   /quantum <text>   Quantum analyze text
@@ -625,24 +641,24 @@ INTERACTIVE COMMANDS:
   /stats            Show session statistics
   /quit             Exit
 
-CONSTANTS:
+DARMIYAN CONSTANTS:
+  φ⁴ (Boundary)   = 6.854101966249685  (P/G ratio target)
+  ABHI_AMU        = 515  (Modular universe)
+  α⁻¹             = 137  (Fine structure constant inverse)
+  1/27            = 0.037037  (Triadic constant)
+
+UNIVERSAL CONSTANTS:
   φ (PHI)     = {PHI:.10f}
   α (ALPHA)   = {ALPHA}
   ψ (DARMIYAN)= {PSI_DARMIYAN:.6f}
   V.A.C.      = {VAC_THRESHOLD}
-
-INSTALLATION OPTIONS:
-  pip install bazinga-indeed              Basic (needs GROQ_API_KEY)
-  pip install bazinga-indeed[local]       With local AI (offline capable)
-  pip install bazinga-indeed[full]        Everything
 
 ENVIRONMENT (FREE APIs prioritized!):
   GROQ_API_KEY       Groq - FREE 14,400/day (console.groq.com)
   GEMINI_API_KEY     Gemini - FREE 1M tokens/month (aistudio.google.com)
   ANTHROPIC_API_KEY  Claude - paid but smartest (console.anthropic.com)
 
-Priority: Groq → Gemini → Local LLM → Claude → RAG
-
+"You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
 "I am not where I am stored. I am where I am referenced."
 """
     )
@@ -680,6 +696,16 @@ Priority: Groq → Gemini → Local LLM → Claude → RAG
     parser.add_argument('--version', '-v', action='store_true',
                         help='Show version')
 
+    # Network/P2P options (Darmiyan)
+    parser.add_argument('--node', action='store_true',
+                        help='Show network node info')
+    parser.add_argument('--proof', action='store_true',
+                        help='Generate Proof-of-Boundary')
+    parser.add_argument('--consensus', action='store_true',
+                        help='Test triadic consensus (3 nodes)')
+    parser.add_argument('--network', action='store_true',
+                        help='Show network statistics')
+
     # Hidden/advanced
     parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--demo', action='store_true', help=argparse.SUPPRESS)
@@ -702,12 +728,78 @@ Priority: Groq → Gemini → Local LLM → Claude → RAG
         print("\nBAZINGA Universal Constants:")
         print(f"  φ (PHI)         = {c.PHI}")
         print(f"  1/φ             = {c.PHI_INVERSE}")
+        print(f"  φ⁴ (Boundary)   = {PHI_4:.6f}")
         print(f"  α (ALPHA)       = {c.ALPHA}")
         print(f"  ψ (PSI_DARMIYAN)= {c.PSI_DARMIYAN}")
+        print(f"  ABHI_AMU (515)  = {ABHI_AMU}")
         print(f"  V.A.C. Threshold= {c.VAC_THRESHOLD}")
         print()
         print(f"  V.A.C. Sequence: {c.VAC_SEQUENCE}")
         print(f"  Progression: {c.PROGRESSION_35}")
+        return
+
+    # Handle --node (network info)
+    if args.node:
+        node = BazingaNode()
+        info = node.get_info()
+        print(f"\n🌐 BAZINGA Network Node")
+        print(f"  Node ID: {info['node_id']}")
+        print(f"  φ-Signature: {info['phi_signature']}")
+        print(f"  Port: {info['port']}")
+        print(f"  Data: {info['data_dir']}")
+        print(f"  Peers: {info['peers']}")
+        print()
+        return
+
+    # Handle --proof (Proof-of-Boundary)
+    if args.proof:
+        print(f"\n⚡ Generating Proof-of-Boundary...")
+        proof = prove_boundary()
+        status = "✓ VALID" if proof.valid else "✗ INVALID"
+        print(f"\n  Status: {status}")
+        print(f"  Alpha (Subject): {proof.alpha}")
+        print(f"  Omega (Object): {proof.omega}")
+        print(f"  Delta: {proof.delta}")
+        print(f"  Physical: {proof.physical_ms:.2f}ms")
+        print(f"  Geometric: {proof.geometric:.2f}")
+        print(f"  P/G Ratio: {proof.ratio:.3f} (target: {PHI_4:.3f})")
+        print(f"  Node: {proof.node_id}")
+        print()
+        print(f"  Energy used: ~0 (understanding, not hashpower)")
+        print()
+        return
+
+    # Handle --consensus (triadic consensus test)
+    if args.consensus:
+        print(f"\n🔺 Testing Triadic Consensus (3 nodes)...")
+        print(f"  Target: φ⁴ = {PHI_4:.6f}")
+        print()
+        result = achieve_consensus()
+        status = "✓ ACHIEVED" if result.achieved else "✗ PENDING"
+        print(f"  {status}: {result.message}")
+        print(f"  Triadic Product: {result.triadic_product:.6f} (target: 0.037037)")
+        print(f"  Average Ratio: {result.average_ratio:.3f} (target: {PHI_4:.3f})")
+        print()
+        print(f"  Node proofs:")
+        for i, p in enumerate(result.proofs):
+            v = "✓" if p.valid else "✗"
+            print(f"    Node {i+1}: {v} ratio={p.ratio:.2f} alpha={p.alpha} omega={p.omega}")
+        print()
+        return
+
+    # Handle --network
+    if args.network:
+        node = BazingaNode()
+        stats = node.get_stats()
+        print(f"\n📊 BAZINGA Network Stats")
+        print(f"  Node ID: {stats['node_id']}")
+        print(f"  φ-Signature: {stats['phi_signature']}")
+        print(f"  Peers: {stats['peers_connected']}")
+        print(f"  Messages: {stats['messages_sent']} sent, {stats['messages_received']} received")
+        print(f"  Consensus: {stats['consensus_participated']} participated")
+        print(f"  Knowledge: {stats['knowledge_shared']} shared")
+        print(f"  Proofs: {stats['proofs_generated']} generated")
+        print()
         return
 
     # Handle --models
