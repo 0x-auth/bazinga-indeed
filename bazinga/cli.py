@@ -76,7 +76,7 @@ from .darmiyan import (
 )
 from .p2p import BAZINGANetwork, create_network, BazingaProtocol, ZMQ_AVAILABLE
 from .federated import CollectiveLearner, create_learner
-from .blockchain import DarmiyanChain, create_chain, Wallet, create_wallet, PoBMiner, mine_block
+from .blockchain import DarmiyanChain, create_chain, Wallet, create_wallet, PoBMiner, mine_block, TrustOracle, create_trust_oracle
 
 # Check for httpx (needed for API calls)
 try:
@@ -113,7 +113,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.3.1"
+    VERSION = "4.4.0"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -812,6 +812,8 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
                         help='Show wallet/identity info (not money!)')
     parser.add_argument('--attest', type=str, metavar='CONTENT',
                         help='Attest knowledge to the chain')
+    parser.add_argument('--trust', type=str, nargs='?', const='', metavar='NODE_ID',
+                        help='Show trust scores (optionally for specific node)')
 
     # Hidden/advanced
     parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
@@ -1173,6 +1175,60 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
         print(f"    Sender: {wallet.node_id}")
         print()
         print(f"  Run 'bazinga --mine' to include in a block.")
+        print()
+        return
+
+    # Handle --trust (trust oracle)
+    if args.trust is not None:
+        print(f"\n🔗 BAZINGA TRUST ORACLE")
+        print(f"=" * 50)
+        print(f"  Trust is EARNED through understanding, not bought.")
+        print()
+
+        chain = create_chain()
+        oracle = create_trust_oracle(chain)
+
+        if args.trust:
+            # Show specific node
+            node_id = args.trust
+            trust = oracle.get_node_trust(node_id)
+
+            if trust:
+                print(f"  Node: {trust.node_address}")
+                print(f"  Trust Score: {trust.trust_score:.3f}")
+                print(f"  PoB Score: {trust.pob_score:.3f}")
+                print(f"  Contribution: {trust.contribution_score:.3f}")
+                print(f"  Recency: {trust.recency_score:.3f}")
+                print(f"  Activities: {trust.total_activities}")
+                print()
+                print(f"  Routing Weight: {oracle.get_routing_weight(node_id):.3f}")
+                print(f"  Gradient Threshold: {oracle.get_gradient_acceptance_threshold(node_id):.3f}")
+            else:
+                print(f"  Node '{node_id}' not found in chain.")
+                print(f"  Default trust: 0.5 (neutral)")
+        else:
+            # Show all trusted nodes
+            stats = oracle.get_stats()
+            print(f"  Total Nodes: {stats['total_nodes']}")
+            print(f"  Trusted Nodes: {stats['trusted_nodes']}")
+            print(f"  φ-Decay Rate: {stats['decay_rate']} blocks")
+            print()
+
+            trusted = oracle.get_trusted_nodes()
+            if trusted:
+                print(f"  Trusted Nodes (score ≥ 0.7):")
+                for t in trusted[:10]:
+                    print(f"    {t.node_address[:20]}... : {t.trust_score:.3f}")
+            else:
+                print(f"  No trusted nodes yet.")
+                print(f"  Run 'bazinga --proof' and 'bazinga --mine' to build trust.")
+
+        print()
+        print(f"  How Trust Works:")
+        print(f"    • PoB success → +trust")
+        print(f"    • Knowledge contribution → +trust (×φ)")
+        print(f"    • Gradient validation → +trust (×φ²)")
+        print(f"    • Inactivity → trust decays with φ")
         print()
         return
 

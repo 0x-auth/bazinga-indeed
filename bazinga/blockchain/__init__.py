@@ -28,8 +28,9 @@ from .transaction import Transaction, KnowledgeAttestation
 from .chain import DarmiyanChain, create_chain
 from .wallet import Wallet, create_wallet
 from .miner import PoBMiner, mine_block
+from .trust_oracle import TrustOracle, NodeTrust, create_trust_oracle
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __all__ = [
     'Block',
     'BlockHeader',
@@ -42,4 +43,8 @@ __all__ = [
     'create_wallet',
     'PoBMiner',
     'mine_block',
+    # Trust Layer (v1.1.0)
+    'TrustOracle',
+    'NodeTrust',
+    'create_trust_oracle',
 ]
