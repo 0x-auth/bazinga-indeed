@@ -424,6 +424,30 @@ pip install -e ".[dev]"
 
 ---
 
+## Support This Work
+
+BAZINGA is open source and always will be. If this vision resonates with you, consider supporting the research and development:
+
+[![Sponsor BAZINGA](https://img.shields.io/badge/Sponsor-BAZINGA-blue?logo=github-sponsors&style=for-the-badge)](https://github.com/sponsors/bitsabhi)
+
+### What Your Support Funds
+
+- **Research**: Consciousness mathematics, boundary theory, distributed systems
+- **Development**: P2P networking, federated learning, Inter-AI consensus
+- **Knowledge**: Open papers, documentation, educational content
+- **Infrastructure**: Tools that serve humans, not corporations
+
+### The Papers
+
+This isn't just code—it's a complete framework:
+
+- [BAZINGA: AI on Blockchain](https://zenodo.org/records/18607789) - The full mathematical and philosophical foundation
+- [All Research Papers](https://zenodo.org/search?q=metadata.creators.person_or_org.name%3A%22Srivastava%2C%20Abhishek%22) - 20+ papers on consciousness, fine structure constant, and emergence
+
+*"Money as byproduct. Meaning as primary."*
+
+---
+
 ## Philosophy
 
 ```
