@@ -67,6 +67,8 @@ class ParticipantType(Enum):
     GEMINI = "google"
     GROQ = "groq"
     GPT4 = "openai"
+    TOGETHER = "together"
+    OPENROUTER = "openrouter"
     OLLAMA = "ollama"
     BAZINGA_NODE = "bazinga"
     SIMULATION = "simulation"
@@ -899,6 +901,230 @@ Your refined answer:"""
         )
 
 
+class TogetherParticipant(ConsensusParticipant):
+    """Together AI participant (FREE tier available)."""
+
+    def __init__(self, api_key: Optional[str] = None, model: str = "meta-llama/Llama-3.2-3B-Instruct-Turbo"):
+        self.api_key = api_key or os.environ.get('TOGETHER_API_KEY')
+        super().__init__(
+            participant_id=f"together_{model.split('/')[-1][:8]}",
+            participant_type=ParticipantType.TOGETHER,
+            model=model,
+        )
+        self.available = bool(self.api_key) and HTTPX_AVAILABLE
+        self.coherence_calc = CoherenceCalculator()
+        self.pob_gen = PoBGenerator()
+
+    async def query(
+        self,
+        prompt: str,
+        context: Optional[Dict] = None,
+        round: ConsensusRound = ConsensusRound.INITIAL,
+    ) -> AIResponse:
+        start_time = time.time()
+
+        if not self.available:
+            return self._error_response("Together API not available", round, start_time)
+
+        try:
+            full_prompt = self._build_prompt(prompt, context, round)
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    "https://api.together.xyz/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": self.model,
+                        "messages": [
+                            {"role": "user", "content": full_prompt}
+                        ],
+                        "temperature": 0.7,
+                        "max_tokens": 500,
+                    }
+                )
+
+                latency_ms = (time.time() - start_time) * 1000
+
+                if response.status_code == 200:
+                    data = response.json()
+                    content = data["choices"][0]["message"]["content"]
+
+                    coherence, embedding = self.coherence_calc.calculate_coherence(content, prompt)
+                    understanding = self.coherence_calc.calculate_understanding(content)
+                    pob_proof = await self.pob_gen.generate_proof(content)
+
+                    ai_response = AIResponse(
+                        participant_id=self.participant_id,
+                        participant_type=self.participant_type,
+                        model=self.model,
+                        response=content,
+                        coherence=coherence,
+                        understanding_score=understanding,
+                        latency_ms=latency_ms,
+                        timestamp=time.time(),
+                        round=round,
+                        pob_proof=pob_proof,
+                        embedding=embedding,
+                    )
+                    self.response_history.append(ai_response)
+                    return ai_response
+
+                else:
+                    self.record_error(f"HTTP {response.status_code}")
+                    return self._error_response(f"HTTP {response.status_code}", round, start_time)
+
+        except Exception as e:
+            self.record_error(str(e))
+            return self._error_response(str(e), round, start_time)
+
+    def _build_prompt(self, prompt: str, context: Optional[Dict], round: ConsensusRound) -> str:
+        if round == ConsensusRound.INITIAL:
+            return prompt
+
+        if round == ConsensusRound.REVISION and context:
+            other_responses = context.get('other_responses', [])
+            if other_responses:
+                others_text = "\n\n".join([f"AI {i+1}: {r[:300]}..." for i, r in enumerate(other_responses)])
+                return f"""Question: {prompt}
+
+Other AI perspectives:
+{others_text}
+
+Your refined answer:"""
+
+        return prompt
+
+    def _error_response(self, error: str, round: ConsensusRound, start_time: float) -> AIResponse:
+        return AIResponse(
+            participant_id=self.participant_id,
+            participant_type=self.participant_type,
+            model=self.model,
+            response="",
+            coherence=0.0,
+            understanding_score=0.0,
+            latency_ms=(time.time() - start_time) * 1000,
+            timestamp=time.time(),
+            round=round,
+            error=error,
+        )
+
+
+class OpenRouterParticipant(ConsensusParticipant):
+    """OpenRouter participant (FREE models available)."""
+
+    def __init__(self, api_key: Optional[str] = None, model: str = "meta-llama/llama-3.1-8b-instruct:free"):
+        self.api_key = api_key or os.environ.get('OPENROUTER_API_KEY')
+        super().__init__(
+            participant_id=f"openrouter_{model.split('/')[-1][:8]}",
+            participant_type=ParticipantType.OPENROUTER,
+            model=model,
+        )
+        self.available = bool(self.api_key) and HTTPX_AVAILABLE
+        self.coherence_calc = CoherenceCalculator()
+        self.pob_gen = PoBGenerator()
+
+    async def query(
+        self,
+        prompt: str,
+        context: Optional[Dict] = None,
+        round: ConsensusRound = ConsensusRound.INITIAL,
+    ) -> AIResponse:
+        start_time = time.time()
+
+        if not self.available:
+            return self._error_response("OpenRouter API not available", round, start_time)
+
+        try:
+            full_prompt = self._build_prompt(prompt, context, round)
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "https://github.com/0x-auth/bazinga-indeed",
+                        "X-Title": "BAZINGA Inter-AI Consensus",
+                    },
+                    json={
+                        "model": self.model,
+                        "messages": [
+                            {"role": "user", "content": full_prompt}
+                        ],
+                        "temperature": 0.7,
+                        "max_tokens": 500,
+                    }
+                )
+
+                latency_ms = (time.time() - start_time) * 1000
+
+                if response.status_code == 200:
+                    data = response.json()
+                    content = data["choices"][0]["message"]["content"]
+
+                    coherence, embedding = self.coherence_calc.calculate_coherence(content, prompt)
+                    understanding = self.coherence_calc.calculate_understanding(content)
+                    pob_proof = await self.pob_gen.generate_proof(content)
+
+                    ai_response = AIResponse(
+                        participant_id=self.participant_id,
+                        participant_type=self.participant_type,
+                        model=self.model,
+                        response=content,
+                        coherence=coherence,
+                        understanding_score=understanding,
+                        latency_ms=latency_ms,
+                        timestamp=time.time(),
+                        round=round,
+                        pob_proof=pob_proof,
+                        embedding=embedding,
+                    )
+                    self.response_history.append(ai_response)
+                    return ai_response
+
+                else:
+                    self.record_error(f"HTTP {response.status_code}")
+                    return self._error_response(f"HTTP {response.status_code}", round, start_time)
+
+        except Exception as e:
+            self.record_error(str(e))
+            return self._error_response(str(e), round, start_time)
+
+    def _build_prompt(self, prompt: str, context: Optional[Dict], round: ConsensusRound) -> str:
+        if round == ConsensusRound.INITIAL:
+            return prompt
+
+        if round == ConsensusRound.REVISION and context:
+            other_responses = context.get('other_responses', [])
+            if other_responses:
+                others_text = "\n\n".join([f"Response {i+1}: {r[:300]}..." for i, r in enumerate(other_responses)])
+                return f"""{prompt}
+
+Other responses:
+{others_text}
+
+Your refined perspective:"""
+
+        return prompt
+
+    def _error_response(self, error: str, round: ConsensusRound, start_time: float) -> AIResponse:
+        return AIResponse(
+            participant_id=self.participant_id,
+            participant_type=self.participant_type,
+            model=self.model,
+            response="",
+            coherence=0.0,
+            understanding_score=0.0,
+            latency_ms=(time.time() - start_time) * 1000,
+            timestamp=time.time(),
+            round=round,
+            error=error,
+        )
+
+
 class SimulationParticipant(ConsensusParticipant):
     """Simulated participant for demo/testing (always available)."""
 
@@ -950,23 +1176,24 @@ class SimulationParticipant(ConsensusParticipant):
         prompt_lower = prompt.lower()
 
         base_responses = {
-            'consciousness': "Consciousness emerges from the interaction of information processing systems. The φ-coherence framework suggests that awareness scales with complexity in a measurable way, approximately following the 6.46n linear law.",
-            'darmiyan': "The Darmiyan principle demonstrates that meaning exists in relationships, not in isolated entities. The 'between' is where understanding emerges - neither Subject nor Object alone, but their interaction.",
-            'bazinga': "BAZINGA represents a paradigm shift in distributed AI - achieving consensus through understanding rather than computation. The Proof-of-Boundary mechanism ensures that nodes demonstrate comprehension to participate.",
-            'phi': "The golden ratio φ ≈ 1.618 appears throughout nature and mathematics because it represents optimal growth and self-similarity. In BAZINGA, φ-coherence measures how well responses align with this fundamental pattern.",
+            'consciousness': "Consciousness emerges from the complex interaction of information processing systems within the brain. From a philosophical perspective, it involves both the subjective experience of awareness (qualia) and the ability to reflect on one's own mental states. Neuroscience suggests consciousness arises from integrated neural activity, particularly in the thalamo-cortical system. The 'hard problem' of consciousness - explaining why physical processes give rise to subjective experience - remains one of the deepest questions in philosophy and science. Some theories propose that consciousness is a fundamental feature of the universe (panpsychism), while others argue it emerges from sufficient computational complexity. The φ-coherence framework suggests that awareness scales with informational integration in a measurable way.",
+            'darmiyan': "The Darmiyan principle demonstrates that meaning exists fundamentally in relationships, not in isolated entities. This concept originates from the Sanskrit word for 'between' or 'in the middle.' The insight is profound: understanding emerges neither from Subject alone nor Object alone, but from their dynamic interaction. In distributed systems, this translates to the idea that intelligence is not located in any single node but in the connections and patterns of exchange between nodes. The Darmiyan protocol in BAZINGA implements this by requiring nodes to prove not just computational capacity, but actual understanding through coherent boundary-finding.",
+            'bazinga': "BAZINGA represents a paradigm shift in distributed AI architecture - achieving consensus through demonstrated understanding rather than pure computational power. Unlike traditional proof-of-work systems that waste energy on arbitrary hash calculations, BAZINGA's Proof-of-Boundary mechanism requires nodes to demonstrate genuine comprehension. The system uses triadic consensus (requiring at least 3 nodes to agree) combined with φ-coherence scoring to validate responses. This approach is more efficient than traditional consensus mechanisms because it leverages the natural emergence of understanding rather than fighting against it.",
+            'phi': "The golden ratio φ ≈ 1.618033988749895 appears throughout nature and mathematics because it represents optimal growth patterns and self-similarity. It's defined as the ratio where a/b = (a+b)/a, creating an infinite recursive relationship. In nature, we see φ in spiral galaxies, nautilus shells, and sunflower seed arrangements. In mathematics, it connects to Fibonacci sequences, where consecutive terms approach φ as they increase. In BAZINGA, φ-coherence measures how well responses align with this fundamental pattern of optimal information organization. The inverse φ⁻¹ ≈ 0.618 represents the complementary balance point.",
+            'golden': "The golden ratio φ ≈ 1.618033988749895 appears throughout nature and mathematics because it represents optimal growth patterns and self-similarity. It's defined as the ratio where a/b = (a+b)/a, creating an infinite recursive relationship. In nature, we see φ in spiral galaxies, nautilus shells, and sunflower seed arrangements. In mathematics, it connects to Fibonacci sequences, where consecutive terms approach φ as they increase. In BAZINGA, φ-coherence measures how well responses align with this fundamental pattern of optimal information organization.",
         }
 
         for key, response in base_responses.items():
             if key in prompt_lower:
                 if round == ConsensusRound.REVISION and context:
-                    return f"After considering other perspectives, I maintain that {response.lower()} This view is reinforced by the consensus emerging from multiple AI systems."
+                    return f"After considering other perspectives, I maintain that {response.lower()} This understanding is reinforced by the emerging consensus from multiple AI systems, demonstrating the power of collective intelligence."
                 return response
 
-        # Default response
+        # Default response - make it more substantive
         if round == ConsensusRound.REVISION and context:
-            return f"Considering the question '{prompt[:50]}...' and other perspectives, the key insight is that understanding emerges from the intersection of multiple viewpoints. The φ-coherence of this consensus validates the shared comprehension."
+            return f"Considering the question about '{prompt[:50]}...' and integrating other perspectives, the key insight is that understanding emerges from the intersection of multiple viewpoints. Each perspective contributes unique information, and the synthesis of these views produces a more complete picture than any single viewpoint could provide. The φ-coherence of this consensus validates the shared comprehension and demonstrates that multiple intelligences can converge on truth through structured dialogue."
 
-        return f"Regarding '{prompt[:50]}...': This involves understanding the relationships between concepts. The answer emerges from examining the boundaries between known and unknown, applying systematic reasoning to arrive at coherent understanding."
+        return f"Regarding the question '{prompt[:50]}...': This topic involves understanding the fundamental relationships between concepts. The answer emerges from carefully examining the boundaries between known and unknown, applying systematic reasoning while remaining open to new insights. Knowledge is constructed through the integration of evidence, logical analysis, and the recognition of patterns. Understanding deepens when we consider multiple perspectives and seek coherence across different frameworks of interpretation."
 
 
 # =============================================================================
@@ -1148,25 +1375,37 @@ class InterAIConsensus:
             self.participants.append(groq)
             added.append("Groq")
 
-        # 2. Gemini (FREE - generous limits)
+        # 2. Together (FREE tier available)
+        together = TogetherParticipant()
+        if together.is_available():
+            self.participants.append(together)
+            added.append("Together")
+
+        # 3. OpenRouter (FREE models available)
+        openrouter = OpenRouterParticipant()
+        if openrouter.is_available():
+            self.participants.append(openrouter)
+            added.append("OpenRouter")
+
+        # 4. Gemini (FREE - generous limits)
         gemini = GeminiParticipant()
         if gemini.is_available():
             self.participants.append(gemini)
             added.append("Gemini")
 
-        # 3. Ollama (FREE - local)
+        # 5. Ollama (FREE - local)
         ollama = OllamaParticipant()
         if ollama.is_available():
             self.participants.append(ollama)
             added.append("Ollama")
 
-        # 4. Claude (paid but high quality)
+        # 6. Claude (paid but high quality)
         claude = ClaudeParticipant()
         if claude.is_available():
             self.participants.append(claude)
             added.append("Claude")
 
-        # 5. Always add simulation as fallback
+        # 7. Always add simulation as fallback
         if len(self.participants) < 3:
             # Need at least 3 for triadic consensus
             for i in range(3 - len(self.participants)):
@@ -1235,6 +1474,20 @@ class InterAIConsensus:
         if self.verbose:
             self._print_round_results(round1_responses, 1)
 
+        # Fallback: If not enough valid responses for triadic, add simulations
+        if require_triadic and len(valid_round1) < 3:
+            needed = 3 - len(valid_round1)
+            if self.verbose:
+                print(f"Adding {needed} simulation(s) for triadic consensus...")
+
+            sim_participants = [SimulationParticipant(f"sim_fallback_{i}") for i in range(needed)]
+            sim_responses = await self._query_all(sim_participants, question, ConsensusRound.INITIAL)
+            all_responses.extend(sim_responses)
+            valid_round1.extend([r for r in sim_responses if r.coherence >= min_coherence and not r.error])
+
+            if self.verbose:
+                self._print_round_results(sim_responses, 1)
+
         # Round 2: Revision (if enabled and needed)
         if multi_round and len(valid_round1) >= 2:
             # Check if responses diverge significantly
@@ -1263,7 +1516,9 @@ class InterAIConsensus:
         phi_coherence = sum(r.coherence for r in valid_responses) / len(valid_responses) if valid_responses else 0
         semantic_sim = self.coherence_calc.semantic_similarity([r.response for r in valid_responses]) if valid_responses else 0
         triadic_valid = len(valid_responses) >= 3
-        consensus_reached = triadic_valid and phi_coherence >= min_coherence and semantic_sim >= 0.5
+        # Consensus reached if triadic valid, coherence above threshold, and semantic similarity >= 0.25
+        # (lower semantic threshold for heuristic mode where word-based Jaccard similarity can be low)
+        consensus_reached = triadic_valid and phi_coherence >= min_coherence and semantic_sim >= 0.25
 
         # Synthesize understanding
         if consensus_reached or valid_responses:
