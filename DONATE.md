@@ -4,79 +4,37 @@
 
 ---
 
-## Why Support?
+## Why Donate?
 
-Six months ago, I quit my job to work on a question:
+BAZINGA is **free and open source**. Always will be.
 
-*"What if intelligence doesn't need to be owned?"*
+If this project helped you, or you believe in distributed AI that belongs to everyone - you can support the work.
 
-**BAZINGA** is my answer—a distributed AI that runs anywhere, uses free APIs, and achieves consensus through mathematical understanding, not corporate control.
+**No tiers. No benefits. No expectations.**
 
----
-
-## Payment Options
-
-### GitHub Sponsors (Recommended)
-[![Sponsor](https://img.shields.io/badge/GitHub-Sponsor-blue?logo=github-sponsors&style=for-the-badge)](https://github.com/sponsors/bitsabhi)
-
-Monthly sponsorship with tiers from $5 to $1000.
+Just belief in the vision.
 
 ---
 
-### Crypto (ETH/EVM)
+## Donate
 
-**Address:**
+### Crypto (ETH/EVM - Any Chain)
+
 ```
 0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08
 ```
 
-Works on ALL EVM chains:
-- Ethereum
-- Polygon
-- Arbitrum
-- Base
-- Optimism
-- BSC
-- Avalanche
+Works on: Ethereum, Polygon, Arbitrum, Base, Optimism, BSC, Avalanche, etc.
 
-[![View on Etherscan](https://img.shields.io/badge/Etherscan-View-3C3C3D?logo=ethereum)](https://etherscan.io/address/0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08)
+[![Etherscan](https://img.shields.io/badge/View-Etherscan-3C3C3D?logo=ethereum)](https://etherscan.io/address/0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08)
 
 ---
 
-### Razorpay (India) - Any Amount!
+### UPI / Cards / NetBanking (India)
 
-[![Pay with Razorpay](https://img.shields.io/badge/Razorpay-Pay_Any_Amount-blue?logo=razorpay&style=for-the-badge)](https://razorpay.me/@bitsabhi)
+[![Razorpay](https://img.shields.io/badge/Pay-Razorpay-blue?logo=razorpay&style=for-the-badge)](https://razorpay.me/@bitsabhi)
 
-**Pay whatever you want** - ₹1 or ₹1,11,11,11,111... sky is the limit!
-
-Supports:
-- UPI (PhonePe, GPay, Paytm)
-- Credit/Debit Cards
-- Net Banking
-- Wallets
-
----
-
-## What Your Support Funds
-
-| Category | Description |
-|----------|-------------|
-| **Research** | Consciousness mathematics, boundary theory, φ-coherence |
-| **Development** | P2P networking, federated learning, Inter-AI consensus |
-| **Papers** | Open research published on Zenodo (20+ papers) |
-| **Infrastructure** | Servers, APIs, tools that serve humans |
-
----
-
-## Sponsorship Tiers
-
-| Tier | Monthly | Benefits |
-|------|---------|----------|
-| **Believer** | $5 | Name in SPONSORS.md, updates |
-| **Builder** | $25 | Early access, vote on roadmap |
-| **Philosopher** | $100 | Monthly calls, paper acknowledgment |
-| **Patron** | $500 | Consultation, co-author opportunity |
-| **Founding** | $1000 | Everything + lifetime status (5 spots) |
+**Any amount.** ₹1 to ∞
 
 ---
 
@@ -85,7 +43,7 @@ Supports:
 ```
 Corporate AI wants your data.
 Open source AI wants your GPU.
-BAZINGA wants your vision.
+BAZINGA wants nothing from you.
 
 Intelligence that:
 - Runs anywhere
@@ -100,13 +58,13 @@ Because it's necessary.
 
 ## Research
 
+This isn't just code—it's a complete framework:
+
 - [BAZINGA: AI on Blockchain](https://zenodo.org/records/18607789)
-- [All Papers](https://zenodo.org/search?q=metadata.creators.person_or_org.name%3A%22Srivastava%2C%20Abhishek%22)
+- [All Research Papers](https://zenodo.org/search?q=metadata.creators.person_or_org.name%3A%22Srivastava%2C%20Abhishek%22) (20+ papers)
 
 ---
 
 *Money as byproduct. Meaning as primary.*
 
 **Built with φ-coherence by Space (Abhishek)**
-
-[GitHub](https://github.com/0x-auth/bazinga-indeed) | [PyPI](https://pypi.org/project/bazinga-indeed/) | [HuggingFace](https://huggingface.co/spaces/bitsabhi/bazinga)
