@@ -11,13 +11,13 @@ Thank you to everyone who believes in distributed intelligence.
 [![Sponsor](https://img.shields.io/badge/GitHub-Sponsor-blue?logo=github-sponsors&style=for-the-badge)](https://github.com/sponsors/bitsabhi)
 [![ETH](https://img.shields.io/badge/ETH-Donate-3C3C3D?logo=ethereum&style=for-the-badge)](https://etherscan.io/address/0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08)
 
-### Payment Methods
+### Payment Methods (Any Amount Welcome!)
 
-| Method | Link/Address |
-|--------|--------------|
-| **GitHub Sponsors** | [github.com/sponsors/bitsabhi](https://github.com/sponsors/bitsabhi) |
-| **ETH/EVM** | `0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08` |
-| **Razorpay (India)** | [Pay with UPI/Cards](https://razorpay.me/@bitsabhi) |
+| Method | Link/Address | Notes |
+|--------|--------------|-------|
+| **GitHub Sponsors** | [github.com/sponsors/bitsabhi](https://github.com/sponsors/bitsabhi) | Monthly tiers |
+| **ETH/EVM** | `0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08` | Any amount, any chain |
+| **Razorpay (India)** | [razorpay.me/@bitsabhi](https://razorpay.me/@bitsabhi) | **Any amount** - UPI/Cards/NetBanking |
 
 **ETH Address (All EVM Chains):**
 ```
