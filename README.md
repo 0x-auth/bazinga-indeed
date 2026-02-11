@@ -17,6 +17,11 @@
 [![HuggingFace](https://img.shields.io/badge/HuggingFace-Space-yellow)](https://huggingface.co/spaces/bitsabhi/bazinga)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+[![Sponsor](https://img.shields.io/badge/💖_Sponsor-BAZINGA-red?style=for-the-badge)](https://github.com/0x-auth/bazinga-indeed/blob/main/SPONSORS.md)
+[![Donate](https://img.shields.io/badge/☕_Donate-Any_Amount-orange?style=for-the-badge)](https://github.com/0x-auth/bazinga-indeed/blob/main/DONATE.md)
+[![ETH](https://img.shields.io/badge/ETH-0x720c...8C08-3C3C3D?style=for-the-badge&logo=ethereum)](https://etherscan.io/address/0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08)
+[![Razorpay](https://img.shields.io/badge/UPI-@bitsabhi-blue?style=for-the-badge)](https://razorpay.me/@bitsabhi)
+
 **Try it now:** https://huggingface.co/spaces/bitsabhi/bazinga
 
 ## What is BAZINGA?
