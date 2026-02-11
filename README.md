@@ -428,7 +428,22 @@ pip install -e ".[dev]"
 
 BAZINGA is open source and always will be. If this vision resonates with you, consider supporting the research and development:
 
-[![Sponsor BAZINGA](https://img.shields.io/badge/Sponsor-BAZINGA-blue?logo=github-sponsors&style=for-the-badge)](https://github.com/sponsors/bitsabhi)
+[![Sponsor](https://img.shields.io/badge/GitHub-Sponsor-blue?logo=github-sponsors&style=for-the-badge)](https://github.com/sponsors/bitsabhi)
+[![ETH](https://img.shields.io/badge/ETH-Donate-3C3C3D?logo=ethereum&style=for-the-badge)](https://etherscan.io/address/0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08)
+[![Razorpay](https://img.shields.io/badge/Razorpay-India-blue?logo=razorpay&style=for-the-badge)](https://razorpay.me/@bitsabhi)
+
+### Payment Methods
+
+| Method | Link/Address |
+|--------|--------------|
+| **GitHub Sponsors** | [github.com/sponsors/bitsabhi](https://github.com/sponsors/bitsabhi) |
+| **ETH/EVM** | `0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08` |
+| **Razorpay (India)** | [razorpay.me/@bitsabhi](https://razorpay.me/@bitsabhi) |
+
+**Crypto (All EVM Chains - ETH, Polygon, Arbitrum, Base, etc.):**
+```
+0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08
+```
 
 ### What Your Support Funds
 
