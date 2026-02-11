@@ -12,7 +12,7 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "4.5.1"
+__version__ = "4.6.0"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
 
 # New in v3.4.0: Quantum, ΛG, Tensor modules
@@ -112,3 +112,22 @@ def get_trust_oracle():
     """Get the Trust Oracle (chain → trust scores → AI routing)."""
     from .blockchain import TrustOracle, create_trust_oracle
     return create_trust_oracle
+
+def get_inter_ai_consensus():
+    """Get the Inter-AI Consensus engine (multi-AI agreement through φ-coherence)."""
+    from .inter_ai import InterAIConsensus
+    return InterAIConsensus
+
+def multi_ai_ask(question: str, verbose: bool = True):
+    """
+    Ask multiple AIs a question and get consensus.
+
+    Usage:
+        import asyncio
+        from bazinga import multi_ai_ask
+
+        result = asyncio.run(multi_ai_ask("What is consciousness?"))
+        print(result.understanding)
+    """
+    from .inter_ai import multi_ai_ask_sync
+    return multi_ai_ask_sync(question, verbose)
