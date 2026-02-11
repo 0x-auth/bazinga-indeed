@@ -67,8 +67,8 @@ Documentation = "https://github.com/0x-auth/bazinga-indeed#readme"
 Repository = "https://github.com/0x-auth/bazinga-indeed"
 Issues = "https://github.com/0x-auth/bazinga-indeed/issues"
 Donate = "https://github.com/0x-auth/bazinga-indeed/blob/main/DONATE.md"
-Sponsor = "https://github.com/sponsors/bitsabhi"
-"Donate (India)" = "https://razorpay.me/@bitsabhi"
+"Donate (India/UPI)" = "https://razorpay.me/@bitsabhi"
+"Donate (Crypto)" = "https://etherscan.io/address/0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08"
 
 [project.scripts]
 bazinga = "bazinga:main_sync"
