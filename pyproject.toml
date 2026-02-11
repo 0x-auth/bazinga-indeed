@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bazinga-indeed"
-version = "4.6.2"
+version = "4.6.3"
 description = "BAZINGA - Distributed AI with Inter-AI Consensus through φ-coherence"
 readme = "README.md"
 license = {text = "MIT"}
@@ -66,6 +66,9 @@ Homepage = "https://github.com/0x-auth/bazinga-indeed"
 Documentation = "https://github.com/0x-auth/bazinga-indeed#readme"
 Repository = "https://github.com/0x-auth/bazinga-indeed"
 Issues = "https://github.com/0x-auth/bazinga-indeed/issues"
+Donate = "https://github.com/0x-auth/bazinga-indeed/blob/main/DONATE.md"
+Sponsor = "https://github.com/sponsors/bitsabhi"
+"Donate (India)" = "https://razorpay.me/@bitsabhi"
 
 [project.scripts]
 bazinga = "bazinga:main_sync"
