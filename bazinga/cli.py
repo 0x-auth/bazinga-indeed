@@ -9,7 +9,7 @@ warnings.filterwarnings('ignore')
 logging.disable(logging.WARNING)
 
 """
-BAZINGA v4.3.0 - Complete Distributed AI with Blockchain
+BAZINGA v4.6.0 - Complete Distributed AI with Blockchain + Inter-AI Consensus
 =========================================================
 "AI generates understanding. Blockchain proves and records it.
 They're not two things — they're Subject and Object.
@@ -113,7 +113,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.5.1"
+    VERSION = "4.6.0"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -625,11 +625,11 @@ Be accurate and informative. Keep responses brief."""
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="BAZINGA v4.5.0 - Distributed AI with Blockchain Integration",
+        description="BAZINGA v4.6.0 - Distributed AI with Blockchain + Inter-AI Consensus",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  BAZINGA v4.5.0 - AI + Blockchain Unified                                    ║
+║  BAZINGA v4.6.0 - AI + Blockchain + Inter-AI Consensus                       ║
 ║  "AI generates understanding. Blockchain proves it. They're not two things." ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -645,11 +645,24 @@ QUICK START:
 AI COMMANDS (5-Layer Intelligence)
 ═══════════════════════════════════════════════════════════════════════════════
   --ask, -a "question"    Ask any question (uses 5-layer intelligence)
+  --multi-ai "question"   Ask multiple AIs and reach φ-coherence consensus (NEW!)
   --code, -c "task"       Generate code with AI (--lang py/js/ts/rust/go)
   --quantum, -q "text"    Quantum pattern analysis (superposition processing)
   --coherence "text"      Check φ-coherence and ΛG boundaries
   --index PATH [PATH]     Index directories for RAG search
   --local                 Force local LLM (works offline)
+
+═══════════════════════════════════════════════════════════════════════════════
+INTER-AI CONSENSUS (NEW in v4.6.0)
+═══════════════════════════════════════════════════════════════════════════════
+  --multi-ai "question"   Ask multiple AIs and synthesize consensus
+                          Uses: Groq → Gemini → Ollama → Claude (auto-detect)
+                          Features:
+                            • Multi-round consensus with revision
+                            • Embedding-based φ-coherence (or heuristic fallback)
+                            • Proof-of-Boundary for each response
+                            • Semantic synthesis of agreeing responses
+                            • Graceful fallback when APIs unavailable
 
 ═══════════════════════════════════════════════════════════════════════════════
 P2P NETWORK COMMANDS
@@ -778,6 +791,8 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     # Main options
     parser.add_argument('--ask', '-a', type=str, metavar='QUESTION',
                         help='Ask a question (uses AI)')
+    parser.add_argument('--multi-ai', '-m', type=str, metavar='QUESTION',
+                        help='Ask multiple AIs and reach φ-coherence consensus (NEW in v4.6.0)')
     parser.add_argument('--quantum', '-q', type=str, metavar='TEXT',
                         help='Quantum analyze a thought')
     parser.add_argument('--coherence', type=str, metavar='TEXT',
@@ -1347,6 +1362,28 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     if args.index:
         bazinga = BAZINGA(verbose=args.verbose)
         await bazinga.index(args.index)
+        return
+
+    # Handle --multi-ai (Inter-AI Consensus)
+    if args.multi_ai:
+        print(f"\n🤖 BAZINGA INTER-AI CONSENSUS")
+        print(f"=" * 60)
+        print(f"  Multiple AIs reaching understanding through φ-coherence")
+        print()
+
+        try:
+            from .inter_ai import InterAIConsensus
+
+            consensus = InterAIConsensus(verbose=True)
+            result = await consensus.ask(args.multi_ai)
+
+            # Export log for reference
+            consensus.export_log("bazinga_consensus.json")
+
+        except Exception as e:
+            print(f"  Error: {e}")
+            print(f"  Make sure httpx is installed: pip install httpx")
+
         return
 
     # Handle ask
