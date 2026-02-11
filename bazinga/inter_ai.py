@@ -40,7 +40,7 @@ PHI_INVERSE = 0.6180339887498948
 PHI_4 = 6.854101966249685
 ALPHA = 137
 ABHI_AMU = 515
-PHI_THRESHOLD = 0.618  # Minimum coherence for valid understanding
+PHI_THRESHOLD = 0.35  # Minimum coherence for valid understanding (lower for heuristic mode)
 
 # Check for optional dependencies
 try:
@@ -568,7 +568,7 @@ Considering these perspectives, provide your refined answer. If you agree with p
 class GeminiParticipant(ConsensusParticipant):
     """Google Gemini API participant (FREE - 1M tokens/month)."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-2.0-flash"):
         self.api_key = api_key or os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
         super().__init__(
             participant_id=f"gemini_{model[:8]}",
@@ -676,7 +676,7 @@ Provide your refined answer, acknowledging agreements and explaining disagreemen
 class ClaudeParticipant(ConsensusParticipant):
     """Anthropic Claude API participant."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "claude-3-haiku-20240307"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "claude-3-5-haiku-20241022"):
         self.api_key = api_key or os.environ.get('ANTHROPIC_API_KEY')
         super().__init__(
             participant_id=f"claude_{model[:8]}",
