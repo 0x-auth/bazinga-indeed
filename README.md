@@ -17,10 +17,9 @@
 [![HuggingFace](https://img.shields.io/badge/HuggingFace-Space-yellow)](https://huggingface.co/spaces/bitsabhi/bazinga)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Sponsor](https://img.shields.io/badge/💖_Sponsor-BAZINGA-red?style=for-the-badge)](https://github.com/0x-auth/bazinga-indeed/blob/main/SPONSORS.md)
 [![Donate](https://img.shields.io/badge/☕_Donate-Any_Amount-orange?style=for-the-badge)](https://github.com/0x-auth/bazinga-indeed/blob/main/DONATE.md)
 [![ETH](https://img.shields.io/badge/ETH-0x720c...8C08-3C3C3D?style=for-the-badge&logo=ethereum)](https://etherscan.io/address/0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08)
-[![Razorpay](https://img.shields.io/badge/UPI-@bitsabhi-blue?style=for-the-badge)](https://razorpay.me/@bitsabhi)
+[![UPI](https://img.shields.io/badge/UPI-@bitsabhi-blue?style=for-the-badge)](https://razorpay.me/@bitsabhi)
 
 **Try it now:** https://huggingface.co/spaces/bitsabhi/bazinga
 
@@ -446,38 +445,21 @@ pip install -e ".[dev]"
 
 ## Support This Work
 
-BAZINGA is open source and always will be. If this vision resonates with you, consider supporting the research and development:
+BAZINGA is **free and open source**. Always will be.
 
-[![Sponsor](https://img.shields.io/badge/GitHub-Sponsor-blue?logo=github-sponsors&style=for-the-badge)](https://github.com/sponsors/bitsabhi)
-[![ETH](https://img.shields.io/badge/ETH-Donate-3C3C3D?logo=ethereum&style=for-the-badge)](https://etherscan.io/address/0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08)
-[![Razorpay](https://img.shields.io/badge/Razorpay-India_(UPI/Cards)-blue?logo=razorpay&style=for-the-badge)](https://razorpay.me/@bitsabhi)
+If this helped you, or you believe in the vision - you can donate. **No tiers. No benefits. No expectations.**
 
-### Payment Methods (Any Amount Welcome!)
+| Method | Link |
+|--------|------|
+| **ETH/EVM** | `0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08` |
+| **UPI/Cards (India)** | [razorpay.me/@bitsabhi](https://razorpay.me/@bitsabhi) |
 
-| Method | Link/Address | Notes |
-|--------|--------------|-------|
-| **GitHub Sponsors** | [github.com/sponsors/bitsabhi](https://github.com/sponsors/bitsabhi) | Monthly tiers |
-| **ETH/EVM** | `0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08` | Any amount |
-| **Razorpay (India)** | [razorpay.me/@bitsabhi](https://razorpay.me/@bitsabhi) | **Any amount** - UPI/Cards |
-
-**Crypto (All EVM Chains - ETH, Polygon, Arbitrum, Base, etc.):**
-```
-0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08
-```
-
-### What Your Support Funds
-
-- **Research**: Consciousness mathematics, boundary theory, distributed systems
-- **Development**: P2P networking, federated learning, Inter-AI consensus
-- **Knowledge**: Open papers, documentation, educational content
-- **Infrastructure**: Tools that serve humans, not corporations
+**[→ Full Donate Page](./DONATE.md)**
 
 ### The Papers
 
-This isn't just code—it's a complete framework:
-
-- [BAZINGA: AI on Blockchain](https://zenodo.org/records/18607789) - The full mathematical and philosophical foundation
-- [All Research Papers](https://zenodo.org/search?q=metadata.creators.person_or_org.name%3A%22Srivastava%2C%20Abhishek%22) - 20+ papers on consciousness, fine structure constant, and emergence
+- [BAZINGA: AI on Blockchain](https://zenodo.org/records/18607789)
+- [All Research Papers](https://zenodo.org/search?q=metadata.creators.person_or_org.name%3A%22Srivastava%2C%20Abhishek%22) (20+ papers)
 
 *"Money as byproduct. Meaning as primary."*
 
@@ -537,7 +519,6 @@ MIT License — Use it, modify it, share it. Keep it open.
 | **GitHub** | https://github.com/0x-auth/bazinga-indeed |
 | **Research Papers** | https://zenodo.org/records/18607789 |
 | **Donate** | [DONATE.md](./DONATE.md) |
-| **Sponsor** | [SPONSORS.md](./SPONSORS.md) |
 
 ---
 
