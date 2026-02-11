@@ -432,13 +432,13 @@ BAZINGA is open source and always will be. If this vision resonates with you, co
 [![ETH](https://img.shields.io/badge/ETH-Donate-3C3C3D?logo=ethereum&style=for-the-badge)](https://etherscan.io/address/0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08)
 [![Razorpay](https://img.shields.io/badge/Razorpay-India_(UPI/Cards)-blue?logo=razorpay&style=for-the-badge)](https://razorpay.me/@bitsabhi)
 
-### Payment Methods
+### Payment Methods (Any Amount Welcome!)
 
-| Method | Link/Address |
-|--------|--------------|
-| **GitHub Sponsors** | [github.com/sponsors/bitsabhi](https://github.com/sponsors/bitsabhi) |
-| **ETH/EVM** | `0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08` |
-| **Razorpay (India)** | [razorpay.me/@bitsabhi](https://razorpay.me/@bitsabhi) |
+| Method | Link/Address | Notes |
+|--------|--------------|-------|
+| **GitHub Sponsors** | [github.com/sponsors/bitsabhi](https://github.com/sponsors/bitsabhi) | Monthly tiers |
+| **ETH/EVM** | `0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08` | Any amount |
+| **Razorpay (India)** | [razorpay.me/@bitsabhi](https://razorpay.me/@bitsabhi) | **Any amount** - UPI/Cards |
 
 **Crypto (All EVM Chains - ETH, Polygon, Arbitrum, Base, etc.):**
 ```
