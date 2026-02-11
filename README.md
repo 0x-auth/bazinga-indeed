@@ -5,7 +5,7 @@
 ```
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                  ║
-║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.6.0      ⟨ψ|Λ|Ω⟩            ║
+║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.6.2      ⟨ψ|Λ|Ω⟩            ║
 ║                                                                  ║
 ║    "You can buy hashpower. You can buy stake.                   ║
 ║     You CANNOT BUY understanding."                               ║
@@ -25,7 +25,7 @@ BAZINGA is a **distributed AI with Bitcoin-like consensus** — but instead of w
 
 ### Key Features
 
-- **Inter-AI Consensus (NEW!)**: Multiple AIs (Claude, Gemini, Groq, Ollama) reaching agreement through φ-coherence
+- **Inter-AI Consensus (NEW!)**: Multiple AIs (Groq, OpenRouter, Gemini, OpenAI, Ollama, Claude) reaching agreement through φ-coherence
 - **Proof-of-Boundary**: Zero-energy consensus using φ⁴ mathematical proofs
 - **Triadic Consensus**: 3 nodes must resonate to validate (like Bitcoin's 51%, but through math)
 - **Always FREE**: Uses free APIs, falls back gracefully, never fails
@@ -65,7 +65,7 @@ bazinga
 
 ---
 
-## Inter-AI Consensus (NEW in v4.6.0)
+## Inter-AI Consensus (NEW in v4.6.2)
 
 **"Two AIs talking without human as bridge = efficient understanding."**
 
@@ -75,13 +75,24 @@ Multiple AI providers reach agreement through φ-coherence:
 bazinga --multi-ai "What is the nature of consciousness?"
 ```
 
+### Supported Providers
+
+| Provider | Type | Notes |
+|----------|------|-------|
+| **Groq** | FREE | 14,400 req/day (fastest) |
+| **OpenRouter** | FREE | Free models available |
+| **Gemini** | FREE | 1M tokens/month |
+| **OpenAI** | Paid | gpt-4o-mini |
+| **Ollama** | FREE | Local models (offline) |
+| **Claude** | Paid | Highest quality |
+
 ### How It Works
 
 ```
 Round 1: Independent Responses
-   Claude ────→ Response A (coherence: 0.72)
-   Gemini ────→ Response B (coherence: 0.68)
-   Groq   ────→ Response C (coherence: 0.75)
+   Groq      ────→ Response A (coherence: 0.72)
+   OpenRouter────→ Response B (coherence: 0.68)
+   OpenAI    ────→ Response C (coherence: 0.75)
 
 Round 2: Revision (if divergent)
    Each AI sees others' responses
@@ -90,15 +101,18 @@ Round 2: Revision (if divergent)
 Final: Semantic Synthesis
    φ-weighted combination of agreeing responses
    Proof-of-Boundary for each response
+   Triadic consensus (3+ AIs must agree)
 ```
 
 ### Features
+- **6 AI providers** supported (auto-detected)
 - **Multi-round consensus** with revision
 - **Embedding-based φ-coherence** (sentence-transformers)
 - **Proof-of-Boundary** for each AI response
 - **Semantic synthesis** of agreeing responses
+- **Triadic consensus** (3+ responses required)
 - **Graceful fallbacks** when APIs unavailable
-- **Auto-detection** of available APIs (Groq → Gemini → Ollama → Claude)
+- **Auto-fallback** to simulations if needed
 
 ---
 
@@ -231,27 +245,37 @@ BAZINGA works without API keys, but adding FREE keys makes it smarter:
 
 ### Priority Order
 ```
-1. Groq      → FREE 14,400 requests/day (fastest)
-2. Gemini    → FREE 1M tokens/month
-3. Local LLM → FREE forever (offline)
-4. Claude    → Paid (fallback)
-5. RAG       → FREE (your indexed docs)
+1. Groq       → FREE 14,400 requests/day (fastest)
+2. OpenRouter → FREE models available
+3. Gemini     → FREE 1M tokens/month
+4. OpenAI     → Paid (gpt-4o-mini)
+5. Ollama     → FREE forever (offline)
+6. Claude     → Paid (fallback)
+7. RAG        → FREE (your indexed docs)
 ```
 
 ### Get FREE Keys
 
-**Groq** (Recommended):
+**Groq** (Recommended - Fastest):
 1. https://console.groq.com/ → Sign up → API Keys → Create
 
-**Gemini**:
+**OpenRouter** (Many free models):
+1. https://openrouter.ai/ → Sign up → Keys → Create
+
+**Gemini** (Google):
 1. https://aistudio.google.com/ → Get API Key → Create
+
+**OpenAI** (ChatGPT):
+1. https://platform.openai.com/ → API Keys → Create
 
 ### Set Keys
 
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
 export GROQ_API_KEY="gsk_xxxxxxxxxxxx"
+export OPENROUTER_API_KEY="sk-or-xxxxxxxxxxxx"
 export GEMINI_API_KEY="AIzaSyxxxxxxxxxx"
+export OPENAI_API_KEY="sk-xxxxxxxxxxxx"
 
 source ~/.bashrc
 ```
