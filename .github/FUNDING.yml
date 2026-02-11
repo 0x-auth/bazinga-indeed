@@ -1,5 +1,8 @@
 # GitHub Sponsors - Support BAZINGA development
 github: [bitsabhi]
 
-# Research Papers on Zenodo
-custom: ['https://zenodo.org/records/18607789', 'https://zenodo.org/search?q=metadata.creators.person_or_org.name%3A%22Srivastava%2C%20Abhishek%22']
+# Crypto - ETH/EVM Compatible (Ethereum, Polygon, Arbitrum, Base, etc.)
+custom: [
+  'https://etherscan.io/address/0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08',
+  'https://zenodo.org/records/18607789'
+]
