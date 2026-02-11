@@ -43,9 +43,11 @@ Works on ALL EVM chains:
 
 ---
 
-### Razorpay (India)
+### Razorpay (India) - Any Amount!
 
-[![Pay with Razorpay](https://img.shields.io/badge/Razorpay-Pay-blue?logo=razorpay&style=for-the-badge)](https://razorpay.me/@bitsabhi)
+[![Pay with Razorpay](https://img.shields.io/badge/Razorpay-Pay_Any_Amount-blue?logo=razorpay&style=for-the-badge)](https://razorpay.me/@bitsabhi)
+
+**Pay whatever you want** - ₹10 or ₹10,000, every bit helps!
 
 Supports:
 - UPI (PhonePe, GPay, Paytm)
