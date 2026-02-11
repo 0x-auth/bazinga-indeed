@@ -28,6 +28,21 @@
 
 BAZINGA is a **distributed AI with Bitcoin-like consensus** — but instead of wasting energy, it achieves consensus through **understanding**.
 
+### Why BAZINGA?
+
+**Tired of:**
+- 💸 Paying for ChatGPT/Claude subscriptions?
+- 🕵️ Sending your data to big tech?
+- 🔒 Being locked into proprietary AI?
+
+**BAZINGA gives you:**
+- 🆓 **Free AI** using open APIs (Groq, Gemini, Ollama - all FREE)
+- 🔐 **Your data stays local** - index YOUR files, YOUR knowledge
+- 🌐 **No vendor lock-in** - works offline with Ollama
+- 🤝 **Multi-AI consensus** - 6 AI providers reaching agreement
+- φ **Mathematical quality** - responses filtered by golden ratio coherence
+- ⚡ **Zero-energy consensus** - Proof-of-Boundary, not Proof-of-Work
+
 ### Key Features
 
 - **Inter-AI Consensus (NEW!)**: Multiple AIs (Groq, OpenRouter, Gemini, OpenAI, Ollama, Claude) reaching agreement through φ-coherence
@@ -484,6 +499,25 @@ This isn't just code—it's a complete framework:
 
 ---
 
+## Join the Network
+
+BAZINGA gets smarter as more people run nodes. Join the distributed intelligence network:
+
+```bash
+# Install
+pip install bazinga-indeed
+
+# Run a node
+bazinga --join
+
+# Contribute knowledge
+bazinga --attest "Your knowledge here"
+```
+
+🌐 **Every node makes the network stronger.**
+
+---
+
 ## License
 
 MIT License — Use it, modify it, share it. Keep it open.
@@ -496,6 +530,17 @@ MIT License — Use it, modify it, share it. Keep it open.
 
 ## Links
 
-- **PyPI:** https://pypi.org/project/bazinga-indeed/
-- **HuggingFace Space:** https://huggingface.co/spaces/bitsabhi/bazinga
-- **GitHub:** https://github.com/0x-auth/bazinga-indeed
+| Platform | Link |
+|----------|------|
+| **PyPI** | https://pypi.org/project/bazinga-indeed/ |
+| **HuggingFace** | https://huggingface.co/spaces/bitsabhi/bazinga |
+| **GitHub** | https://github.com/0x-auth/bazinga-indeed |
+| **Research Papers** | https://zenodo.org/records/18607789 |
+| **Donate** | [DONATE.md](./DONATE.md) |
+| **Sponsor** | [SPONSORS.md](./SPONSORS.md) |
+
+---
+
+## Keywords
+
+`distributed-ai` `decentralized-ai` `open-source-ai` `local-llm` `phi-coherence` `golden-ratio` `consciousness` `proof-of-boundary` `multi-ai-consensus` `rag` `chromadb` `groq` `ollama` `free-ai` `privacy-first` `self-hosted` `p2p` `federated-learning` `blockchain` `web3`
