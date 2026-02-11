@@ -47,7 +47,7 @@ Works on ALL EVM chains:
 
 [![Pay with Razorpay](https://img.shields.io/badge/Razorpay-Pay_Any_Amount-blue?logo=razorpay&style=for-the-badge)](https://razorpay.me/@bitsabhi)
 
-**Pay whatever you want** - ₹10 or ₹10,000, every bit helps!
+**Pay whatever you want** - ₹1 or ₹1,11,11,11,111... sky is the limit!
 
 Supports:
 - UPI (PhonePe, GPay, Paytm)
