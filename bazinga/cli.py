@@ -9,7 +9,7 @@ warnings.filterwarnings('ignore')
 logging.disable(logging.WARNING)
 
 """
-BAZINGA v4.6.0 - Complete Distributed AI with Blockchain + Inter-AI Consensus
+BAZINGA v4.6.2 - Complete Distributed AI with Blockchain + Inter-AI Consensus
 =========================================================
 "AI generates understanding. Blockchain proves and records it.
 They're not two things — they're Subject and Object.
@@ -625,11 +625,11 @@ Be accurate and informative. Keep responses brief."""
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="BAZINGA v4.6.0 - Distributed AI with Blockchain + Inter-AI Consensus",
+        description="BAZINGA v4.6.2 - Distributed AI with Blockchain + Inter-AI Consensus",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  BAZINGA v4.6.0 - AI + Blockchain + Inter-AI Consensus                       ║
+║  BAZINGA v4.6.2 - AI + Blockchain + Inter-AI Consensus                       ║
 ║  "AI generates understanding. Blockchain proves it. They're not two things." ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -653,16 +653,25 @@ AI COMMANDS (5-Layer Intelligence)
   --local                 Force local LLM (works offline)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INTER-AI CONSENSUS (NEW in v4.6.0)
+INTER-AI CONSENSUS (NEW in v4.6.2)
 ═══════════════════════════════════════════════════════════════════════════════
   --multi-ai "question"   Ask multiple AIs and synthesize consensus
-                          Uses: Groq → Gemini → Ollama → Claude (auto-detect)
+
+                          Supported Providers (auto-detected):
+                            • Groq       - FREE 14,400 req/day (fastest)
+                            • OpenRouter - FREE models available
+                            • Gemini     - FREE 1M tokens/month
+                            • OpenAI     - ChatGPT (gpt-4o-mini)
+                            • Ollama     - FREE local models
+                            • Claude     - Anthropic API
+
                           Features:
                             • Multi-round consensus with revision
                             • Embedding-based φ-coherence (or heuristic fallback)
                             • Proof-of-Boundary for each response
                             • Semantic synthesis of agreeing responses
-                            • Graceful fallback when APIs unavailable
+                            • Triadic consensus (3+ AIs must agree)
+                            • Auto-fallback to simulations when APIs unavailable
 
 ═══════════════════════════════════════════════════════════════════════════════
 P2P NETWORK COMMANDS
@@ -744,11 +753,17 @@ UNIVERSAL CONSTANTS
 ═══════════════════════════════════════════════════════════════════════════════
 ENVIRONMENT VARIABLES (FREE APIs prioritized!)
 ═══════════════════════════════════════════════════════════════════════════════
-  GROQ_API_KEY          Groq - FREE 14,400 requests/day
+  GROQ_API_KEY          Groq - FREE 14,400 requests/day (RECOMMENDED)
                         → https://console.groq.com
+
+  OPENROUTER_API_KEY    OpenRouter - FREE models available
+                        → https://openrouter.ai
 
   GEMINI_API_KEY        Gemini - FREE 1M tokens/month
                         → https://aistudio.google.com
+
+  OPENAI_API_KEY        OpenAI/ChatGPT - gpt-4o-mini (paid)
+                        → https://platform.openai.com
 
   ANTHROPIC_API_KEY     Claude - paid but highest quality
                         → https://console.anthropic.com
