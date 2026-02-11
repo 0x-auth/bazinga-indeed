@@ -430,7 +430,7 @@ BAZINGA is open source and always will be. If this vision resonates with you, co
 
 [![Sponsor](https://img.shields.io/badge/GitHub-Sponsor-blue?logo=github-sponsors&style=for-the-badge)](https://github.com/sponsors/bitsabhi)
 [![ETH](https://img.shields.io/badge/ETH-Donate-3C3C3D?logo=ethereum&style=for-the-badge)](https://etherscan.io/address/0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08)
-[![Razorpay](https://img.shields.io/badge/Razorpay-India-blue?logo=razorpay&style=for-the-badge)](https://razorpay.me/@bitsabhi)
+[![Razorpay](https://img.shields.io/badge/Razorpay-India_(UPI/Cards)-blue?logo=razorpay&style=for-the-badge)](https://razorpay.me/@bitsabhi)
 
 ### Payment Methods
 
