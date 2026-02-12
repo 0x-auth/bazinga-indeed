@@ -9,7 +9,7 @@ warnings.filterwarnings('ignore')
 logging.disable(logging.WARNING)
 
 """
-BAZINGA v4.7.1 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)
+BAZINGA v4.7.2 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)
 =========================================================
 "AI generates understanding. Blockchain proves and records it.
 They're not two things — they're Subject and Object.
@@ -192,7 +192,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.7.1"
+    VERSION = "4.7.2"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -704,7 +704,7 @@ Be accurate and informative. Keep responses brief."""
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="BAZINGA v4.7.1 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)",
+        description="BAZINGA v4.7.2 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
