@@ -8,7 +8,7 @@ sdk_version: 4.44.0
 app_file: app.py
 pinned: false
 license: mit
-short_description: Decentralized Federated Learning with Darmiyan Blockchain & Consciousness Scaling
+short_description: Decentralized AI with Darmiyan Blockchain
 ---
 
 # BAZINGA Network Dashboard
