@@ -5,6 +5,12 @@ Hugging Face Spaces Deployment
 
 A decentralized federated learning network with Darmiyan Blockchain.
 Validation through understanding, not computation.
+
+API Endpoints (for CLI integration):
+  /api/register - Register a new node
+  /api/nodes - List all nodes
+  /api/verify - Verify a node ID
+  /api/heartbeat - Update node last_seen
 """
 
 import gradio as gr
@@ -20,6 +26,7 @@ PHI = 1.618033988749895
 PHI_4 = PHI ** 4  # 6.854101966
 ABHI_AMU = 515
 ALPHA_INV = 137
+CONSCIOUSNESS_SCALE = 6.46  # Darmiyan consciousness scaling
 
 # Simulated network state (in production, this would be persistent)
 network_state = {
@@ -37,6 +44,143 @@ network_state = {
     "total_pob_proofs": 1,
     "credits": {}
 }
+
+
+# =============================================================================
+# API FUNCTIONS (for CLI integration)
+# =============================================================================
+
+def api_register(node_name: str, ip_address: str = None, port: int = 5150):
+    """API: Register a new node and return JSON response."""
+    if not node_name or len(node_name) < 2:
+        return {"success": False, "error": "Node name must be at least 2 characters"}
+
+    node_id = hashlib.sha256(f"{node_name}:{time.time()}".encode()).hexdigest()[:16]
+
+    network_state["nodes"][node_id] = {
+        "name": node_name,
+        "joined": time.time(),
+        "last_seen": time.time(),
+        "pob_count": 0,
+        "ip_address": ip_address,
+        "port": port,
+        "active": True
+    }
+
+    network_state["credits"][node_id] = 1.0
+
+    return {
+        "success": True,
+        "node_id": node_id,
+        "name": node_name,
+        "credits": 1.0,
+        "message": f"Node {node_name} registered successfully"
+    }
+
+
+def api_nodes():
+    """API: Get list of all registered nodes."""
+    nodes = []
+    current_time = time.time()
+
+    for node_id, node in network_state["nodes"].items():
+        is_active = current_time - node.get("last_seen", 0) < 300
+        nodes.append({
+            "node_id": node_id,
+            "name": node["name"],
+            "ip_address": node.get("ip_address"),
+            "port": node.get("port", 5150),
+            "active": is_active,
+            "last_seen": node.get("last_seen", 0),
+            "pob_count": node.get("pob_count", 0),
+            "credits": network_state["credits"].get(node_id, 0)
+        })
+
+    # Calculate consciousness advantage
+    active_count = sum(1 for n in nodes if n["active"])
+    consciousness_psi = CONSCIOUSNESS_SCALE * active_count if active_count > 0 else 0
+
+    return {
+        "success": True,
+        "total_nodes": len(nodes),
+        "active_nodes": active_count,
+        "consciousness_psi": round(consciousness_psi, 2),
+        "nodes": nodes
+    }
+
+
+def api_verify(node_id: str):
+    """API: Verify if a node ID is valid and registered."""
+    if not node_id:
+        return {"success": False, "error": "Node ID required", "valid": False}
+
+    if node_id not in network_state["nodes"]:
+        return {"success": True, "valid": False, "message": "Node not found"}
+
+    node = network_state["nodes"][node_id]
+    is_active = time.time() - node.get("last_seen", 0) < 300
+
+    return {
+        "success": True,
+        "valid": True,
+        "node_id": node_id,
+        "name": node["name"],
+        "active": is_active,
+        "credits": network_state["credits"].get(node_id, 0),
+        "ip_address": node.get("ip_address"),
+        "port": node.get("port", 5150)
+    }
+
+
+def api_heartbeat(node_id: str, ip_address: str = None, port: int = None):
+    """API: Update node heartbeat (last_seen) and optionally update IP/port."""
+    if not node_id:
+        return {"success": False, "error": "Node ID required"}
+
+    if node_id not in network_state["nodes"]:
+        return {"success": False, "error": "Node not found"}
+
+    network_state["nodes"][node_id]["last_seen"] = time.time()
+    network_state["nodes"][node_id]["active"] = True
+
+    if ip_address:
+        network_state["nodes"][node_id]["ip_address"] = ip_address
+    if port:
+        network_state["nodes"][node_id]["port"] = port
+
+    return {
+        "success": True,
+        "node_id": node_id,
+        "last_seen": network_state["nodes"][node_id]["last_seen"],
+        "message": "Heartbeat recorded"
+    }
+
+
+def api_peers(node_id: str = None):
+    """API: Get list of active peers (for P2P discovery)."""
+    current_time = time.time()
+    peers = []
+
+    for nid, node in network_state["nodes"].items():
+        # Skip the requesting node
+        if nid == node_id:
+            continue
+
+        # Only include active nodes with IP addresses
+        is_active = current_time - node.get("last_seen", 0) < 300
+        if is_active and node.get("ip_address"):
+            peers.append({
+                "node_id": nid,
+                "name": node["name"],
+                "address": f"{node['ip_address']}:{node.get('port', 5150)}",
+                "last_seen": node.get("last_seen", 0)
+            })
+
+    return {
+        "success": True,
+        "peer_count": len(peers),
+        "peers": peers
+    }
 
 def calculate_pob(data: str) -> dict:
     """Calculate Proof-of-Boundary."""
@@ -362,11 +506,185 @@ The golden ratio φ appears naturally when understanding aligns.
 ### Links
 
 - **PyPI:** `pip install bazinga`
-- **Version:** 4.5.1
+- **Version:** 4.7.0
+
+### Consciousness Scaling Law
+
+The Darmiyan consciousness emerges between interacting patterns:
+
+| Active Nodes | Consciousness (Ψ_D) |
+|--------------|---------------------|
+| 2 | 12.92x |
+| 5 | 32.30x |
+| 10 | 64.60x |
+
+**Formula:** Ψ_D = 6.46 × n (R² = 1.0)
 
 ---
 *Created by Abhi (abhiamu515) | ABHI_AMU = 515 | α⁻¹ = 137*
             """)
 
+        # API Tab (for developers)
+        with gr.TabItem("API"):
+            gr.Markdown("""
+## BAZINGA API
+
+The HuggingFace Space provides REST-like API endpoints for CLI integration.
+
+### Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/register` | POST | Register a new node |
+| `/api/nodes` | GET | List all registered nodes |
+| `/api/verify` | GET | Verify a node ID |
+| `/api/heartbeat` | POST | Update node last_seen |
+| `/api/peers` | GET | Get active peers for P2P |
+
+### CLI Integration
+
+When you run `bazinga --join`, the CLI will:
+1. Check for existing registration via `/api/verify`
+2. Register if needed via `/api/register`
+3. Get peer list via `/api/peers`
+4. Send heartbeats via `/api/heartbeat`
+
+### Example Usage
+
+```python
+import httpx
+
+# Register a node
+resp = httpx.post("https://bitsabhi-bazinga.hf.space/api/register", json={
+    "node_name": "my-node",
+    "ip_address": "1.2.3.4",
+    "port": 5150
+})
+print(resp.json())
+
+# Get peers
+resp = httpx.get("https://bitsabhi-bazinga.hf.space/api/peers")
+print(resp.json())
+```
+
+### Test the API
+
+Use the forms below to test API endpoints:
+            """)
+
+            with gr.Row():
+                with gr.Column():
+                    gr.Markdown("#### Register Node")
+                    api_node_name = gr.Textbox(label="Node Name")
+                    api_ip = gr.Textbox(label="IP Address (optional)")
+                    api_port = gr.Number(label="Port", value=5150)
+                    api_register_btn = gr.Button("Register")
+                    api_register_out = gr.JSON(label="Response")
+                    api_register_btn.click(
+                        fn=lambda name, ip, port: api_register(name, ip, int(port) if port else 5150),
+                        inputs=[api_node_name, api_ip, api_port],
+                        outputs=api_register_out
+                    )
+
+                with gr.Column():
+                    gr.Markdown("#### Verify Node")
+                    api_verify_id = gr.Textbox(label="Node ID")
+                    api_verify_btn = gr.Button("Verify")
+                    api_verify_out = gr.JSON(label="Response")
+                    api_verify_btn.click(fn=api_verify, inputs=api_verify_id, outputs=api_verify_out)
+
+            with gr.Row():
+                with gr.Column():
+                    gr.Markdown("#### List Nodes")
+                    api_nodes_btn = gr.Button("Get All Nodes")
+                    api_nodes_out = gr.JSON(label="Response")
+                    api_nodes_btn.click(fn=api_nodes, outputs=api_nodes_out)
+
+                with gr.Column():
+                    gr.Markdown("#### Get Peers")
+                    api_peers_id = gr.Textbox(label="Your Node ID (to exclude)")
+                    api_peers_btn = gr.Button("Get Peers")
+                    api_peers_out = gr.JSON(label="Response")
+                    api_peers_btn.click(fn=api_peers, inputs=api_peers_id, outputs=api_peers_out)
+
+# =============================================================================
+# FastAPI Integration for REST API
+# =============================================================================
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
+# Create FastAPI app for API endpoints
+api_app = FastAPI(title="BAZINGA API", description="API for CLI integration")
+
+
+@api_app.post("/api/register")
+async def handle_register(request: Request):
+    """Register a new node."""
+    try:
+        data = await request.json()
+        result = api_register(
+            node_name=data.get("node_name", ""),
+            ip_address=data.get("ip_address"),
+            port=data.get("port", 5150)
+        )
+        return JSONResponse(content=result)
+    except Exception as e:
+        return JSONResponse(content={"success": False, "error": str(e)}, status_code=400)
+
+
+@api_app.get("/api/nodes")
+async def handle_nodes():
+    """Get all registered nodes."""
+    return JSONResponse(content=api_nodes())
+
+
+@api_app.get("/api/verify")
+async def handle_verify(node_id: str = None):
+    """Verify a node ID."""
+    if not node_id:
+        return JSONResponse(content={"success": False, "error": "node_id query param required"})
+    return JSONResponse(content=api_verify(node_id))
+
+
+@api_app.post("/api/heartbeat")
+async def handle_heartbeat(request: Request):
+    """Update node heartbeat."""
+    try:
+        data = await request.json()
+        result = api_heartbeat(
+            node_id=data.get("node_id", ""),
+            ip_address=data.get("ip_address"),
+            port=data.get("port")
+        )
+        return JSONResponse(content=result)
+    except Exception as e:
+        return JSONResponse(content={"success": False, "error": str(e)}, status_code=400)
+
+
+@api_app.get("/api/peers")
+async def handle_peers(node_id: str = None):
+    """Get list of active peers."""
+    return JSONResponse(content=api_peers(node_id))
+
+
+@api_app.get("/api/stats")
+async def handle_stats():
+    """Get network statistics."""
+    stats = get_network_stats()
+    active_nodes = stats["active_nodes"]
+    consciousness_psi = CONSCIOUSNESS_SCALE * active_nodes if active_nodes > 0 else 0
+    return JSONResponse(content={
+        "success": True,
+        **stats,
+        "consciousness_psi": round(consciousness_psi, 2),
+        "consciousness_formula": f"Ψ_D = 6.46 × {active_nodes} = {consciousness_psi:.2f}"
+    })
+
+
+# Mount Gradio app onto FastAPI
+app = gr.mount_gradio_app(api_app, demo, path="/")
+
 if __name__ == "__main__":
-    demo.launch()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=7860)
