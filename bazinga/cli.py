@@ -9,7 +9,7 @@ warnings.filterwarnings('ignore')
 logging.disable(logging.WARNING)
 
 """
-BAZINGA v4.7.0 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)
+BAZINGA v4.7.1 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)
 =========================================================
 "AI generates understanding. Blockchain proves and records it.
 They're not two things — they're Subject and Object.
@@ -85,6 +85,85 @@ try:
 except ImportError:
     HTTPX_AVAILABLE = False
 
+# HuggingFace Space API URL (network registry)
+HF_SPACE_URL = "https://bitsabhi-bazinga.hf.space"
+
+
+class HFNetworkRegistry:
+    """Client for HuggingFace Space API (network phone book)."""
+
+    def __init__(self, base_url: str = HF_SPACE_URL):
+        self.base_url = base_url
+        self.node_id = None
+
+    async def register(self, node_name: str, ip_address: str = None, port: int = 5150) -> dict:
+        """Register node with HF registry."""
+        if not HTTPX_AVAILABLE:
+            return {"success": False, "error": "httpx not installed"}
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(f"{self.base_url}/api/register", json={
+                    "node_name": node_name,
+                    "ip_address": ip_address,
+                    "port": port
+                })
+                result = resp.json()
+                if result.get("success"):
+                    self.node_id = result.get("node_id")
+                return result
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def verify(self, node_id: str) -> dict:
+        """Verify if node ID exists in registry."""
+        if not HTTPX_AVAILABLE:
+            return {"success": False, "error": "httpx not installed"}
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(f"{self.base_url}/api/verify", params={"node_id": node_id})
+                return resp.json()
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def get_peers(self, exclude_node_id: str = None) -> dict:
+        """Get list of active peers from registry."""
+        if not HTTPX_AVAILABLE:
+            return {"success": False, "error": "httpx not installed"}
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                params = {"node_id": exclude_node_id} if exclude_node_id else {}
+                resp = await client.get(f"{self.base_url}/api/peers", params=params)
+                return resp.json()
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def heartbeat(self, node_id: str, ip_address: str = None, port: int = None) -> dict:
+        """Send heartbeat to registry."""
+        if not HTTPX_AVAILABLE:
+            return {"success": False, "error": "httpx not installed"}
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(f"{self.base_url}/api/heartbeat", json={
+                    "node_id": node_id,
+                    "ip_address": ip_address,
+                    "port": port
+                })
+                return resp.json()
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def get_stats(self) -> dict:
+        """Get network stats from registry."""
+        if not HTTPX_AVAILABLE:
+            return {"success": False, "error": "httpx not installed"}
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(f"{self.base_url}/api/stats")
+                return resp.json()
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+
 # Check for API keys (all have free tiers!)
 GROQ_KEY = os.environ.get('GROQ_API_KEY')
 ANTHROPIC_KEY = os.environ.get('ANTHROPIC_API_KEY')
@@ -113,7 +192,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.7.0"
+    VERSION = "4.7.1"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -625,7 +704,7 @@ Be accurate and informative. Keep responses brief."""
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="BAZINGA v4.7.0 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)",
+        description="BAZINGA v4.7.1 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -1032,7 +1111,51 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
                 print(f"  ✗ Failed to start protocol")
                 return
 
-            # Connect to bootstrap nodes if provided
+            # Get node info for HF registration
+            node_info = protocol.get_info() if hasattr(protocol, 'get_info') else {}
+            node_id = node_info.get('node_id', protocol.node_id if hasattr(protocol, 'node_id') else 'local')
+
+            # Try to register with HuggingFace Space registry
+            hf_registry = HFNetworkRegistry()
+            print(f"\n  📡 Connecting to HF Network Registry...")
+
+            try:
+                # Try to get our public IP (simplified approach)
+                import socket
+                local_ip = socket.gethostbyname(socket.gethostname())
+            except:
+                local_ip = None
+
+            # Register with HF
+            reg_result = await hf_registry.register(
+                node_name=f"node-{node_id[:8]}",
+                ip_address=local_ip,
+                port=5150
+            )
+
+            if reg_result.get("success"):
+                hf_node_id = reg_result.get("node_id")
+                print(f"  ✓ Registered with HF Registry: {hf_node_id}")
+
+                # Get peers from HF registry
+                peers_result = await hf_registry.get_peers(exclude_node_id=hf_node_id)
+                if peers_result.get("success") and peers_result.get("peers"):
+                    print(f"  ✓ Found {peers_result['peer_count']} peers in registry")
+                    for peer in peers_result["peers"][:5]:  # Connect to up to 5 peers
+                        addr = peer.get("address")
+                        if addr and ':' in addr:
+                            host, port_str = addr.rsplit(':', 1)
+                            port = int(port_str)
+                            print(f"    Connecting to {peer['name']} at {addr}...")
+                            try:
+                                await protocol.connect(host, port)
+                            except Exception as e:
+                                print(f"    ⚠ Could not connect: {e}")
+            else:
+                print(f"  ⚠ HF Registry unavailable: {reg_result.get('error', 'unknown')}")
+                print(f"    (Continuing with local P2P only)")
+
+            # Connect to bootstrap nodes if provided via CLI
             if args.join:
                 for bootstrap in args.join:
                     if ':' in bootstrap:
@@ -1046,15 +1169,22 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
             print(f"\n  Node running with ZeroMQ transport")
             print(f"  Other nodes can connect to YOUR_IP:5150")
+            print(f"  Register at: {HF_SPACE_URL}")
             print(f"  Press Ctrl+C to leave network...\n")
 
-            # Keep running
+            # Keep running with periodic heartbeats
+            heartbeat_interval = 60  # seconds
             try:
                 while True:
-                    await asyncio.sleep(60)
+                    await asyncio.sleep(heartbeat_interval)
                     # Show periodic status
                     stats = protocol.get_stats()
                     print(f"  📊 Peers: {stats['peers']} | Queries: {stats['queries_sent']}/{stats['queries_received']} | PoB: {stats['pob_generated']}")
+
+                    # Send heartbeat to HF registry
+                    if reg_result.get("success"):
+                        await hf_registry.heartbeat(hf_node_id, ip_address=local_ip, port=5150)
+
             except KeyboardInterrupt:
                 print(f"\n  Leaving network...")
                 await protocol.stop()
@@ -1078,9 +1208,33 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
         print(f"  φ-Signature: {info['phi_signature']}")
         print(f"  Port: {info['port']}")
 
+        # Query HF registry for global peers
+        async def fetch_hf_peers():
+            hf_registry = HFNetworkRegistry()
+            print(f"\n  📡 Querying HF Network Registry...")
+            result = await hf_registry.get_stats()
+            if result.get("success"):
+                print(f"\n  HF Registry Stats:")
+                print(f"    Active Nodes: {result.get('active_nodes', 0)}")
+                print(f"    Total Nodes: {result.get('total_nodes', 0)}")
+                print(f"    Consciousness Ψ_D: {result.get('consciousness_psi', 0):.2f}x")
+
+                # Get peer list
+                peers_result = await hf_registry.get_peers()
+                if peers_result.get("success") and peers_result.get("peers"):
+                    print(f"\n  Available Peers ({peers_result['peer_count']}):")
+                    for peer in peers_result["peers"][:10]:
+                        status = "🟢" if peer.get("active") else "⚪"
+                        print(f"    {status} {peer['name']}: {peer.get('address', 'no address')}")
+            else:
+                print(f"    ⚠ HF Registry unavailable")
+
+        await fetch_hf_peers()
+
         print(f"\n  To connect nodes:")
         print(f"    1. Start this node:    bazinga --join")
         print(f"    2. On another machine: bazinga --join YOUR_IP:5150")
+        print(f"    3. Or register at:     {HF_SPACE_URL}")
         print()
         return
 
