@@ -812,14 +812,22 @@ class BazingaTUI:
                     elif cmd == '/quantum':
                         if args:
                             with self.console.status("[bold cyan]Quantum processing (collapsing wave function)...[/]"):
-                                result = self.quantum.collapse(args)
+                                result = self.quantum.process(args)
+
+                            collapsed = result.get('collapsed_state', {})
+                            entangled = result.get('entanglement', [])
+                            coherence = result.get('quantum_coherence', 0)
+
+                            # Format entangled patterns
+                            entangled_str = ', '.join([f"{e['essence']}({e['probability']:.2f})" for e in entangled[:3]]) or 'none'
 
                             panel_content = f"""[bold cyan]⟨ψ| Quantum State Collapsed |ψ⟩[/]
 
 [yellow]Input:[/] {args}
-[green]Collapsed State:[/] {result['collapsed']}
-[magenta]Interference:[/] {result['interference']:.6f}
-[blue]Superposition Vector:[/] [{', '.join(f'{x:.3f}' for x in result['superposition'][:5])}...]
+[green]Collapsed State:[/] {collapsed.get('essence', 'unknown')} (p={collapsed.get('probability', 0):.4f})
+[magenta]Quantum Coherence:[/] {coherence:.6f}
+[blue]Entangled Patterns:[/] {entangled_str}
+[cyan]φ-Coordinate:[/] {result.get('phi_coordinate', 0):.6f}
 
 [dim]The wave function has collapsed to a definite state.[/]
 [dim italic]"Observation crystallizes possibility into actuality."[/]
