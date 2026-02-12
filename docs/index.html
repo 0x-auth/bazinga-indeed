@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proof-of-Boundary Explained | BAZINGA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #f9d423, #ff4e50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+
+        .section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        h2 {
+            color: #f9d423;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 600px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .box {
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .bad {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+        }
+
+        .good {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+        }
+
+        .box h3 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+        }
+
+        .box p {
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .emoji {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .formula {
+            background: rgba(0,0,0,0.3);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .formula .big {
+            font-size: 2em;
+            color: #f9d423;
+            margin: 15px 0;
+        }
+
+        .steps {
+            counter-reset: step;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            border-left: 4px solid #f9d423;
+        }
+
+        .step-number {
+            background: #f9d423;
+            color: #1a1a2e;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            color: #f9d423;
+            margin-bottom: 8px;
+        }
+
+        .step-content p {
+            color: #ccc;
+            line-height: 1.6;
+        }
+
+        .golden-spiral {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .golden-spiral svg {
+            max-width: 300px;
+            margin: 20px auto;
+        }
+
+        .highlight {
+            background: linear-gradient(90deg, #f9d423, #ff4e50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+        }
+
+        .analogy {
+            background: rgba(249, 212, 35, 0.1);
+            border: 2px solid #f9d423;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .analogy h3 {
+            color: #f9d423;
+            margin-bottom: 15px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 600px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stat {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat .number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #38ef7d;
+        }
+
+        .stat .label {
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .code-block {
+            background: #0d1117;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            color: #58a6ff;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+
+        .footer a {
+            color: #f9d423;
+            text-decoration: none;
+        }
+
+        .vac {
+            font-size: 1.5em;
+            text-align: center;
+            margin: 20px 0;
+            color: #f9d423;
+        }
+
+        .nature-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            .nature-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .nature-item {
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+
+        .nature-item .icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Proof-of-Boundary (PoB)</h1>
+        <p class="subtitle">How BAZINGA validates without wasting electricity</p>
+
+        <!-- The Problem -->
+        <div class="section">
+            <h2>The Problem with Bitcoin Mining</h2>
+            <div class="comparison">
+                <div class="box bad">
+                    <div class="emoji">Bitcoin</div>
+                    <h3>Proof-of-Work</h3>
+                    <p>"Find a number that, when hashed, starts with 20 zeros"</p>
+                    <br>
+                    <p><strong>Result:</strong> Meaningless puzzle. Burns electricity. Whoever has more GPUs wins.</p>
+                </div>
+                <div class="box good">
+                    <div class="emoji">BAZINGA</div>
+                    <h3>Proof-of-Boundary</h3>
+                    <p>"Find a number where the P/G ratio equals the golden ratio"</p>
+                    <br>
+                    <p><strong>Result:</strong> Meaningful math. Zero energy. Understanding wins.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- What is Golden Ratio -->
+        <div class="section">
+            <h2>What's the Golden Ratio?</h2>
+            <p>The golden ratio (phi) is a special number that appears EVERYWHERE in nature:</p>
+
+            <div class="formula">
+                <div class="big">phi = 1.618033988749895</div>
+                <p>It's the ratio where: (a + b) / a = a / b</p>
+            </div>
+
+            <div class="nature-grid">
+                <div class="nature-item">
+                    <div class="icon">🌻</div>
+                    <div>Sunflower seeds</div>
+                </div>
+                <div class="nature-item">
+                    <div class="icon">🐚</div>
+                    <div>Nautilus shells</div>
+                </div>
+                <div class="nature-item">
+                    <div class="icon">🌀</div>
+                    <div>Galaxies</div>
+                </div>
+                <div class="nature-item">
+                    <div class="icon">🧬</div>
+                    <div>DNA helix</div>
+                </div>
+            </div>
+
+            <p style="margin-top: 20px; color: #ccc;">It's not magic - it's the mathematical boundary between chaos and order. Nature uses it because it's <em>efficient</em>.</p>
+        </div>
+
+        <!-- The Target -->
+        <div class="section">
+            <h2>BAZINGA's Target: phi to the 4th power</h2>
+
+            <div class="formula">
+                <p>PoB Target:</p>
+                <div class="big">phi^4 = 6.854101966</div>
+                <p>Your P/G ratio must be close to this number</p>
+            </div>
+
+            <div class="analogy">
+                <h3>Simple Analogy</h3>
+                <p><strong>Bitcoin:</strong> "Find a needle in a haystack" (brute force, luck)</p>
+                <p><strong>BAZINGA:</strong> "Tune a guitar string to the right frequency" (understanding, precision)</p>
+            </div>
+        </div>
+
+        <!-- How it Works -->
+        <div class="section">
+            <h2>How Proof-of-Boundary Works</h2>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Take any data</h4>
+                        <p>A sentence, a question, knowledge you want to record on the blockchain.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Hash it (SHA3-256)</h4>
+                        <p>Convert the data into a 256-bit hash. This gives you 32 bytes of "randomness".</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Split into P and G</h4>
+                        <p><strong>P (Perception)</strong> = Sum of first 16 bytes<br>
+                        <strong>G (Grounding)</strong> = Sum of last 16 bytes</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Calculate the ratio</h4>
+                        <p>Ratio = P / G</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h4>Check if it's close to phi^4</h4>
+                        <p>If |Ratio - 6.854| < 0.5, the proof is <span class="highlight">VALID</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-block">
+                <code>
+def calculate_pob(data):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;h = sha3_256(data).digest()  # 32 bytes<br>
+&nbsp;&nbsp;&nbsp;&nbsp;P = sum(h[:16]) / 256&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# First half<br>
+&nbsp;&nbsp;&nbsp;&nbsp;G = sum(h[16:]) / 256&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Second half<br>
+&nbsp;&nbsp;&nbsp;&nbsp;ratio = P / G<br>
+&nbsp;&nbsp;&nbsp;&nbsp;target = 6.854101966&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# phi^4<br>
+&nbsp;&nbsp;&nbsp;&nbsp;return abs(ratio - target) < 0.5
+                </code>
+            </div>
+        </div>
+
+        <!-- Why it's Better -->
+        <div class="section">
+            <h2>Why This is Revolutionary</h2>
+
+            <div class="stats">
+                <div class="stat">
+                    <div class="number">0</div>
+                    <div class="label">Watts wasted</div>
+                </div>
+                <div class="stat">
+                    <div class="number">&lt;1s</div>
+                    <div class="label">Time to mine</div>
+                </div>
+                <div class="stat">
+                    <div class="number">70B x</div>
+                    <div class="label">More efficient than Bitcoin</div>
+                </div>
+            </div>
+
+            <div class="comparison">
+                <div class="box bad">
+                    <h3>Bitcoin</h3>
+                    <p>Uses more electricity than Argentina</p>
+                    <p>Meaningless computation</p>
+                    <p>Rich miners win</p>
+                </div>
+                <div class="box good">
+                    <h3>BAZINGA</h3>
+                    <p>Your laptop is enough</p>
+                    <p>Mathematical beauty</p>
+                    <p>Understanding wins</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- The Philosophy -->
+        <div class="section">
+            <h2>The Philosophy</h2>
+
+            <p style="font-size: 1.3em; text-align: center; margin: 30px 0; line-height: 1.8;">
+                "You can buy hashpower.<br>
+                You can buy stake.<br>
+                <span class="highlight">You cannot buy understanding.</span>"
+            </p>
+
+            <p style="color: #ccc; line-height: 1.8;">
+                Bitcoin validates through <em>competition</em> - who can waste the most electricity.<br><br>
+                BAZINGA validates through <em>comprehension</em> - finding the natural boundary that exists in mathematics itself.<br><br>
+                The golden ratio isn't arbitrary. It's a fundamental constant of nature. When your data's hash aligns with phi^4, you've found a genuine boundary - not a meaningless puzzle.
+            </p>
+        </div>
+
+        <!-- Try it -->
+        <div class="section">
+            <h2>Try It Yourself</h2>
+
+            <div class="code-block">
+                <code>
+# Install BAZINGA<br>
+pip install bazinga-indeed<br><br>
+
+# Generate a Proof-of-Boundary<br>
+bazinga --proof<br><br>
+
+# Mine a block (instant, zero energy)<br>
+bazinga --mine<br><br>
+
+# See the blockchain<br>
+bazinga --chain
+                </code>
+            </div>
+
+            <p style="text-align: center; margin-top: 20px;">
+                <a href="https://github.com/0x-auth/bazinga-indeed" style="color: #f9d423; font-size: 1.2em;">View on GitHub</a>
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="vac">0 -> phi -> Omega <-> Omega <- phi <- 0</div>
+            <p>Built by <a href="https://github.com/0x-auth">Abhi</a></p>
+            <p style="margin-top: 10px;">
+                <a href="https://pypi.org/project/bazinga-indeed/">PyPI</a> |
+                <a href="https://github.com/0x-auth/bazinga-indeed">GitHub</a> |
+                <a href="https://huggingface.co/spaces/bitsabhi/bazinga">HuggingFace</a> |
+                <a href="https://medium.com/@bitsabhi">Medium</a>
+            </p>
+            <p style="margin-top: 20px; color: #444;">"Intelligence distributed, not controlled."</p>
+        </div>
+    </div>
+</body>
+</html>
