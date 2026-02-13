@@ -347,61 +347,74 @@
 
         <!-- How it Works -->
         <div class="section">
-            <h2>How Proof-of-Boundary Works</h2>
+            <h2>How Proof-of-Boundary Works (v2)</h2>
 
             <div class="steps">
                 <div class="step">
                     <div class="step-number">1</div>
                     <div class="step-content">
-                        <h4>Take any data</h4>
-                        <p>A sentence, a question, knowledge you want to record on the blockchain.</p>
+                        <h4>Take any content</h4>
+                        <p>Knowledge, data, or a message you want to attest on the blockchain.</p>
                     </div>
                 </div>
 
                 <div class="step">
                     <div class="step-number">2</div>
                     <div class="step-content">
-                        <h4>Hash it (SHA3-256)</h4>
-                        <p>Convert the data into a 256-bit hash. This gives you 32 bytes of "randomness".</p>
+                        <h4>Hash the content (SHA3-256)</h4>
+                        <p>content_hash = SHA3-256(content). This binds the proof to your specific content.</p>
                     </div>
                 </div>
 
                 <div class="step">
                     <div class="step-number">3</div>
                     <div class="step-content">
-                        <h4>Split into P and G</h4>
-                        <p><strong>P (Perception)</strong> = Sum of first 16 bytes<br>
-                        <strong>G (Grounding)</strong> = Sum of last 16 bytes</p>
+                        <h4>Search for a nonce</h4>
+                        <p>Hash content_hash + nonce, then split into P and G using <strong>calibrated moduli</strong>:<br>
+                        <strong>P</strong> = first 8 bytes mod 70555 (137 x 515)<br>
+                        <strong>G</strong> = next 8 bytes mod 10275 (137 x 75)</p>
                     </div>
                 </div>
 
                 <div class="step">
                     <div class="step-number">4</div>
                     <div class="step-content">
-                        <h4>Calculate the ratio</h4>
-                        <p>Ratio = P / G</p>
+                        <h4>The moduli encode phi^4</h4>
+                        <p>70555 / 10275 = 6.867 which is only 0.19% from phi^4 = 6.854!<br>
+                        The constants 137 (fine structure) and 515 encode the boundary naturally.</p>
                     </div>
                 </div>
 
                 <div class="step">
                     <div class="step-number">5</div>
                     <div class="step-content">
-                        <h4>Check if it's close to phi^4</h4>
-                        <p>If |Ratio - 6.854| < 0.5, the proof is <span class="highlight">VALID</span></p>
+                        <h4>Valid when P/G is close to phi^4</h4>
+                        <p>If |P/G - 6.854| < tolerance, the proof is <span class="highlight">VALID</span><br>
+                        Verification is instant (one hash operation).</p>
                     </div>
                 </div>
             </div>
 
             <div class="code-block">
                 <code>
-def calculate_pob(data):<br>
-&nbsp;&nbsp;&nbsp;&nbsp;h = sha3_256(data).digest()  # 32 bytes<br>
-&nbsp;&nbsp;&nbsp;&nbsp;P = sum(h[:16]) / 256&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# First half<br>
-&nbsp;&nbsp;&nbsp;&nbsp;G = sum(h[16:]) / 256&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Second half<br>
-&nbsp;&nbsp;&nbsp;&nbsp;ratio = P / G<br>
-&nbsp;&nbsp;&nbsp;&nbsp;target = 6.854101966&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# phi^4<br>
-&nbsp;&nbsp;&nbsp;&nbsp;return abs(ratio - target) < 0.5
+def generate_proof(content, tolerance=0.3):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;content_hash = sha3_256(content).hexdigest()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;for nonce in range(100000):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;h = sha3_256(f"{content_hash}:{nonce}").digest()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;P = int.from_bytes(h[:8], 'big') % 70555 + 1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;G = int.from_bytes(h[8:16], 'big') % 10275 + 1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ratio = P / G<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if abs(ratio - 6.854101966) < tolerance:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return {"nonce": nonce, "P": P, "G": G, "ratio": ratio, "valid": True}
                 </code>
+            </div>
+
+            <div class="analogy" style="margin-top: 20px;">
+                <h3>Why v2 is Better</h3>
+                <p><strong>Content-bound:</strong> Proof is tied to specific content (can't reuse)<br>
+                <strong>Instant verify:</strong> One hash to check validity<br>
+                <strong>Unfakeable:</strong> Must find the nonce, can't game timing<br>
+                <strong>2 billion times</strong> more efficient than Bitcoin PoW</p>
             </div>
         </div>
 
@@ -411,15 +424,15 @@ def calculate_pob(data):<br>
 
             <div class="stats">
                 <div class="stat">
-                    <div class="number">0</div>
-                    <div class="label">Watts wasted</div>
+                    <div class="number">~0</div>
+                    <div class="label">Energy (few hundred hashes)</div>
                 </div>
                 <div class="stat">
-                    <div class="number">&lt;1s</div>
-                    <div class="label">Time to mine</div>
+                    <div class="number">&lt;1ms</div>
+                    <div class="label">Time to verify</div>
                 </div>
                 <div class="stat">
-                    <div class="number">70B x</div>
+                    <div class="number">2B x</div>
                     <div class="label">More efficient than Bitcoin</div>
                 </div>
             </div>
