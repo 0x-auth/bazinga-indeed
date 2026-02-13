@@ -45,10 +45,11 @@ class TrustRecord:
     node_address: str
     block_number: int
     timestamp: float
-    activity_type: str  # "pob", "knowledge", "gradient", "inference"
+    activity_type: str  # "pob", "knowledge", "gradient", "inference", "local_model"
     success: bool
     score: float = 1.0  # Activity-specific score (e.g., coherence)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    is_local_model: bool = False  # True if node uses local model (Ollama/llama-cpp)
 
 
 @dataclass
@@ -61,6 +62,8 @@ class NodeTrust:
     recency_score: float  # How recently active
     total_activities: int
     last_active_block: int
+    uses_local_model: bool = False  # True if node runs local LLM
+    local_model_bonus: float = 0.0  # φ bonus for local model
 
 
 class TrustOracle:
@@ -88,6 +91,10 @@ class TrustOracle:
     WEIGHT_KNOWLEDGE = PHI     # Contributing knowledge (1.618)
     WEIGHT_GRADIENT = PHI ** 2 # Validating gradients (2.618)
     WEIGHT_INFERENCE = PHI_INVERSE  # Providing inference (0.618)
+
+    # Local model multiplier - nodes running local models get φ bonus
+    # This incentivizes self-sufficiency and true decentralization
+    LOCAL_MODEL_MULTIPLIER = PHI  # 1.618x trust for local model nodes
 
     # Trust thresholds
     THRESHOLD_TRUSTED = 0.7    # Above this = trusted node
@@ -129,6 +136,7 @@ class TrustOracle:
         block_number: int = 0,
         score: float = 1.0,
         metadata: Dict = None,
+        is_local_model: bool = False,
     ):
         """
         Record an activity for a node.
@@ -138,6 +146,9 @@ class TrustOracle:
         - Node contributes knowledge (from blockchain/chain.py)
         - Node validates gradient (from federated/aggregator.py)
         - Node provides inference (from inference/distributed.py)
+
+        If is_local_model=True, the node gets a φ (1.618x) trust multiplier.
+        This incentivizes running local models for true decentralization.
         """
         if block_number == 0:
             block_number = len(self.chain.blocks) if self.chain else 0
@@ -150,12 +161,31 @@ class TrustOracle:
             success=success,
             score=score,
             metadata=metadata or {},
+            is_local_model=is_local_model,
         )
 
         self.records[node_address].append(record)
         self.invalidate_cache()
 
         return record
+
+    def record_local_model_usage(self, node_address: str, model_name: str = "ollama"):
+        """
+        Record that a node is using a local model.
+
+        Nodes running local models (Ollama, llama-cpp) get a φ (1.618x) trust bonus.
+        This incentivizes self-sufficiency and true decentralization.
+
+        "You cannot buy understanding." - But you can earn it by running locally.
+        """
+        return self.record_activity(
+            node_address=node_address,
+            activity_type="local_model",
+            success=True,
+            score=PHI,  # φ score for local model
+            metadata={"model": model_name, "type": "local"},
+            is_local_model=True,
+        )
 
     def get_trust_score(self, node_address: str) -> float:
         """
@@ -265,6 +295,8 @@ class TrustOracle:
                 recency_score=0.0,
                 total_activities=0,
                 last_active_block=0,
+                uses_local_model=False,
+                local_model_bonus=0.0,
             )
 
         # Separate by type
@@ -272,6 +304,10 @@ class TrustOracle:
         knowledge_records = [r for r in records if r.activity_type == 'knowledge']
         gradient_records = [r for r in records if r.activity_type == 'gradient']
         inference_records = [r for r in records if r.activity_type == 'inference']
+        local_model_records = [r for r in records if r.activity_type == 'local_model']
+
+        # Check if node uses local model (any record with is_local_model=True)
+        uses_local_model = any(r.is_local_model for r in records) or len(local_model_records) > 0
 
         # Compute φ-weighted scores
         def weighted_score(recs: List[TrustRecord], weight: float) -> float:
@@ -316,6 +352,14 @@ class TrustOracle:
                 recency_score * 0.2          # 20% from recency
             )
 
+        # Apply local model bonus: φ multiplier for self-sufficient nodes
+        # This is the key incentive for true decentralization
+        local_model_bonus = 0.0
+        if uses_local_model:
+            # Apply φ multiplier, capped at 1.0
+            local_model_bonus = trust_score * (self.LOCAL_MODEL_MULTIPLIER - 1.0)
+            trust_score = min(1.0, trust_score * self.LOCAL_MODEL_MULTIPLIER)
+
         return NodeTrust(
             node_address=node_address,
             trust_score=trust_score,
@@ -324,6 +368,8 @@ class TrustOracle:
             recency_score=recency_score,
             total_activities=len(records),
             last_active_block=last_block,
+            uses_local_model=uses_local_model,
+            local_model_bonus=local_model_bonus,
         )
 
     def get_trusted_nodes(self, min_trust: float = None) -> List[NodeTrust]:
@@ -393,11 +439,20 @@ class TrustOracle:
         trusted_count = sum(1 for n in all_nodes if self.is_trusted(n))
         total_records = sum(len(r) for r in self.records.values())
 
+        # Count nodes using local models
+        local_model_count = 0
+        for node in all_nodes:
+            trust = self.get_node_trust(node)
+            if trust and trust.uses_local_model:
+                local_model_count += 1
+
         return {
             'total_nodes': len(all_nodes),
             'trusted_nodes': trusted_count,
+            'local_model_nodes': local_model_count,
             'total_records': total_records,
             'decay_rate': self.decay_rate,
+            'local_model_multiplier': self.LOCAL_MODEL_MULTIPLIER,
             'cache_valid': self.cache_block == (len(self.chain.blocks) if self.chain else 0),
         }
 
@@ -410,8 +465,10 @@ class TrustOracle:
         print("=" * 60)
         print(f"  Total Nodes: {stats['total_nodes']}")
         print(f"  Trusted Nodes: {stats['trusted_nodes']}")
+        print(f"  Local Model Nodes: {stats.get('local_model_nodes', 0)}")
         print(f"  Total Records: {stats['total_records']}")
         print(f"  φ-Decay Rate: {stats['decay_rate']} blocks")
+        print(f"  Local Model Bonus: {self.LOCAL_MODEL_MULTIPLIER:.3f}x (φ)")
         print("-" * 60)
 
         # Show top trusted nodes
@@ -419,7 +476,8 @@ class TrustOracle:
         if trusted:
             print("  Top Trusted Nodes:")
             for t in trusted:
-                print(f"    {t.node_address[:16]}... : {t.trust_score:.3f}")
+                local_badge = " [LOCAL]" if t.uses_local_model else ""
+                print(f"    {t.node_address[:16]}... : {t.trust_score:.3f}{local_badge}")
         print("=" * 60)
 
 
