@@ -321,7 +321,7 @@ class RoutingTable:
         This is the core of Kademlia lookups:
         1. Start from bucket containing target
         2. Expand outward until we have K nodes
-        3. Sort by XOR distance to target
+        3. Sort by XOR distance, then by trust score (meritocratic mesh)
 
         Used for both FIND_NODE and iterative lookup.
         """
@@ -344,8 +344,9 @@ class RoutingTable:
             if len(candidates) >= count:
                 break
 
-        # Sort by XOR distance to target
-        candidates.sort(key=lambda n: xor_distance(n.node_id, target_id))
+        # MERITOCRATIC MESH: Sort by XOR distance (primary), trust score (secondary)
+        # Same distance? Higher trust wins. φ-bonus nodes float to the top.
+        candidates.sort(key=lambda n: (xor_distance(n.node_id, target_id), -n.trust_score))
 
         return candidates[:count]
 
@@ -703,8 +704,9 @@ class KademliaNode:
                             best.append(node)
                             self.routing_table.add_node(node)
 
-            # Sort by distance and keep best K
-            best.sort(key=lambda n: xor_distance(n.node_id, target_id))
+            # MERITOCRATIC MESH: Sort by XOR distance (primary), trust score (secondary)
+            # Same distance? Higher trust wins. This is how we build a mesh of merit.
+            best.sort(key=lambda n: (xor_distance(n.node_id, target_id), -n.trust_score))
             best = best[:K]
 
         return best
