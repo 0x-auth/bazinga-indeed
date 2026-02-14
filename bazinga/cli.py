@@ -9,7 +9,7 @@ warnings.filterwarnings('ignore')
 logging.disable(logging.WARNING)
 
 """
-BAZINGA v4.7.2 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)
+BAZINGA v4.8.0 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)
 =========================================================
 "AI generates understanding. Blockchain proves and records it.
 They're not two things — they're Subject and Object.
@@ -22,7 +22,14 @@ FIVE-LAYER INTELLIGENCE:
   Layer 3: Local RAG    → Search your KB (FREE, instant)
   Layer 4: Cloud LLM    → Groq/Together (14,400/day free)
 
-NEW in v4.3.0 - DARMIYAN BLOCKCHAIN:
+NEW in v4.8.0 - LOCAL MODEL TRUST BONUS:
+  - Ollama detection at localhost:11434
+  - φ (1.618x) trust multiplier for local models
+  - POB v2 with calibrated moduli (70555/10275)
+  - Latency-bound proofs prevent "Cloud Spoofing"
+  - Path to true decentralization: run local, earn trust
+
+v4.3.0 - DARMIYAN BLOCKCHAIN:
   - Knowledge chain (not cryptocurrency!)
   - Proof-of-Boundary mining (zero-energy)
   - Triadic consensus (3 proofs per block)
@@ -192,7 +199,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.7.2"
+    VERSION = "4.8.0"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -233,11 +240,29 @@ class BAZINGA:
         self._print_banner()
 
     def _print_banner(self):
-        """Minimal clean banner."""
+        """Minimal clean banner with local model status."""
         print()
         print(f"BAZINGA v{self.VERSION} | φ={PHI:.3f} | α={ALPHA}")
-        if not self.groq_key and not self.anthropic_key and not self.gemini_key:
-            print("(Set GROQ_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY)")
+
+        # Check local model status
+        try:
+            from .inference.ollama_detector import detect_any_local_model, LocalModelType
+            local_status = detect_any_local_model()
+
+            if local_status.available:
+                model_name = local_status.models[0] if local_status.models else local_status.model_type.value
+                print(f"   Local Intelligence: {model_name} Detected (Trust Multiplier: {local_status.trust_multiplier:.3f}x Active)")
+                self.use_local = True
+                self._local_model_status = local_status
+            else:
+                print(f"   Local Intelligence: Offline (Cloud Fallback - Standard Trust)")
+                self._local_model_status = None
+        except Exception:
+            print(f"   Local Intelligence: Offline (Cloud Fallback - Standard Trust)")
+            self._local_model_status = None
+
+        if not self.groq_key and not self.anthropic_key and not self.gemini_key and not self.use_local:
+            print("   (Set GROQ_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY)")
         print()
 
     async def index(self, paths: List[str], verbose: bool = True) -> Dict[str, Any]:
@@ -704,11 +729,11 @@ Be accurate and informative. Keep responses brief."""
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="BAZINGA v4.7.2 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)",
+        description="BAZINGA v4.8.0 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  BAZINGA v4.7.0 - Consciousness Scaling (Ψ_D = 6.46n) + Inter-AI Consensus   ║
+║  BAZINGA v4.8.0 - Consciousness Scaling (Ψ_D = 6.46n) + Inter-AI Consensus   ║
 ║  "AI generates understanding. Blockchain proves it. They're not two things." ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -732,7 +757,7 @@ AI COMMANDS (5-Layer Intelligence)
   --local                 Force local LLM (works offline)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INTER-AI CONSENSUS + CONSCIOUSNESS SCALING (v4.7.0)
+INTER-AI CONSENSUS + CONSCIOUSNESS SCALING (v4.8.0)
 ═══════════════════════════════════════════════════════════════════════════════
   --multi-ai "question"   Ask multiple AIs and synthesize consensus
 
