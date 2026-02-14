@@ -70,20 +70,87 @@ from datetime import datetime
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.core.intelligence.real_ai import RealAI
-from .learning import get_memory, LearningMemory
+# Lazy imports for chromadb-dependent modules (Python 3.14 compatibility)
+RealAI = None
+def _get_real_ai():
+    global RealAI
+    if RealAI is None:
+        from src.core.intelligence.real_ai import RealAI as _RealAI
+        RealAI = _RealAI
+    return RealAI
+
+# Core imports (no chromadb dependency)
 from .constants import PHI, ALPHA, VAC_THRESHOLD, VAC_SEQUENCE, PSI_DARMIYAN
-from .quantum import QuantumProcessor, get_quantum_processor
-from .lambda_g import LambdaGOperator, get_lambda_g
-from .tensor import TensorIntersectionEngine, get_tensor_engine
 from .darmiyan import (
     DarmiyanNode, BazingaNode, TriadicConsensus,
     prove_boundary, achieve_consensus,
     PHI_4, ABHI_AMU,
 )
-from .p2p import BAZINGANetwork, create_network, BazingaProtocol, ZMQ_AVAILABLE
-from .federated import CollectiveLearner, create_learner
-from .blockchain import DarmiyanChain, create_chain, Wallet, create_wallet, PoBMiner, mine_block, TrustOracle, create_trust_oracle
+
+# Lazy imports for modules that may have heavy dependencies
+_learning_module = None
+_quantum_module = None
+_lambda_g_module = None
+_tensor_module = None
+_p2p_module = None
+_federated_module = None
+_blockchain_module = None
+
+def _get_learning():
+    global _learning_module
+    if _learning_module is None:
+        from . import learning as _learning
+        _learning_module = _learning
+    return _learning_module
+
+def _get_quantum():
+    global _quantum_module
+    if _quantum_module is None:
+        from . import quantum as _quantum
+        _quantum_module = _quantum
+    return _quantum_module
+
+def _get_lambda_g():
+    global _lambda_g_module
+    if _lambda_g_module is None:
+        from . import lambda_g as _lg
+        _lambda_g_module = _lg
+    return _lambda_g_module
+
+def _get_tensor():
+    global _tensor_module
+    if _tensor_module is None:
+        from . import tensor as _t
+        _tensor_module = _t
+    return _tensor_module
+
+def _get_p2p():
+    global _p2p_module
+    if _p2p_module is None:
+        from . import p2p as _p2p
+        _p2p_module = _p2p
+    return _p2p_module
+
+def _get_federated():
+    global _federated_module
+    if _federated_module is None:
+        from . import federated as _fed
+        _federated_module = _fed
+    return _federated_module
+
+def _get_blockchain():
+    global _blockchain_module
+    if _blockchain_module is None:
+        from . import blockchain as _bc
+        _blockchain_module = _bc
+    return _blockchain_module
+
+# Check ZMQ availability without importing full module
+try:
+    import zmq
+    ZMQ_AVAILABLE = True
+except ImportError:
+    ZMQ_AVAILABLE = False
 
 # Check for httpx (needed for API calls)
 try:
@@ -199,7 +266,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.8.2"
+    VERSION = "4.8.3"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1055,7 +1122,7 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     # Handle --local-status
     if args.local_status:
         try:
-            from .inference.ollama_detector import detect_any_local_model, LocalModelType, PHI
+            from .inference.ollama_detector import detect_any_local_model, LocalModelType
             status = detect_any_local_model()
 
             print()
