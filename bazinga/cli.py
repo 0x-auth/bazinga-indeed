@@ -279,7 +279,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.8.13"
+    VERSION = "4.8.14"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -846,6 +846,7 @@ AI COMMANDS (5-Layer Intelligence)
 LOCAL MODEL TRUST BONUS (NEW in v4.8.1)
 ═══════════════════════════════════════════════════════════════════════════════
   --local-status          Show local model detection and trust multiplier
+  --bootstrap-local       ONE-COMMAND setup: install Ollama + pull llama3
 
                           Trust Multiplier System:
                             • Local Model (Ollama/llama-cpp): φ = 1.618x trust
@@ -857,7 +858,10 @@ LOCAL MODEL TRUST BONUS (NEW in v4.8.1)
                             • True decentralization (no API dependency)
                             • Path to self-sufficient distributed AI
 
-                          Setup:
+                          Quick Setup (ONE COMMAND):
+                            bazinga --bootstrap-local
+
+                          Manual Setup:
                             1. Install Ollama: https://ollama.ai
                             2. Run: ollama pull llama3
                             3. Restart BAZINGA - see "Trust Multiplier: 1.618x Active"
@@ -1091,6 +1095,8 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     # Local model status
     parser.add_argument('--local-status', action='store_true',
                         help='Show local model detection and trust multiplier status')
+    parser.add_argument('--bootstrap-local', action='store_true',
+                        help='Setup local model (install Ollama + pull llama3) for φ trust bonus')
 
     # Hidden/advanced
     parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
@@ -1140,6 +1146,149 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
         return
 
     # Handle --local-status
+    # Handle --bootstrap-local
+    if args.bootstrap_local:
+        import subprocess
+        import shutil
+
+        print()
+        print("╔══════════════════════════════════════════════════════════════╗")
+        print("║       BAZINGA LOCAL MODEL BOOTSTRAP                          ║")
+        print("║       \"Run local, earn trust, own your intelligence\"         ║")
+        print("╚══════════════════════════════════════════════════════════════╝")
+        print()
+
+        # Step 1: Check if Ollama is installed
+        print("📦 Step 1: Checking for Ollama...")
+        ollama_path = shutil.which("ollama")
+
+        if ollama_path:
+            print(f"  ✓ Ollama found at: {ollama_path}")
+        else:
+            print("  ✗ Ollama not installed")
+            print()
+            print("  Install Ollama with ONE command:")
+            print()
+            if sys.platform == "darwin":
+                print("    brew install ollama")
+                print()
+                print("  Or download from: https://ollama.ai/download")
+            elif sys.platform == "linux":
+                print("    curl -fsSL https://ollama.ai/install.sh | sh")
+            else:
+                print("    Download from: https://ollama.ai/download")
+            print()
+            print("  After installing, run this command again:")
+            print("    bazinga --bootstrap-local")
+            print()
+            return
+
+        # Step 2: Check if Ollama is running
+        print()
+        print("🔌 Step 2: Checking if Ollama is running...")
+        try:
+            import httpx
+            response = httpx.get("http://localhost:11434/api/tags", timeout=5)
+            if response.status_code == 200:
+                print("  ✓ Ollama service is running")
+                models = response.json().get("models", [])
+            else:
+                print("  ✗ Ollama not responding")
+                models = []
+        except Exception:
+            print("  ✗ Ollama service not running")
+            print()
+            print("  Start Ollama with:")
+            print("    ollama serve")
+            print()
+            print("  Or in background:")
+            print("    ollama serve &")
+            print()
+            print("  Then run this command again.")
+            return
+
+        # Step 3: Check for llama3 model
+        print()
+        print("🧠 Step 3: Checking for llama3 model...")
+
+        model_names = [m.get("name", "") for m in models]
+        has_llama3 = any("llama3" in m.lower() for m in model_names)
+
+        if has_llama3:
+            llama_model = next((m for m in model_names if "llama3" in m.lower()), "llama3")
+            print(f"  ✓ Found: {llama_model}")
+        else:
+            print("  ✗ llama3 not found")
+            print()
+            print("  Pulling llama3 (this may take a few minutes)...")
+            print("  " + "─"*50)
+
+            try:
+                # Run ollama pull llama3
+                process = subprocess.Popen(
+                    ["ollama", "pull", "llama3"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True
+                )
+
+                # Stream output
+                for line in process.stdout:
+                    print(f"  {line.rstrip()}")
+
+                process.wait()
+
+                if process.returncode == 0:
+                    print("  " + "─"*50)
+                    print("  ✓ llama3 downloaded successfully!")
+                else:
+                    print("  ✗ Failed to download llama3")
+                    return
+
+            except Exception as e:
+                print(f"  ✗ Error: {e}")
+                print()
+                print("  Try manually:")
+                print("    ollama pull llama3")
+                return
+
+        # Step 4: Verify status
+        print()
+        print("✨ Step 4: Verifying setup...")
+
+        try:
+            from .inference.ollama_detector import detect_any_local_model
+            status = detect_any_local_model()
+
+            if status.available:
+                print()
+                print("═══════════════════════════════════════════════════════════════")
+                print("  ✓ LOCAL MODEL ACTIVE!")
+                print("═══════════════════════════════════════════════════════════════")
+                print()
+                print(f"  Backend:          {status.model_type.value}")
+                model_name = status.models[0] if status.models else "llama3"
+                print(f"  Model:            {model_name}")
+                print(f"  Latency:          {status.latency_ms:.1f}ms")
+                print(f"  Trust Multiplier: {status.trust_multiplier:.3f}x (φ bonus)")
+                print()
+                print("  🎉 You now earn 1.618x trust for all activities!")
+                print()
+                print("  Your node is now a FIRST-CLASS CITIZEN in the network.")
+                print("  Cloud nodes get 1.0x trust. YOU get φ = 1.618x.")
+                print()
+                print("  Test it:")
+                print("    bazinga --local-status")
+                print("    bazinga --ask 'What is phi?'")
+                print()
+            else:
+                print(f"  ✗ Setup incomplete: {status.error}")
+        except Exception as e:
+            print(f"  Warning: {e}")
+            print("  Try: bazinga --local-status")
+
+        return
+
     if args.local_status:
         try:
             from .inference.ollama_detector import detect_any_local_model, LocalModelType
