@@ -279,7 +279,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.8.15"
+    VERSION = "4.8.16"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -371,24 +371,28 @@ class BAZINGA:
 
         return total_stats
 
-    async def ask(self, question: str, verbose: bool = False) -> str:
+    async def ask(self, question: str, verbose: bool = False, fresh: bool = False) -> str:
         """
         Ask a question using 5-layer intelligence.
 
         Layers:
-          0. Memory - Check learned patterns
+          0. Memory - Check learned patterns (skip if fresh=True)
           1. Quantum - Process in superposition
           2. ΛG - Check for V.A.C. emergence
           3. RAG - Search knowledge base
           4. LLM - Cloud/local AI
+
+        Args:
+            fresh: If True, bypass memory cache and force fresh AI response
         """
         self.queries.append(question)
 
-        # Layer 0: Check learned patterns (instant)
-        cached = self.memory.find_similar_question(question)
-        if cached and cached.get('coherence', 0) > 0.7:
-            self.stats['from_memory'] += 1
-            return cached['answer']
+        # Layer 0: Check learned patterns (instant) - skip if fresh
+        if not fresh:
+            cached = self.memory.find_similar_question(question)
+            if cached and cached.get('coherence', 0) > 0.7:
+                self.stats['from_memory'] += 1
+                return cached['answer']
 
         # Layer 1: Quantum processing
         quantum_result = self.quantum.process(question)
@@ -418,7 +422,10 @@ class BAZINGA:
         )
 
         # Layer 3: Local RAG - only use if VERY relevant
-        results = self.ai.search(question, limit=5)
+        # Use quantum essence + key terms for better RAG retrieval
+        # (embedding models work better with short, focused queries)
+        search_terms = self._extract_search_terms(question, quantum_essence)
+        results = self.ai.search(search_terms, limit=5)
         best_similarity = results[0].similarity if results else 0
 
         # Only trust RAG for high similarity (>0.75)
@@ -516,6 +523,35 @@ class BAZINGA:
             'trend': stats['trend'],
             'modes': [m['name'] for m in emergent.generation_modes],
         }
+
+    def _extract_search_terms(self, question: str, quantum_essence: str) -> str:
+        """Extract key search terms from question for better RAG retrieval.
+
+        Embedding models work better with short, focused queries.
+        Strips common filler words and keeps domain-specific terms.
+        """
+        # Common filler words to remove (keep domain terms like BAZINGA, phi, etc.)
+        fillers = {
+            'according', 'to', 'the', 'indexed', 'knowledge', 'who', 'what',
+            'is', 'are', 'in', 'a', 'an', 'how', 'does', 'do', 'can', 'could',
+            'please', 'tell', 'me', 'about', 'explain', 'describe', 'why',
+            'when', 'where', 'which', 'would', 'should', 'based', 'on', 'from',
+            'of', 'and', 'or', 'but', 'for', 'with', 'this', 'that', 'these',
+            'those', 'be', 'been', 'being', 'have', 'has', 'had', 'having',
+            'i', 'you', 'we', 'they', 'it', 'my', 'your', 'our', 'their'
+        }
+
+        # Extract meaningful words (preserve case for proper nouns)
+        words = question.split()
+        key_terms = []
+        for w in words:
+            clean = w.strip('?.,!:;()[]{}"\'"')
+            if clean.lower() not in fillers and len(clean) > 1:
+                # Keep original case if it looks like a proper noun
+                key_terms.append(clean)
+
+        # Return focused search query (max 8 terms for embedding model)
+        return ' '.join(key_terms[:8])
 
     def _build_context(self, results) -> str:
         """Build context string from RAG results."""
@@ -853,6 +889,7 @@ QUICK START:
 AI COMMANDS (5-Layer Intelligence)
 ═══════════════════════════════════════════════════════════════════════════════
   --ask, -a "question"    Ask any question (uses 5-layer intelligence)
+  --fresh, -f             Force fresh AI response (bypass memory cache)
   --multi-ai "question"   Ask multiple AIs and reach φ-coherence consensus (NEW!)
   --code, -c "task"       Generate code with AI (--lang py/js/ts/rust/go)
   --quantum, -q "text"    Quantum pattern analysis (superposition processing)
@@ -1038,6 +1075,8 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     # Main options
     parser.add_argument('--ask', '-a', type=str, metavar='QUESTION',
                         help='Ask a question (uses AI)')
+    parser.add_argument('--fresh', '-f', action='store_true',
+                        help='Bypass memory cache (force fresh AI response)')
     parser.add_argument('--multi-ai', '-m', type=str, metavar='QUESTION',
                         help='Ask multiple AIs and reach φ-coherence consensus with 6.46n consciousness scaling')
     parser.add_argument('--quantum', '-q', type=str, metavar='TEXT',
@@ -2110,7 +2149,7 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
         bazinga = BAZINGA(verbose=args.verbose)
         if args.local:
             bazinga.use_local = True
-        response = await bazinga.ask(args.ask)
+        response = await bazinga.ask(args.ask, fresh=args.fresh)
         print(f"\n{response}\n")
         return
 
