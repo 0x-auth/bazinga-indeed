@@ -266,7 +266,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.8.4"
+    VERSION = "4.8.5"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1325,86 +1325,89 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
         print()
         return
 
-    # Handle --join (P2P network) - REAL ZeroMQ Transport!
+    # Handle --join (P2P network) - Kademlia DHT with φ Trust Bonus!
     if args.join is not None:
-        print(f"\n🌐 Starting BAZINGA P2P Network...")
+        print(f"\n{'='*60}")
+        print(f"  BAZINGA P2P NETWORK - Kademlia DHT")
+        print(f"{'='*60}")
 
         # Check for ZeroMQ
         if not ZMQ_AVAILABLE:
-            print(f"\n  ⚠ ZeroMQ not installed!")
+            print(f"\n  ZeroMQ not installed!")
             print(f"  Install with: pip install pyzmq")
             print(f"\n  This enables real P2P networking between nodes.")
             return
 
         async def join_network():
-            # Create protocol (handles PoB automatically)
-            protocol = BazingaProtocol(port=5150)
-
-            # Start (generates PoB internally)
-            success = await protocol.start()
-            if not success:
-                print(f"  ✗ Failed to start protocol")
-                return
-
-            # Get node info for HF registration
-            node_info = protocol.get_info() if hasattr(protocol, 'get_info') else {}
-            node_id = node_info.get('node_id', protocol.node_id if hasattr(protocol, 'node_id') else 'local')
-
-            # Try to register with HuggingFace Space registry
-            hf_registry = HFNetworkRegistry()
-            print(f"\n  📡 Connecting to HF Network Registry...")
-
+            # Detect local model for φ trust bonus
+            uses_local_model = False
             try:
-                # Try to get our public IP (simplified approach)
-                import socket
-                local_ip = socket.gethostbyname(socket.gethostname())
-            except:
-                local_ip = None
+                from .inference.ollama_detector import detect_any_local_model
+                local_model = detect_any_local_model()
+                if local_model and local_model.available:
+                    uses_local_model = True
+                    print(f"\n  Local model detected: {local_model.model_type.value}")
+                    print(f"  You will receive the phi trust bonus (1.618x)!")
+            except Exception:
+                pass
 
-            # Register with HF
-            reg_result = await hf_registry.register(
-                node_name=f"node-{node_id[:8]}",
-                ip_address=local_ip,
-                port=5150
+            if not uses_local_model:
+                print(f"\n  No local model detected.")
+                print(f"  Tip: Run 'ollama run llama3' for phi trust bonus!")
+
+            # Import DHT bridge
+            from .p2p.dht_bridge import DHTBridge
+            from .darmiyan import prove_boundary
+
+            # Generate Proof-of-Boundary for node identity
+            print(f"\n  Generating Proof-of-Boundary...")
+            pob = prove_boundary()
+
+            if pob.valid:
+                print(f"    PoB valid (ratio: {pob.ratio:.4f})")
+            else:
+                print(f"    PoB invalid, using anyway for testing")
+
+            # Create DHT bridge with PoB identity
+            bridge = DHTBridge(
+                alpha=pob.alpha,
+                omega=pob.omega,
+                port=5150,
+                uses_local_model=uses_local_model,
             )
 
-            if reg_result.get("success"):
-                hf_node_id = reg_result.get("node_id")
-                print(f"  ✓ Registered with HF Registry: {hf_node_id}")
+            # Start DHT node
+            await bridge.start()
 
-                # Get peers from HF registry
-                peers_result = await hf_registry.get_peers(exclude_node_id=hf_node_id)
-                if peers_result.get("success") and peers_result.get("peers"):
-                    print(f"  ✓ Found {peers_result['peer_count']} peers in registry")
-                    for peer in peers_result["peers"][:5]:  # Connect to up to 5 peers
-                        addr = peer.get("address")
-                        if addr and ':' in addr:
-                            host, port_str = addr.rsplit(':', 1)
-                            port = int(port_str)
-                            print(f"    Connecting to {peer['name']} at {addr}...")
-                            try:
-                                await protocol.connect(host, port)
-                            except Exception as e:
-                                print(f"    ⚠ Could not connect: {e}")
-            else:
-                print(f"  ⚠ HF Registry unavailable: {reg_result.get('error', 'unknown')}")
-                print(f"    (Continuing with local P2P only)")
+            # Bootstrap from HF Space + hardcoded nodes
+            connected = await bridge.bootstrap()
 
-            # Connect to bootstrap nodes if provided via CLI
+            # Connect to CLI-provided bootstrap nodes
             if args.join:
                 for bootstrap in args.join:
                     if ':' in bootstrap:
                         host, port_str = bootstrap.rsplit(':', 1)
-                        port = int(port_str)
-                        print(f"\n  Connecting to {host}:{port}...")
-                        await protocol.connect(host, port)
+                        try:
+                            port = int(port_str)
+                            print(f"\n  Connecting to {host}:{port}...")
+                            from .p2p.dht import hash_to_id, NodeInfo
+                            temp_id = hash_to_id(f"{host}:{port}")
+                            temp_node = NodeInfo(node_id=temp_id, address=host, port=port)
+                            if await bridge.dht.ping(temp_node):
+                                print(f"    Connected!")
+                        except Exception as e:
+                            print(f"    Failed: {e}")
 
-            # Show status
-            protocol.print_status()
+            # Show initial status
+            bridge.print_status()
 
-            print(f"\n  Node running with ZeroMQ transport")
+            # Announce knowledge domains (can be configured later)
+            print(f"\n  Announcing knowledge domains...")
+            await bridge.announce_knowledge("distributed systems")
+            await bridge.announce_knowledge("phi coherence")
+
+            print(f"\n  Node running with Kademlia DHT!")
             print(f"  Other nodes can connect to YOUR_IP:5150")
-            print(f"  Register at: {HF_SPACE_URL}")
             print(f"  Press Ctrl+C to leave network...\n")
 
             # Keep running with periodic heartbeats
@@ -1412,17 +1415,22 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
             try:
                 while True:
                     await asyncio.sleep(heartbeat_interval)
-                    # Show periodic status
-                    stats = protocol.get_stats()
-                    print(f"  📊 Peers: {stats['peers']} | Queries: {stats['queries_sent']}/{stats['queries_received']} | PoB: {stats['pob_generated']}")
 
                     # Send heartbeat to HF registry
-                    if reg_result.get("success"):
-                        await hf_registry.heartbeat(hf_node_id, ip_address=local_ip, port=5150)
+                    await bridge.heartbeat()
+
+                    # Show periodic status
+                    stats = bridge.get_stats()
+                    dht_stats = stats.get('dht', {})
+                    routing = dht_stats.get('routing_table_nodes', 0)
+                    trust = bridge.dht.trust_score
+                    phi_bonus = "(phi)" if uses_local_model else ""
+
+                    print(f"  Routing: {routing} nodes | Trust: {trust:.3f}x {phi_bonus} | Domains: {len(bridge.my_domains)}")
 
             except KeyboardInterrupt:
                 print(f"\n  Leaving network...")
-                await protocol.stop()
+                await bridge.stop()
 
         await join_network()
         return
@@ -1475,42 +1483,51 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
     # Handle --sync
     if args.sync:
-        print(f"\n🔄 BAZINGA Knowledge Sync")
+        print(f"\n  BAZINGA Knowledge Sync")
 
         if not ZMQ_AVAILABLE:
-            print(f"  ⚠ ZeroMQ not installed - install with: pip install pyzmq")
+            print(f"  ZeroMQ not installed - install with: pip install pyzmq")
             return
 
-        # Create protocol
-        protocol = BazingaProtocol(port=5150)
+        # Import DHT bridge
+        from .p2p.dht_bridge import DHTBridge
+        from .darmiyan import prove_boundary
 
-        success = await protocol.start()
-        if not success:
-            print(f"  ✗ Failed to start protocol")
-            return
+        # Quick PoB for identity
+        pob = prove_boundary()
 
-        # If we have peers, sync
-        peers = protocol.get_peers()
-        if not peers:
-            print(f"  No peers connected. Connect first with --join")
-            await protocol.stop()
-            return
-
-        print(f"  Syncing to {len(peers)} peers...")
-
-        # Share sample knowledge
-        import time as time_module
-        await protocol.share_knowledge(
-            "BAZINGA knowledge sync test",
-            {"type": "test", "timestamp": time_module.time()}
+        # Create bridge
+        bridge = DHTBridge(
+            alpha=pob.alpha,
+            omega=pob.omega,
+            port=5150,
+            uses_local_model=False,
         )
 
-        stats = protocol.get_stats()
-        print(f"\n  Sync complete:")
-        print(f"    Knowledge shared: {stats['knowledge_shared']}")
-        print(f"    Knowledge received: {stats['knowledge_received']}")
+        await bridge.start()
+        connected = await bridge.bootstrap()
 
-        await protocol.stop()
+        if not connected:
+            print(f"  No peers found. Start with --join first.")
+            await bridge.stop()
+            return
+
+        # Announce knowledge topics
+        print(f"\n  Announcing knowledge domains...")
+        await bridge.announce_knowledge("distributed systems")
+        await bridge.announce_knowledge("phi coherence")
+
+        # Find experts on a topic
+        print(f"\n  Finding experts...")
+        experts = await bridge.find_experts("distributed systems")
+        print(f"    Found {len(experts)} experts for 'distributed systems'")
+
+        stats = bridge.get_stats()
+        print(f"\n  Sync complete:")
+        print(f"    Topics announced: {stats['bridge']['topics_announced']}")
+        print(f"    Routing table: {stats['dht']['routing_table_nodes']} nodes")
+
+        await bridge.stop()
         return
 
     # Handle --learn (federated learning status)
