@@ -1820,9 +1820,10 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
     # Handle --stats
     if args.stats:
-        memory = get_memory()
+        learning = _get_learning()
+        memory = learning.get_memory()
         stats = memory.get_stats()
-        tensor = get_tensor_engine()
+        tensor = _get_tensor().TensorIntersectionEngine()
         trust = tensor.get_trust_stats()
         print(f"\nBAZINGA Learning Stats:")
         print(f"  Sessions: {stats['total_sessions']}")
