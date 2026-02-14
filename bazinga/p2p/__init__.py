@@ -15,7 +15,8 @@ Features:
 """
 
 from .node import BAZINGANode
-from .dht import BAZINGA_DHT
+from .dht import KademliaNode, RoutingTable, NodeInfo, xor_distance, node_id_from_pob
+from .dht_bridge import DHTBridge, create_dht_bridge, KnowledgeTopic
 from .knowledge_sync import KnowledgeGraphSync
 from .trust_router import TrustRouter
 from .alpha_seed import AlphaSeedNetwork, is_alpha_seed
@@ -46,8 +47,15 @@ __all__ = [
     'ZMQ_AVAILABLE',
     # Low-level components
     'BAZINGANode',
-    'BAZINGA_DHT',
+    'KademliaNode',
+    'RoutingTable',
+    'NodeInfo',
+    'xor_distance',
+    'node_id_from_pob',
     'KnowledgeGraphSync',
+    'DHTBridge',
+    'create_dht_bridge',
+    'KnowledgeTopic',
     'TrustRouter',
     'AlphaSeedNetwork',
     'is_alpha_seed',

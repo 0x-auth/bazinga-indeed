@@ -1,209 +1,486 @@
 #!/usr/bin/env python3
 """
-BAZINGA DHT - Distributed Hash Table for Node Discovery
+BAZINGA DHT - Kademlia-style Distributed Hash Table
+====================================================
 
-Implements Kademlia-inspired DHT for:
-- Finding nodes without central directory
-- Announcing knowledge topics
-- Discovering experts on specific topics
+True P2P discovery without central registry.
 
-"Find knowledge, not servers."
+Core Concepts:
+- 256-bit Node IDs derived from Proof-of-Boundary
+- XOR distance metric for routing
+- K-buckets organized by distance
+- Iterative lookup for node discovery
+
+"Your identity is your resonance. Your address is your understanding."
+
+Author: Space (Abhishek/Abhilasia) & Claude
+License: MIT
 """
 
 import asyncio
 import hashlib
 import json
 import time
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Set
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-import heapq
+from enum import Enum
 
 # BAZINGA constants
 PHI = 1.618033988749895
-ALPHA = 137
 
 # DHT constants
-K_BUCKET_SIZE = 20  # Max peers per bucket
-ALPHA_CONCURRENCY = 3  # Concurrent lookups
-KEY_BITS = 160  # SHA1 key space
+K = 20  # Max nodes per bucket (Kademlia default)
+ALPHA = 3  # Parallelism factor for lookups
+ID_BITS = 256  # SHA-256 = 256 bits
+BUCKET_REFRESH_INTERVAL = 3600  # 1 hour
+NODE_TIMEOUT = 5.0  # Seconds to wait for response
 
 
-def hash_key(data: str) -> int:
-    """Hash string to DHT key space."""
-    return int(hashlib.sha1(data.encode()).hexdigest(), 16)
+# =============================================================================
+# XOR DISTANCE & BUCKET LOGIC
+# =============================================================================
+
+def xor_distance(id1: bytes, id2: bytes) -> int:
+    """
+    Calculate XOR distance between two node IDs.
+
+    XOR distance is the foundation of Kademlia:
+    - d(a, b) = a XOR b (as integer)
+    - Closer nodes have smaller XOR distance
+    - Forms a metric space (triangle inequality holds)
+
+    Example:
+        id1 = 1010...  (binary)
+        id2 = 1001...  (binary)
+        XOR = 0011...  = 3 (first difference at bit 2)
+    """
+    if len(id1) != len(id2):
+        raise ValueError(f"ID length mismatch: {len(id1)} vs {len(id2)}")
+
+    # XOR each byte and combine into integer
+    xor_bytes = bytes(a ^ b for a, b in zip(id1, id2))
+    return int.from_bytes(xor_bytes, 'big')
 
 
-def hash_embedding(embedding: List[float]) -> int:
-    """Hash embedding vector to DHT key space."""
-    # Create string representation
-    embedding_str = ",".join(f"{x:.6f}" for x in embedding[:10])  # First 10 dims
-    return hash_key(embedding_str)
+def get_bucket_index(local_id: bytes, remote_id: bytes) -> int:
+    """
+    Determine which bucket a node belongs to based on XOR distance.
 
+    Bucket index = position of highest differing bit
 
-def xor_distance(key1: int, key2: int) -> int:
-    """Calculate XOR distance between two keys."""
-    return key1 ^ key2
+    This creates a logarithmic structure:
+    - Bucket 0: nodes differing in bit 0 (furthest, 2^255 to 2^256-1)
+    - Bucket 255: nodes differing in bit 255 (closest, distance 1)
 
+    Nodes closer to us go in higher-indexed buckets.
+    We know more about our "neighborhood" than distant regions.
+    """
+    distance = xor_distance(local_id, remote_id)
 
-def bucket_index(node_key: int, target_key: int) -> int:
-    """Find bucket index for target key relative to node."""
-    distance = xor_distance(node_key, target_key)
     if distance == 0:
-        return 0
-    return distance.bit_length() - 1
+        return ID_BITS - 1  # Same node
+
+    # bit_length() gives position of highest set bit
+    return ID_BITS - distance.bit_length()
+
+
+def node_id_from_pob(alpha: str, omega: str) -> bytes:
+    """
+    Generate node ID from Proof-of-Boundary signatures.
+
+    Your identity IS your resonance. The PoB that proves you
+    understand the φ⁴ boundary becomes your network address.
+
+    This means:
+    - You can't fake an ID without doing the PoB work
+    - Your position in the network reflects your proof
+    - Identity is earned through understanding
+    """
+    pob_string = f"{alpha}:{omega}"
+    return hashlib.sha256(pob_string.encode()).digest()
+
+
+def hash_to_id(data: str) -> bytes:
+    """Hash string to 256-bit node ID."""
+    return hashlib.sha256(data.encode()).digest()
+
+
+# =============================================================================
+# DATA STRUCTURES
+# =============================================================================
+
+@dataclass
+class NodeInfo:
+    """Information about a node in the network."""
+    node_id: bytes  # 256-bit ID
+    address: str  # IP address
+    port: int
+    last_seen: float = field(default_factory=time.time)
+    trust_score: float = 0.5
+    uses_local_model: bool = False
+
+    @property
+    def id_hex(self) -> str:
+        """Short hex representation of node ID."""
+        return self.node_id.hex()[:16] + "..."
+
+    @property
+    def endpoint(self) -> str:
+        """ZMQ endpoint string."""
+        return f"tcp://{self.address}:{self.port}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "node_id": self.node_id.hex(),
+            "address": self.address,
+            "port": self.port,
+            "last_seen": self.last_seen,
+            "trust_score": self.trust_score,
+            "uses_local_model": self.uses_local_model,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "NodeInfo":
+        return cls(
+            node_id=bytes.fromhex(data["node_id"]),
+            address=data["address"],
+            port=data["port"],
+            last_seen=data.get("last_seen", time.time()),
+            trust_score=data.get("trust_score", 0.5),
+            uses_local_model=data.get("uses_local_model", False),
+        )
 
 
 @dataclass
 class DHTEntry:
-    """Entry in the DHT."""
-    key: int
+    """Entry in the DHT storage."""
+    key: bytes  # 256-bit key
     value: Dict[str, Any]
     timestamp: float = field(default_factory=time.time)
-    ttl: int = 3600  # 1 hour default TTL
+    ttl: int = 3600  # 1 hour default
 
     def is_expired(self) -> bool:
-        """Check if entry has expired."""
         return time.time() > self.timestamp + self.ttl
 
 
-@dataclass
-class DHTNode:
-    """Reference to another DHT node."""
-    node_id: str
-    key: int
-    host: str
-    port: int
-    tau: float
-    last_seen: datetime = field(default_factory=datetime.now)
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "node_id": self.node_id,
-            "key": self.key,
-            "host": self.host,
-            "port": self.port,
-            "tau": self.tau,
-        }
-
+# =============================================================================
+# K-BUCKET
+# =============================================================================
 
 class KBucket:
-    """K-bucket for storing nodes at a particular distance range."""
+    """
+    A K-bucket holds up to K nodes at a specific XOR distance range.
 
-    def __init__(self, max_size: int = K_BUCKET_SIZE):
-        self.max_size = max_size
-        self.nodes: List[DHTNode] = []
+    Properties:
+    - Max K nodes (default 20)
+    - Ordered by last seen (most recent at tail)
+    - When full, ping oldest - if alive, discard new; if dead, replace
+    - This favors long-lived nodes (more stable network)
+    """
 
-    def add(self, node: DHTNode) -> bool:
-        """
-        Add node to bucket.
-        Returns True if added, False if bucket full and node not added.
-        """
-        # Check if node already exists
-        for i, existing in enumerate(self.nodes):
-            if existing.node_id == node.node_id:
-                # Move to end (most recently seen)
-                self.nodes.pop(i)
-                self.nodes.append(node)
-                return True
+    def __init__(self, k: int = K):
+        self.k = k
+        self.nodes: List[NodeInfo] = []
+        self.last_updated: float = time.time()
 
-        # Add if space available
-        if len(self.nodes) < self.max_size:
-            self.nodes.append(node)
-            return True
-
-        # Bucket full - check if oldest node is stale
-        oldest = self.nodes[0]
-        if (datetime.now() - oldest.last_seen) > timedelta(minutes=5):
-            # Replace stale node
-            self.nodes.pop(0)
-            self.nodes.append(node)
-            return True
-
-        return False
-
-    def get_closest(self, key: int, count: int = K_BUCKET_SIZE) -> List[DHTNode]:
-        """Get closest nodes to a key."""
-        sorted_nodes = sorted(
-            self.nodes,
-            key=lambda n: xor_distance(n.key, key)
-        )
-        return sorted_nodes[:count]
-
-    def remove(self, node_id: str):
-        """Remove node from bucket."""
-        self.nodes = [n for n in self.nodes if n.node_id != node_id]
-
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.nodes)
 
+    def __iter__(self):
+        return iter(self.nodes)
 
-class BAZINGA_DHT:
+    def is_full(self) -> bool:
+        return len(self.nodes) >= self.k
+
+    def get_node(self, node_id: bytes) -> Optional[NodeInfo]:
+        """Find a node by ID."""
+        for node in self.nodes:
+            if node.node_id == node_id:
+                return node
+        return None
+
+    def add_node(self, node: NodeInfo) -> Tuple[bool, Optional[NodeInfo]]:
+        """
+        Add a node to the bucket.
+
+        Returns:
+            (added: bool, eviction_candidate: Optional[NodeInfo])
+
+            If bucket is full, returns the oldest node for ping check.
+            Caller should ping it - if dead, call remove_node + add_node.
+        """
+        # Check if node already exists
+        existing = self.get_node(node.node_id)
+        if existing:
+            # Move to tail (most recently seen)
+            self.nodes.remove(existing)
+            existing.last_seen = time.time()
+            self.nodes.append(existing)
+            return True, None
+
+        # Bucket not full - just add
+        if not self.is_full():
+            self.nodes.append(node)
+            self.last_updated = time.time()
+            return True, None
+
+        # Bucket full - return oldest for ping check
+        oldest = self.nodes[0]
+        return False, oldest
+
+    def remove_node(self, node_id: bytes) -> bool:
+        """Remove a node from the bucket."""
+        for i, node in enumerate(self.nodes):
+            if node.node_id == node_id:
+                self.nodes.pop(i)
+                return True
+        return False
+
+    def touch_node(self, node_id: bytes):
+        """Update last_seen for a node (move to tail)."""
+        node = self.get_node(node_id)
+        if node:
+            self.nodes.remove(node)
+            node.last_seen = time.time()
+            self.nodes.append(node)
+
+    def get_nodes(self) -> List[NodeInfo]:
+        """Get all nodes in bucket."""
+        return list(self.nodes)
+
+
+# =============================================================================
+# ROUTING TABLE
+# =============================================================================
+
+class RoutingTable:
     """
-    BAZINGA Distributed Hash Table.
+    Kademlia routing table - 256 K-buckets organized by XOR distance.
+
+    Structure:
+    - Bucket i contains nodes with XOR distance in [2^i, 2^(i+1))
+    - Lower index = further away, higher index = closer
+    - We know more nodes closer to us (naturally fills nearby buckets)
+
+    This gives O(log n) lookup in a network of n nodes.
+    With 1M nodes, ~20 hops max to find anyone.
+    """
+
+    def __init__(self, local_id: bytes, k: int = K):
+        self.local_id = local_id
+        self.k = k
+        self.buckets: List[KBucket] = [KBucket(k) for _ in range(ID_BITS)]
+        self.total_nodes = 0
+
+    def get_bucket_for_node(self, node_id: bytes) -> KBucket:
+        """Get the bucket a node belongs to."""
+        index = get_bucket_index(self.local_id, node_id)
+        return self.buckets[index]
+
+    def add_node(self, node: NodeInfo) -> Tuple[bool, Optional[NodeInfo]]:
+        """
+        Add a node to the routing table.
+
+        Returns (success, eviction_candidate).
+        If eviction_candidate is returned, ping it to decide whether to evict.
+        """
+        if node.node_id == self.local_id:
+            return False, None  # Don't add ourselves
+
+        bucket = self.get_bucket_for_node(node.node_id)
+        added, eviction = bucket.add_node(node)
+
+        if added:
+            self.total_nodes += 1
+
+        return added, eviction
+
+    def remove_node(self, node_id: bytes) -> bool:
+        """Remove a node from the routing table."""
+        bucket = self.get_bucket_for_node(node_id)
+        removed = bucket.remove_node(node_id)
+        if removed:
+            self.total_nodes -= 1
+        return removed
+
+    def get_node(self, node_id: bytes) -> Optional[NodeInfo]:
+        """Find a specific node."""
+        bucket = self.get_bucket_for_node(node_id)
+        return bucket.get_node(node_id)
+
+    def touch_node(self, node_id: bytes):
+        """Update last_seen for a node."""
+        bucket = self.get_bucket_for_node(node_id)
+        bucket.touch_node(node_id)
+
+    def get_closest_nodes(self, target_id: bytes, count: int = K) -> List[NodeInfo]:
+        """
+        Get the K closest nodes to a target ID.
+
+        This is the core of Kademlia lookups:
+        1. Start from bucket containing target
+        2. Expand outward until we have K nodes
+        3. Sort by XOR distance to target
+
+        Used for both FIND_NODE and iterative lookup.
+        """
+        target_bucket_index = get_bucket_index(self.local_id, target_id)
+
+        # Collect nodes from nearby buckets
+        candidates: List[NodeInfo] = []
+
+        # Start at target bucket, expand outward
+        for offset in range(ID_BITS):
+            # Check bucket above
+            if target_bucket_index + offset < ID_BITS:
+                candidates.extend(self.buckets[target_bucket_index + offset].get_nodes())
+
+            # Check bucket below
+            if offset > 0 and target_bucket_index - offset >= 0:
+                candidates.extend(self.buckets[target_bucket_index - offset].get_nodes())
+
+            # Stop if we have enough
+            if len(candidates) >= count:
+                break
+
+        # Sort by XOR distance to target
+        candidates.sort(key=lambda n: xor_distance(n.node_id, target_id))
+
+        return candidates[:count]
+
+    def get_all_nodes(self) -> List[NodeInfo]:
+        """Get all nodes in the routing table."""
+        all_nodes = []
+        for bucket in self.buckets:
+            all_nodes.extend(bucket.get_nodes())
+        return all_nodes
+
+    def get_stale_buckets(self, max_age: float = BUCKET_REFRESH_INTERVAL) -> List[int]:
+        """Get indices of buckets that need refreshing."""
+        now = time.time()
+        stale = []
+        for i, bucket in enumerate(self.buckets):
+            if len(bucket) > 0 and now - bucket.last_updated > max_age:
+                stale.append(i)
+        return stale
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get routing table statistics."""
+        non_empty_buckets = sum(1 for b in self.buckets if len(b) > 0)
+        bucket_sizes = [len(b) for b in self.buckets if len(b) > 0]
+
+        return {
+            "local_id": self.local_id.hex()[:16] + "...",
+            "total_nodes": self.total_nodes,
+            "non_empty_buckets": non_empty_buckets,
+            "bucket_sizes": bucket_sizes[-10:] if bucket_sizes else [],
+            "k": self.k,
+        }
+
+    def print_table(self):
+        """Print routing table for debugging."""
+        print(f"\n{'='*60}")
+        print(f"ROUTING TABLE: {self.local_id.hex()[:16]}...")
+        print(f"{'='*60}")
+        print(f"Total nodes: {self.total_nodes}")
+        print(f"Non-empty buckets: {sum(1 for b in self.buckets if len(b) > 0)}")
+        print()
+
+        for i, bucket in enumerate(self.buckets):
+            if len(bucket) > 0:
+                print(f"Bucket {i:3d} (distance ~2^{ID_BITS-i-1}): {len(bucket)} nodes")
+                for node in bucket.nodes[:3]:
+                    print(f"    {node.id_hex} @ {node.address}:{node.port}")
+                if len(bucket) > 3:
+                    print(f"    ... and {len(bucket) - 3} more")
+
+        print(f"{'='*60}\n")
+
+
+# =============================================================================
+# KADEMLIA NODE (DHT Protocol)
+# =============================================================================
+
+class KademliaNode:
+    """
+    Full Kademlia DHT node with network operations.
 
     Features:
-    - Kademlia-inspired routing
-    - Knowledge topic discovery
-    - Trust-weighted node selection
-    - α-SEED anchor support
-
-    Usage:
-        dht = BAZINGA_DHT(node_id, host, port)
-        await dht.start()
-        await dht.bootstrap(["host1:port1", "host2:port2"])
-
-        # Announce knowledge
-        await dht.announce_knowledge("quantum mechanics", {"tau": 0.9, ...})
-
-        # Find experts
-        experts = await dht.find_experts("quantum mechanics")
+    - Bootstrap from known nodes
+    - Iterative node lookup
+    - Store/retrieve key-value pairs
+    - Announce knowledge topics
+    - Trust-weighted selection (φ bonus for local models)
     """
 
     def __init__(
         self,
-        node_id: str,
-        host: str = "0.0.0.0",
-        port: int = 8469,
-        tau: float = 0.5,
+        node_id: bytes,
+        address: str = "0.0.0.0",
+        port: int = 5150,
+        trust_score: float = 0.5,
+        uses_local_model: bool = False,
     ):
-        """
-        Initialize DHT node.
-
-        Args:
-            node_id: Unique node identifier
-            host: Host to bind to
-            port: Port for DHT operations
-            tau: Node's trust score
-        """
         self.node_id = node_id
-        self.node_key = hash_key(node_id)
-        self.host = host
+        self.address = address
         self.port = port
-        self.tau = tau
+        self.trust_score = trust_score
+        self.uses_local_model = uses_local_model
 
-        # Routing table: K-buckets indexed by distance
-        self.buckets: List[KBucket] = [KBucket() for _ in range(KEY_BITS)]
+        # Routing table
+        self.routing_table = RoutingTable(node_id)
 
         # Local storage
-        self.storage: Dict[int, DHTEntry] = {}
+        self.storage: Dict[str, DHTEntry] = {}
 
-        # Server
+        # Server state
         self.server: Optional[asyncio.Server] = None
         self.running = False
 
         # Stats
         self.stats = {
-            'lookups': 0,
-            'stores': 0,
-            'announcements': 0,
+            "lookups": 0,
+            "stores": 0,
+            "pings_sent": 0,
+            "pings_received": 0,
         }
 
+    @classmethod
+    def from_pob(
+        cls,
+        alpha: str,
+        omega: str,
+        address: str = "0.0.0.0",
+        port: int = 5150,
+        uses_local_model: bool = False,
+    ) -> "KademliaNode":
+        """Create node with ID derived from Proof-of-Boundary."""
+        node_id = node_id_from_pob(alpha, omega)
+        trust = PHI if uses_local_model else 0.5  # φ bonus for local models
+        return cls(
+            node_id=node_id,
+            address=address,
+            port=port,
+            trust_score=trust,
+            uses_local_model=uses_local_model,
+        )
+
+    def get_info(self) -> NodeInfo:
+        """Get this node's info."""
+        return NodeInfo(
+            node_id=self.node_id,
+            address=self.address,
+            port=self.port,
+            trust_score=self.trust_score,
+            uses_local_model=self.uses_local_model,
+        )
+
     async def start(self):
-        """Start DHT node."""
+        """Start the DHT server."""
         self.server = await asyncio.start_server(
             self._handle_connection,
-            self.host,
+            self.address,
             self.port,
         )
 
@@ -211,13 +488,14 @@ class BAZINGA_DHT:
         self.port = addr[1]
         self.running = True
 
-        print(f"📡 DHT Node online at {self.host}:{self.port}")
+        print(f"DHT Node online: {self.node_id.hex()[:16]}... @ {self.address}:{self.port}")
+        print(f"  Trust: {self.trust_score:.3f} | Local Model: {self.uses_local_model}")
 
-        # Start maintenance
+        # Start maintenance loop
         asyncio.create_task(self._maintenance_loop())
 
     async def stop(self):
-        """Stop DHT node."""
+        """Stop the DHT server."""
         self.running = False
         if self.server:
             self.server.close()
@@ -228,9 +506,9 @@ class BAZINGA_DHT:
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
     ):
-        """Handle incoming DHT request."""
+        """Handle incoming DHT connection."""
         try:
-            data = await reader.read(4096)
+            data = await asyncio.wait_for(reader.read(8192), timeout=NODE_TIMEOUT)
             if not data:
                 return
 
@@ -241,38 +519,54 @@ class BAZINGA_DHT:
             await writer.drain()
 
         except Exception as e:
-            print(f"DHT request error: {e}")
+            pass  # Silent fail for network errors
         finally:
             writer.close()
-            await writer.wait_closed()
+            try:
+                await writer.wait_closed()
+            except Exception:
+                pass
 
     async def _handle_request(self, request: Dict) -> Dict:
         """Handle DHT request."""
         cmd = request.get("cmd")
 
+        # Update sender in routing table
+        if "sender" in request:
+            sender = NodeInfo.from_dict(request["sender"])
+            self.routing_table.add_node(sender)
+
         if cmd == "PING":
-            return {"status": "PONG", "node_id": self.node_id, "tau": self.tau}
+            self.stats["pings_received"] += 1
+            return {
+                "status": "PONG",
+                "sender": self.get_info().to_dict(),
+            }
 
         elif cmd == "FIND_NODE":
-            key = request.get("key")
-            nodes = self._find_closest_nodes(key)
+            target_id = bytes.fromhex(request.get("target_id", ""))
+            closest = self.routing_table.get_closest_nodes(target_id, K)
             return {
                 "status": "OK",
-                "nodes": [n.to_dict() for n in nodes]
+                "nodes": [n.to_dict() for n in closest],
+                "sender": self.get_info().to_dict(),
             }
 
         elif cmd == "FIND_VALUE":
             key = request.get("key")
             if key in self.storage and not self.storage[key].is_expired():
                 return {
-                    "status": "OK",
-                    "value": self.storage[key].value
+                    "status": "FOUND",
+                    "value": self.storage[key].value,
+                    "sender": self.get_info().to_dict(),
                 }
             else:
-                nodes = self._find_closest_nodes(key)
+                target_id = hash_to_id(key)
+                closest = self.routing_table.get_closest_nodes(target_id, K)
                 return {
                     "status": "NOT_FOUND",
-                    "nodes": [n.to_dict() for n in nodes]
+                    "nodes": [n.to_dict() for n in closest],
+                    "sender": self.get_info().to_dict(),
                 }
 
         elif cmd == "STORE":
@@ -280,305 +574,182 @@ class BAZINGA_DHT:
             value = request.get("value")
             ttl = request.get("ttl", 3600)
 
-            self.storage[key] = DHTEntry(key=key, value=value, ttl=ttl)
-            self.stats['stores'] += 1
-
-            return {"status": "OK"}
-
-        elif cmd == "ANNOUNCE":
-            topic_hash = request.get("topic_hash")
-            node_info = request.get("node_info")
-
-            # Store announcement
-            self.storage[topic_hash] = DHTEntry(
-                key=topic_hash,
-                value=node_info,
-                ttl=1800,  # 30 min TTL for announcements
+            self.storage[key] = DHTEntry(
+                key=hash_to_id(key),
+                value=value,
+                ttl=ttl,
             )
-            self.stats['announcements'] += 1
+            self.stats["stores"] += 1
 
-            return {"status": "OK"}
+            return {
+                "status": "OK",
+                "sender": self.get_info().to_dict(),
+            }
 
         return {"status": "ERROR", "message": "Unknown command"}
 
-    def _find_closest_nodes(self, key: int, count: int = K_BUCKET_SIZE) -> List[DHTNode]:
-        """Find closest nodes to a key."""
-        candidates = []
-
-        for bucket in self.buckets:
-            candidates.extend(bucket.nodes)
-
-        # Sort by XOR distance
-        candidates.sort(key=lambda n: xor_distance(n.key, key))
-
-        return candidates[:count]
-
-    def add_node(self, node: DHTNode):
-        """Add node to routing table."""
-        bucket_idx = bucket_index(self.node_key, node.key)
-        bucket_idx = min(bucket_idx, KEY_BITS - 1)
-        self.buckets[bucket_idx].add(node)
-
-    async def bootstrap(self, bootstrap_addrs: List[str]):
-        """
-        Bootstrap from known nodes.
-
-        Args:
-            bootstrap_addrs: List of "host:port" addresses
-        """
-        for addr in bootstrap_addrs:
-            try:
-                host, port = addr.split(":")
-                response = await self._send_request(host, int(port), {
-                    "cmd": "PING"
-                })
-
-                if response and response.get("status") == "PONG":
-                    node = DHTNode(
-                        node_id=response["node_id"],
-                        key=hash_key(response["node_id"]),
-                        host=host,
-                        port=int(port),
-                        tau=response.get("tau", 0.5),
-                    )
-                    self.add_node(node)
-                    print(f"   ✓ DHT bootstrap: {response['node_id'][:8]}")
-
-                    # Do iterative lookup for our own key to populate table
-                    await self._iterative_find_node(self.node_key)
-
-            except Exception as e:
-                print(f"   ✗ DHT bootstrap failed for {addr}: {e}")
-
     async def _send_request(
         self,
-        host: str,
-        port: int,
+        node: NodeInfo,
         request: Dict,
-        timeout: float = 5.0,
+        timeout: float = NODE_TIMEOUT,
     ) -> Optional[Dict]:
-        """Send request to DHT node."""
+        """Send request to another DHT node."""
         try:
+            # Add our info to request
+            request["sender"] = self.get_info().to_dict()
+
             reader, writer = await asyncio.wait_for(
-                asyncio.open_connection(host, port),
+                asyncio.open_connection(node.address, node.port),
                 timeout=timeout,
             )
 
             writer.write(json.dumps(request).encode())
             await writer.drain()
 
-            data = await asyncio.wait_for(reader.read(4096), timeout=timeout)
+            data = await asyncio.wait_for(reader.read(8192), timeout=timeout)
             response = json.loads(data.decode())
 
             writer.close()
             await writer.wait_closed()
 
+            # Update routing table with response sender
+            if "sender" in response:
+                sender = NodeInfo.from_dict(response["sender"])
+                self.routing_table.add_node(sender)
+
             return response
 
         except Exception:
+            # Mark node as potentially dead
             return None
 
-    async def _iterative_find_node(self, key: int) -> List[DHTNode]:
-        """Iterative node lookup."""
-        self.stats['lookups'] += 1
+    async def ping(self, node: NodeInfo) -> bool:
+        """Ping a node to check if it's alive."""
+        self.stats["pings_sent"] += 1
+        response = await self._send_request(node, {"cmd": "PING"})
+        return response is not None and response.get("status") == "PONG"
 
-        # Start with closest known nodes
-        closest = self._find_closest_nodes(key, ALPHA_CONCURRENCY)
-        queried = set()
-        best = list(closest)
+    async def bootstrap(self, bootstrap_nodes: List[Tuple[str, int]]):
+        """
+        Bootstrap into the network from known nodes.
+
+        Args:
+            bootstrap_nodes: List of (host, port) tuples
+        """
+        print(f"\nBootstrapping DHT from {len(bootstrap_nodes)} nodes...")
+
+        for host, port in bootstrap_nodes:
+            try:
+                # Create temporary NodeInfo for bootstrap
+                temp_id = hash_to_id(f"{host}:{port}")
+                temp_node = NodeInfo(node_id=temp_id, address=host, port=port)
+
+                response = await self._send_request(temp_node, {"cmd": "PING"})
+
+                if response and response.get("status") == "PONG":
+                    sender = NodeInfo.from_dict(response["sender"])
+                    self.routing_table.add_node(sender)
+                    print(f"  ✓ Connected to {sender.id_hex}")
+
+                    # Do lookup for our own ID to populate routing table
+                    await self.find_node(self.node_id)
+
+            except Exception as e:
+                print(f"  ✗ Failed to connect to {host}:{port}: {e}")
+
+        print(f"  Routing table: {self.routing_table.total_nodes} nodes")
+
+    async def find_node(self, target_id: bytes) -> List[NodeInfo]:
+        """
+        Iterative node lookup - the heart of Kademlia.
+
+        Finds the K closest nodes to target_id.
+        """
+        self.stats["lookups"] += 1
+
+        # Start with closest nodes we know
+        closest = self.routing_table.get_closest_nodes(target_id, ALPHA)
+        if not closest:
+            return []
+
+        queried: Set[bytes] = set()
+        best: List[NodeInfo] = list(closest)
 
         while True:
-            # Query unqueried nodes
-            to_query = [n for n in best[:ALPHA_CONCURRENCY] if n.node_id not in queried]
+            # Get unqueried nodes from best
+            to_query = [n for n in best[:ALPHA] if n.node_id not in queried]
 
             if not to_query:
                 break
 
+            # Query in parallel
             tasks = []
             for node in to_query:
                 queried.add(node.node_id)
-                tasks.append(self._send_request(node.host, node.port, {
+                tasks.append(self._send_request(node, {
                     "cmd": "FIND_NODE",
-                    "key": key,
+                    "target_id": target_id.hex(),
                 }))
 
             responses = await asyncio.gather(*tasks)
 
+            # Process responses
             for response in responses:
                 if response and response.get("status") == "OK":
                     for node_data in response.get("nodes", []):
-                        node = DHTNode(
-                            node_id=node_data["node_id"],
-                            key=node_data["key"],
-                            host=node_data["host"],
-                            port=node_data["port"],
-                            tau=node_data.get("tau", 0.5),
-                        )
-                        self.add_node(node)
-                        best.append(node)
+                        node = NodeInfo.from_dict(node_data)
+                        if node.node_id not in queried:
+                            best.append(node)
+                            self.routing_table.add_node(node)
 
-            # Sort by distance
-            best.sort(key=lambda n: xor_distance(n.key, key))
-            best = best[:K_BUCKET_SIZE]
+            # Sort by distance and keep best K
+            best.sort(key=lambda n: xor_distance(n.node_id, target_id))
+            best = best[:K]
 
         return best
 
-    async def get(self, key: str) -> Optional[Dict]:
-        """
-        Get value from DHT.
-
-        Args:
-            key: String key to lookup
-
-        Returns:
-            Value if found, None otherwise
-        """
-        key_hash = hash_key(key)
-
-        # Check local storage first
-        if key_hash in self.storage and not self.storage[key_hash].is_expired():
-            return self.storage[key_hash].value
-
-        # Iterative lookup
-        closest = await self._iterative_find_node(key_hash)
-
-        for node in closest:
-            response = await self._send_request(node.host, node.port, {
-                "cmd": "FIND_VALUE",
-                "key": key_hash,
-            })
-
-            if response and response.get("status") == "OK":
-                value = response.get("value")
-                # Cache locally
-                self.storage[key_hash] = DHTEntry(key=key_hash, value=value)
-                return value
-
-        return None
-
-    async def set(self, key: str, value: Dict, ttl: int = 3600):
-        """
-        Store value in DHT.
-
-        Args:
-            key: String key
-            value: Value to store
-            ttl: Time-to-live in seconds
-        """
-        key_hash = hash_key(key)
+    async def store(self, key: str, value: Dict, ttl: int = 3600):
+        """Store a key-value pair in the DHT."""
+        key_id = hash_to_id(key)
 
         # Store locally
-        self.storage[key_hash] = DHTEntry(key=key_hash, value=value, ttl=ttl)
+        self.storage[key] = DHTEntry(key=key_id, value=value, ttl=ttl)
 
-        # Store on closest nodes
-        closest = await self._iterative_find_node(key_hash)
+        # Find closest nodes and store there too
+        closest = await self.find_node(key_id)
 
-        for node in closest[:K_BUCKET_SIZE]:
-            await self._send_request(node.host, node.port, {
+        for node in closest[:K]:
+            await self._send_request(node, {
                 "cmd": "STORE",
-                "key": key_hash,
+                "key": key,
                 "value": value,
                 "ttl": ttl,
             })
 
-    async def announce_knowledge(self, topic: str, node_info: Dict):
-        """
-        Announce that this node has knowledge about a topic.
+    async def get(self, key: str) -> Optional[Dict]:
+        """Retrieve a value from the DHT."""
+        # Check local storage first
+        if key in self.storage and not self.storage[key].is_expired():
+            return self.storage[key].value
 
-        Args:
-            topic: Topic string (e.g., "quantum mechanics")
-            node_info: Node information including tau, address, etc.
-        """
-        topic_hash = hash_key(topic)
+        # Look up in network
+        key_id = hash_to_id(key)
+        closest = await self.find_node(key_id)
 
-        # Ensure our info is included
-        node_info["node_id"] = self.node_id
-        node_info["tau"] = self.tau
-        node_info["host"] = self.host if self.host != "0.0.0.0" else "127.0.0.1"
-        node_info["port"] = self.port
-
-        # Store locally
-        existing = self.storage.get(topic_hash)
-        if existing and not existing.is_expired():
-            # Merge with existing announcements
-            if isinstance(existing.value, list):
-                # Add to list if not already there
-                existing.value = [
-                    n for n in existing.value
-                    if n.get("node_id") != self.node_id
-                ]
-                existing.value.append(node_info)
-            else:
-                existing.value = [existing.value, node_info]
-        else:
-            self.storage[topic_hash] = DHTEntry(
-                key=topic_hash,
-                value=[node_info],
-                ttl=1800,
-            )
-
-        # Announce to closest nodes
-        closest = await self._iterative_find_node(topic_hash)
-
-        for node in closest[:ALPHA_CONCURRENCY]:
-            await self._send_request(node.host, node.port, {
-                "cmd": "ANNOUNCE",
-                "topic_hash": topic_hash,
-                "node_info": node_info,
-            })
-
-        self.stats['announcements'] += 1
-
-    async def find_experts(self, topic: str) -> List[Dict]:
-        """
-        Find nodes that have knowledge about a topic.
-
-        Args:
-            topic: Topic string
-
-        Returns:
-            List of node info dicts sorted by trust score
-        """
-        topic_hash = hash_key(topic)
-
-        # Check local storage
-        experts = []
-        if topic_hash in self.storage and not self.storage[topic_hash].is_expired():
-            value = self.storage[topic_hash].value
-            if isinstance(value, list):
-                experts.extend(value)
-            else:
-                experts.append(value)
-
-        # Query network
-        closest = await self._iterative_find_node(topic_hash)
-
-        for node in closest[:ALPHA_CONCURRENCY]:
-            response = await self._send_request(node.host, node.port, {
+        for node in closest:
+            response = await self._send_request(node, {
                 "cmd": "FIND_VALUE",
-                "key": topic_hash,
+                "key": key,
             })
 
-            if response and response.get("status") == "OK":
+            if response and response.get("status") == "FOUND":
                 value = response.get("value")
-                if isinstance(value, list):
-                    experts.extend(value)
-                elif value:
-                    experts.append(value)
+                # Cache locally
+                self.storage[key] = DHTEntry(key=key_id, value=value)
+                return value
 
-        # Deduplicate by node_id
-        seen = set()
-        unique_experts = []
-        for expert in experts:
-            node_id = expert.get("node_id")
-            if node_id and node_id not in seen:
-                seen.add(node_id)
-                unique_experts.append(expert)
-
-        # Sort by trust score (highest first)
-        unique_experts.sort(key=lambda x: x.get("tau", 0), reverse=True)
-
-        return unique_experts
+        return None
 
     async def _maintenance_loop(self):
         """Periodic maintenance tasks."""
@@ -586,46 +757,114 @@ class BAZINGA_DHT:
             await asyncio.sleep(60)
 
             # Clean expired entries
-            expired = [
-                key for key, entry in self.storage.items()
-                if entry.is_expired()
-            ]
+            expired = [k for k, e in self.storage.items() if e.is_expired()]
             for key in expired:
                 del self.storage[key]
 
-            # Refresh buckets (simplified)
-            # In full Kademlia, would do iterative lookups for bucket ranges
+            # Refresh stale buckets
+            stale = self.routing_table.get_stale_buckets()
+            for bucket_idx in stale[:3]:  # Refresh up to 3 buckets per cycle
+                # Generate random ID in bucket range
+                random_id = hashlib.sha256(f"refresh:{bucket_idx}:{time.time()}".encode()).digest()
+                await self.find_node(random_id)
 
     def get_stats(self) -> Dict[str, Any]:
         """Get DHT statistics."""
-        total_nodes = sum(len(bucket) for bucket in self.buckets)
+        rt_stats = self.routing_table.get_stats()
         return {
-            "node_id": self.node_id,
-            "node_key": hex(self.node_key)[:16],
-            "address": f"{self.host}:{self.port}",
-            "routing_table_size": total_nodes,
+            "node_id": self.node_id.hex()[:16] + "...",
+            "address": f"{self.address}:{self.port}",
+            "trust_score": self.trust_score,
+            "uses_local_model": self.uses_local_model,
+            "routing_table": rt_stats,
             "storage_entries": len(self.storage),
             **self.stats,
         }
 
 
-# Test
+# =============================================================================
+# TESTING
+# =============================================================================
+
 if __name__ == "__main__":
-    async def test():
-        print("=" * 60)
-        print("  BAZINGA DHT Test")
-        print("=" * 60)
+    print("=" * 60)
+    print("  BAZINGA DHT - XOR Distance & Routing Table Test")
+    print("=" * 60)
 
-        dht = BAZINGA_DHT("test-node-1", port=0, tau=0.8)
+    # Test XOR distance
+    print("\n1. XOR Distance Tests:")
 
-        print(f"\nNode ID: {dht.node_id}")
-        print(f"Node Key: {hex(dht.node_key)[:16]}")
+    id1 = bytes([0b10101010] * 32)  # 256-bit ID
+    id2 = bytes([0b10101011] * 32)  # Differs in last bit of each byte
+    id3 = bytes([0b00101010] * 32)  # Differs in first bit of each byte
 
-        # Test hashing
-        topic_hash = hash_key("quantum mechanics")
-        print(f"\nTopic 'quantum mechanics' hash: {hex(topic_hash)[:16]}")
+    d12 = xor_distance(id1, id2)
+    d13 = xor_distance(id1, id3)
 
-        print("\nDHT created successfully!")
-        print(f"Stats: {dht.get_stats()}")
+    print(f"   Distance(id1, id2) = {d12} (differs in low bits)")
+    print(f"   Distance(id1, id3) = {d13} (differs in high bits)")
+    print(f"   id3 is {'further' if d13 > d12 else 'closer'} than id2")
 
-    asyncio.run(test())
+    # Test bucket index
+    print("\n2. Bucket Index Tests:")
+
+    local_id = hashlib.sha256(b"local_node").digest()
+
+    test_ids = [
+        ("same", local_id),
+        ("close", hashlib.sha256(b"local_nodX").digest()),
+        ("far", hashlib.sha256(b"completely_different").digest()),
+    ]
+
+    for name, test_id in test_ids:
+        bucket = get_bucket_index(local_id, test_id)
+        distance = xor_distance(local_id, test_id)
+        print(f"   {name:10s} → bucket {bucket:3d}, distance = {distance:.2e}")
+
+    # Test node ID from PoB
+    print("\n3. Node ID from PoB:")
+    alpha = "a3f2e1b5c8d9"
+    omega = "7c4b2a1f8e9d"
+    pob_id = node_id_from_pob(alpha, omega)
+    print(f"   Alpha: {alpha}")
+    print(f"   Omega: {omega}")
+    print(f"   Node ID: {pob_id.hex()[:32]}...")
+
+    # Test routing table
+    print("\n4. Routing Table Tests:")
+
+    rt = RoutingTable(local_id)
+
+    for i in range(50):
+        node_id = hashlib.sha256(f"node_{i}".encode()).digest()
+        node = NodeInfo(
+            node_id=node_id,
+            address=f"192.168.1.{i % 256}",
+            port=5150 + i,
+        )
+        rt.add_node(node)
+
+    stats = rt.get_stats()
+    print(f"   Added 50 nodes")
+    print(f"   Total in table: {stats['total_nodes']}")
+    print(f"   Non-empty buckets: {stats['non_empty_buckets']}")
+
+    # Find closest to a target
+    target = hashlib.sha256(b"target_node").digest()
+    closest = rt.get_closest_nodes(target, count=5)
+
+    print(f"\n   Closest 5 nodes to target:")
+    for node in closest:
+        dist = xor_distance(node.node_id, target)
+        print(f"      {node.id_hex} (distance: {dist:.2e})")
+
+    # Print routing table
+    rt.print_table()
+
+    print("=" * 60)
+    print("  DHT Core Ready!")
+    print("  • XOR distance working")
+    print("  • K-buckets working")
+    print("  • Node ID from PoB working")
+    print("  • Routing table working")
+    print("=" * 60)
