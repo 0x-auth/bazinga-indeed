@@ -266,7 +266,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.8.7"
+    VERSION = "4.8.8"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1632,9 +1632,10 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
     # Handle --chain (blockchain status)
     if args.chain:
-        print(f"\n⛓️  DARMIYAN BLOCKCHAIN")
+        print(f"\n  DARMIYAN BLOCKCHAIN")
         print(f"=" * 50)
 
+        from .blockchain import create_chain
         chain = create_chain()
         stats = chain.get_stats()
 
@@ -1658,10 +1659,13 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
     # Handle --mine (PoB mining)
     if args.mine:
-        print(f"\n⛏️  PROOF-OF-BOUNDARY MINING")
+        print(f"\n  PROOF-OF-BOUNDARY MINING")
         print(f"=" * 50)
         print(f"  (Zero-energy mining through understanding)")
         print()
+
+        # Import blockchain components
+        from .blockchain import create_chain, create_wallet, mine_block
 
         chain = create_chain()
         wallet = create_wallet()
@@ -1701,9 +1705,10 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
     # Handle --wallet (identity)
     if args.wallet:
-        print(f"\n🔑 BAZINGA WALLET (Identity)")
+        print(f"\n  BAZINGA WALLET (Identity)")
         print(f"=" * 50)
 
+        from .blockchain import create_wallet
         wallet = create_wallet()
 
         print(f"\n  This is NOT a money wallet. It's an IDENTITY wallet.")
@@ -1724,9 +1729,10 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
     # Handle --attest (knowledge attestation)
     if args.attest:
-        print(f"\n📜 KNOWLEDGE ATTESTATION")
+        print(f"\n  KNOWLEDGE ATTESTATION")
         print(f"=" * 50)
 
+        from .blockchain import create_chain, create_wallet
         chain = create_chain()
         wallet = create_wallet()
 
@@ -1750,11 +1756,12 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
     # Handle --trust (trust oracle)
     if args.trust is not None:
-        print(f"\n🔗 BAZINGA TRUST ORACLE")
+        print(f"\n  BAZINGA TRUST ORACLE")
         print(f"=" * 50)
         print(f"  Trust is EARNED through understanding, not bought.")
         print()
 
+        from .blockchain import create_chain, create_trust_oracle
         chain = create_chain()
         oracle = create_trust_oracle(chain)
 
