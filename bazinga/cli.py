@@ -279,7 +279,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.8.16"
+    VERSION = "4.8.17"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -959,6 +959,22 @@ BLOCKCHAIN COMMANDS (NEW in v4.5.0)
   --trust [NODE_ID]       Show trust scores (φ-weighted from on-chain activity)
 
 ═══════════════════════════════════════════════════════════════════════════════
+DISTRIBUTED KNOWLEDGE SHARING (NEW in v4.8.17)
+═══════════════════════════════════════════════════════════════════════════════
+  --publish               Share your knowledge topics to the mesh
+  --query-network "q"     Query the distributed network for answers
+
+                          How it works:
+                            1. Index files locally: bazinga --index ~/docs
+                            2. Publish topics:      bazinga --publish
+                            3. Peers can now query your knowledge!
+
+                          Privacy: Your content stays LOCAL. Only topic
+                          keywords are shared to the DHT. When a peer queries,
+                          the request is routed to YOUR node, and YOUR local
+                          Llama3 answers the question.
+
+═══════════════════════════════════════════════════════════════════════════════
 DARMIYAN PROTOCOL (Proof-of-Boundary Consensus)
 ═══════════════════════════════════════════════════════════════════════════════
   --node                  Show your network node identity
@@ -1142,6 +1158,10 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
                         help='Show wallet/identity info (not money!)')
     parser.add_argument('--attest', type=str, metavar='CONTENT',
                         help='Attest knowledge to the chain')
+    parser.add_argument('--publish', action='store_true',
+                        help='Publish indexed knowledge topics to DHT (makes knowledge discoverable)')
+    parser.add_argument('--query-network', type=str, metavar='QUESTION',
+                        help='Query the distributed network for an answer')
     parser.add_argument('--trust', type=str, nargs='?', const='', metavar='NODE_ID',
                         help='Show trust scores (optionally for specific node)')
 
@@ -1973,6 +1993,122 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
         print(f"    Sender: {wallet.node_id}")
         print()
         print(f"  Run 'bazinga --mine' to include in a block.")
+        print()
+        return
+
+    # Handle --publish (distributed knowledge sharing)
+    if args.publish:
+        print(f"\n  DISTRIBUTED KNOWLEDGE PUBLISHING")
+        print(f"=" * 60)
+        print(f"  Publishing your indexed knowledge to the mesh...")
+        print(f"  (Content stays LOCAL - only topic keywords are shared)")
+        print()
+
+        # Check if we have indexed content
+        bazinga = BAZINGA(verbose=args.verbose)
+        stats = bazinga.ai.get_stats()
+
+        if stats.get('total_chunks', 0) == 0:
+            print(f"  ✗ No indexed content found!")
+            print(f"    Run 'bazinga --index <path>' first to index your knowledge.")
+            print()
+            return
+
+        print(f"  Local index: {stats.get('total_chunks', 0)} chunks")
+
+        try:
+            from .p2p.dht import KademliaNode, node_id_from_pob
+            from .p2p.knowledge_sharing import KnowledgePublisher
+            from .darmiyan.protocol import prove_boundary
+
+            # Create DHT node
+            pob = prove_boundary()
+            node_id = node_id_from_pob(str(pob.alpha), str(pob.omega))
+
+            node = KademliaNode(
+                node_id=node_id,
+                address="127.0.0.1",
+                port=5150,
+                trust_score=0.5 * PHI,  # φ bonus for local
+            )
+
+            # Create publisher
+            publisher = KnowledgePublisher(node, bazinga.ai)
+
+            # Publish topics
+            print(f"\n  Extracting and publishing topics...")
+
+            result = await publisher.publish_from_index(limit=50)
+
+            if result.get('success'):
+                print(f"\n  ✓ Published {result['topics_published']} topics to DHT")
+                print(f"    Content hash: {result['content_hash']}")
+                print(f"\n  Sample topics shared:")
+                for topic in result.get('sample_topics', [])[:10]:
+                    print(f"    • {topic}")
+                print()
+                print(f"  Your knowledge is now discoverable!")
+                print(f"  Peers can query: bazinga --query-network 'your topic'")
+            else:
+                print(f"\n  ✗ Failed: {result.get('error', 'Unknown error')}")
+
+        except Exception as e:
+            print(f"\n  ✗ Error: {e}")
+            print(f"    Make sure P2P network is available.")
+
+        print()
+        return
+
+    # Handle --query-network (distributed query)
+    if args.query_network:
+        print(f"\n  DISTRIBUTED KNOWLEDGE QUERY")
+        print(f"=" * 60)
+        print(f"  Query: {args.query_network}")
+        print(f"  Searching the BAZINGA mesh for experts...")
+        print()
+
+        try:
+            from .p2p.dht import KademliaNode, node_id_from_pob
+            from .p2p.knowledge_sharing import KnowledgePublisher, DistributedQueryEngine
+            from .darmiyan.protocol import prove_boundary
+
+            # Create local node
+            bazinga = BAZINGA(verbose=False)
+            pob = prove_boundary()
+            node_id = node_id_from_pob(str(pob.alpha), str(pob.omega))
+
+            node = KademliaNode(
+                node_id=node_id,
+                address="127.0.0.1",
+                port=5150,
+                trust_score=0.5 * PHI,
+            )
+
+            # Create publisher and query engine
+            publisher = KnowledgePublisher(node, bazinga.ai)
+            engine = DistributedQueryEngine(node, publisher)
+
+            # Query the network
+            result = await engine.query_distributed(args.query_network)
+
+            if result.get('success'):
+                print(f"  Source: {result.get('source', 'unknown')}")
+                print(f"  Confidence: {result.get('confidence', 0):.1%}")
+                if result.get('consensus'):
+                    print(f"  Triadic Consensus: ✓ ({result.get('respondents', 0)} nodes agreed)")
+                print()
+                print(f"  Answer:")
+                print(f"  {'-' * 56}")
+                print(f"  {result.get('answer', 'No answer')}")
+                print(f"  {'-' * 56}")
+            else:
+                print(f"  ✗ Query failed: {result.get('error', 'Unknown error')}")
+                print(f"\n  Try: bazinga --fresh --ask '{args.query_network}'")
+                print(f"  (Uses local AI instead of distributed network)")
+
+        except Exception as e:
+            print(f"\n  ✗ Error: {e}")
+
         print()
         return
 
