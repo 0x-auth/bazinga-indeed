@@ -279,7 +279,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.8.12"
+    VERSION = "4.8.13"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1384,7 +1384,6 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
             # Import DHT bridge
             from .p2p.dht_bridge import DHTBridge
-            from .darmiyan import prove_boundary
 
             # Generate Proof-of-Boundary for node identity
             print(f"\n  Generating Proof-of-Boundary...")
@@ -1576,7 +1575,6 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
         # Import DHT bridge
         from .p2p.dht_bridge import DHTBridge
-        from .darmiyan import prove_boundary
 
         # Quick PoB for identity
         pob = prove_boundary()
