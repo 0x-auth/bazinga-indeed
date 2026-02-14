@@ -440,9 +440,19 @@ class BAZINGA:
             quantum_context = f"[Quantum essence: {quantum_essence}, coherence: {quantum_coherence:.2f}]"
             full_context = f"{quantum_context}\n\n{conv_context}\n\n{rag_context}".strip()
 
-            # FREE APIs first! Then paid, then local
+            # Intelligence priority:
+            # - If --local flag: Local first (user explicitly wants local)
+            # - Otherwise: FREE cloud APIs first, then local, then paid
 
-            # 1. Groq (FREE - 14,400 req/day)
+            # 1. Local LLM FIRST if user requested --local
+            if self.use_local and LOCAL_LLM_AVAILABLE:
+                response = self._call_local_llm(question, full_context)
+                if response:
+                    self.stats['llm_called'] += 1
+                    self.memory.record_interaction(question, response, 'local', 0.75)
+                    return response
+
+            # 2. Groq (FREE - 14,400 req/day)
             if self.groq_key and HTTPX_AVAILABLE:
                 response = await self._call_groq(question, full_context)
                 if response:
@@ -450,7 +460,7 @@ class BAZINGA:
                     self.memory.record_interaction(question, response, 'groq', 0.8)
                     return response
 
-            # 2. Gemini (FREE - 1M tokens/month)
+            # 3. Gemini (FREE - 1M tokens/month)
             if self.gemini_key and HTTPX_AVAILABLE:
                 response = await self._call_gemini(question, full_context)
                 if response:
@@ -458,15 +468,15 @@ class BAZINGA:
                     self.memory.record_interaction(question, response, 'gemini', 0.8)
                     return response
 
-            # 3. Local LLM (FREE - runs on your machine)
-            if LOCAL_LLM_AVAILABLE or self.use_local:
+            # 4. Local LLM fallback (if available but not explicitly requested)
+            if LOCAL_LLM_AVAILABLE and not self.use_local:
                 response = self._call_local_llm(question, full_context)
                 if response:
                     self.stats['llm_called'] += 1
                     self.memory.record_interaction(question, response, 'local', 0.7)
                     return response
 
-            # 4. Claude (PAID - but high quality)
+            # 5. Claude (PAID - but high quality)
             if self.anthropic_key and HTTPX_AVAILABLE:
                 response = await self._call_claude(question, full_context)
                 if response:
@@ -474,7 +484,7 @@ class BAZINGA:
                     self.memory.record_interaction(question, response, 'claude', 0.85)
                     return response
 
-            # 5. All APIs exhausted, fall through to RAG
+            # 6. All APIs exhausted, fall through to RAG
 
         # Fallback to RAG (always works if you've indexed docs)
         if results and best_similarity > 0.3:
@@ -723,8 +733,9 @@ Use the indexed content directly when relevant. Be concise."""
                 self.local_llm = get_local_llm()
 
             if context:
+                # Use more context (3000 chars) for better answers
                 prompt = f"""INDEXED KNOWLEDGE (USE AS PRIMARY SOURCE):
-{context[:800]}
+{context[:3000]}
 
 Based on the indexed knowledge above, answer: {question}
 Use the indexed content directly. If not relevant, say so."""
