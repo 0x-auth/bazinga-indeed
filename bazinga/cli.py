@@ -72,11 +72,24 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Lazy imports for chromadb-dependent modules (Python 3.14 compatibility)
 RealAI = None
+_real_ai_error = None
 def _get_real_ai():
-    global RealAI
-    if RealAI is None:
-        from src.core.intelligence.real_ai import RealAI as _RealAI
-        RealAI = _RealAI
+    global RealAI, _real_ai_error
+    if RealAI is None and _real_ai_error is None:
+        try:
+            from src.core.intelligence.real_ai import RealAI as _RealAI
+            RealAI = _RealAI
+        except Exception as e:
+            _real_ai_error = str(e)
+            # Fallback stub
+            class StubAI:
+                def __init__(self):
+                    self.error = _real_ai_error
+                def search(self, *args, **kwargs):
+                    return []
+                def index(self, *args, **kwargs):
+                    pass
+            RealAI = StubAI
     return RealAI
 
 # Core imports (no chromadb dependency)
@@ -266,23 +279,28 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.8.10"
+    VERSION = "4.8.11"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
 
-        # Core processors
-        self.quantum = QuantumProcessor(verbose=verbose)
-        self.lambda_g = LambdaGOperator()
-        self.tensor = TensorIntersectionEngine()
-        self.ai = RealAI()
+        # Core processors (lazy imports)
+        quantum_mod = _get_quantum()
+        lambda_g_mod = _get_lambda_g()
+        tensor_mod = _get_tensor()
+        learning_mod = _get_learning()
+
+        self.quantum = quantum_mod.QuantumProcessor(verbose=verbose)
+        self.lambda_g = lambda_g_mod.LambdaGOperator()
+        self.tensor = tensor_mod.TensorIntersectionEngine()
+        self.ai = _get_real_ai()()
 
         # Session
         self.session_start = datetime.now()
         self.queries = []
 
         # Learning memory
-        self.memory = get_memory()
+        self.memory = learning_mod.get_memory()
         self.memory.start_session()
 
         # Stats
