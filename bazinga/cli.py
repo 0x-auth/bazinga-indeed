@@ -2291,35 +2291,36 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
     # Handle --index-public (Wikipedia, arXiv, etc.)
     if args.index_public:
-        from .public_knowledge import index_public_knowledge, get_preset_topics, TOPIC_PRESETS
+        from .public_knowledge import index_public_knowledge, get_preset_topics, TOPIC_PRESETS, ARXIV_PRESETS
 
         source = args.index_public
+
+        # Determine which presets to use
+        presets = ARXIV_PRESETS if source == "arxiv" else TOPIC_PRESETS
 
         # Get topics
         if args.topics:
             # Check if it's a preset
-            if args.topics.lower() in TOPIC_PRESETS:
-                topics = get_preset_topics(args.topics)
+            if args.topics.lower() in presets:
+                topics = get_preset_topics(args.topics, source)
                 print(f"Using preset '{args.topics}': {', '.join(topics)}")
             else:
                 topics = [t.strip() for t in args.topics.split(",")]
         else:
             # Default topics based on source
-            if source == "wikipedia":
-                topics = get_preset_topics("bazinga")
-                print(f"Using default BAZINGA topics: {', '.join(topics)}")
-            else:
-                print(f"Error: --topics required for {source}")
-                print(f"  Example: --index-public {source} --topics 'Physics,AI,Consciousness'")
-                print(f"  Presets: science, philosophy, ai, bazinga")
-                return
+            topics = get_preset_topics("bazinga", source)
+            print(f"Using default BAZINGA topics: {', '.join(topics)}")
 
         result = await index_public_knowledge(source, topics, verbose=True)
 
         if result.get("error"):
             print(f"\nError: {result['error']}")
         else:
-            print(f"\n✅ Indexed {result.get('total_articles', 0)} articles ({result.get('total_chunks', 0)} chunks)")
+            # Different message for different sources
+            count_key = "total_articles" if source == "wikipedia" else "total_papers"
+            count = result.get(count_key, result.get("total_articles", result.get("total_papers", 0)))
+            item_type = "papers" if source == "arxiv" else "articles"
+            print(f"\n✅ Indexed {count} {item_type} ({result.get('total_chunks', 0)} chunks)")
             print(f"   Now run 'bazinga --publish' to share with the network!")
         return
 
