@@ -768,7 +768,7 @@ Use the indexed content directly. If not relevant, say so."""
     async def interactive(self):
         """Run interactive mode."""
         print("BAZINGA INTERACTIVE MODE")
-        print("Commands: /quantum /coherence /trust /stats /good /bad /quit")
+        print("Commands: /quantum /coherence /resonance /trust /vac /stats /index /good /bad /quit")
         print()
 
         last_response = ""
@@ -826,6 +826,22 @@ Use the indexed content directly. If not relevant, say so."""
                     result = self.check_coherence(VAC_SEQUENCE)
                     print(f"  Coherence: {result['total_coherence']:.3f}")
                     print(f"  V.A.C. Achieved: {result['is_vac']}\n")
+                    continue
+
+                if query.startswith('/resonance '):
+                    text = query[11:].strip()
+                    # Process through quantum to get resonance
+                    result = self.quantum.process(text)
+                    collapsed = result['collapsed_state']
+                    print(f"\nφ-Resonance Analysis:")
+                    print(f"  Input: {text[:50]}{'...' if len(text) > 50 else ''}")
+                    print(f"  Essence: {collapsed['essence']}")
+                    print(f"  Quantum Coherence: {result['quantum_coherence']:.4f}")
+                    print(f"  Probability: {collapsed['probability']:.2%}")
+                    print(f"  φ-Alignment: {result['quantum_coherence'] * PHI:.4f}")
+                    if result['entanglement']:
+                        print(f"  Entangled patterns: {', '.join([e['essence'] for e in result['entanglement'][:3]])}")
+                    print()
                     continue
 
                 if query == '/good' and last_response:
@@ -919,7 +935,12 @@ LOCAL MODEL TRUST BONUS (NEW in v4.8.1)
                           Manual Setup:
                             1. Install Ollama: https://ollama.ai
                             2. Run: ollama pull llama3
-                            3. Restart BAZINGA - see "Trust Multiplier: 1.618x Active"
+                            3. Start: ollama serve (or it auto-starts on Mac)
+                            4. Restart BAZINGA - see "Trust Multiplier: 1.618x Active"
+
+                          When to run 'ollama serve':
+                            REQUIRED for: --ask, --query-network, --publish, interactive
+                            NOT NEEDED:   --version, --help, --proof, --chain, --wallet
 
 ═══════════════════════════════════════════════════════════════════════════════
 INTER-AI CONSENSUS + CONSCIOUSNESS SCALING (v4.8.0)
@@ -994,6 +1015,7 @@ INTERACTIVE MODE COMMANDS
 ═══════════════════════════════════════════════════════════════════════════════
   /quantum <text>         Quantum analyze text (essence, probability, coherence)
   /coherence <text>       Check ΛG boundaries (φ, bridge, symmetry)
+  /resonance <text>       φ-Resonance analysis (quantum alignment)
   /trust                  Show trust metrics and generation modes
   /vac                    Test V.A.C. sequence emergence
   /good                   Mark last response as helpful (+trust)
@@ -1519,6 +1541,7 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
     # Handle --proof (Proof-of-Boundary)
     if args.proof:
+        from .darmiyan.protocol import prove_boundary
         print(f"\n⚡ Generating Proof-of-Boundary...")
         print(f"  (Adaptive φ-step search, max 200 attempts)")
         proof = prove_boundary()
@@ -1540,6 +1563,7 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
     # Handle --consensus (triadic consensus test)
     if args.consensus:
+        from .darmiyan.consensus import achieve_consensus
         print(f"\n🔺 Testing Triadic Consensus (3 nodes)...")
         print(f"  Target: φ⁴ = {PHI_4:.6f}")
         print()
