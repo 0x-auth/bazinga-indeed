@@ -20,6 +20,7 @@ License: MIT
 import asyncio
 import hashlib
 import json
+import os
 import time
 from typing import Dict, Any, List, Optional, Tuple, Set
 from dataclasses import dataclass, field
@@ -398,6 +399,54 @@ class RoutingTable:
 
         print(f"{'='*60}\n")
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize routing table to dict for persistence."""
+        return {
+            "local_id": self.local_id.hex(),
+            "k": self.k,
+            "nodes": [node.to_dict() for node in self.get_all_nodes()],
+            "saved_at": time.time(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "RoutingTable":
+        """Restore routing table from saved dict."""
+        local_id = bytes.fromhex(data["local_id"])
+        rt = cls(local_id, k=data.get("k", K))
+
+        for node_data in data.get("nodes", []):
+            node = NodeInfo.from_dict(node_data)
+            rt.add_node(node)
+
+        return rt
+
+    def save(self, filepath: str):
+        """Save routing table to file."""
+        import os
+        os.makedirs(os.path.dirname(filepath) if os.path.dirname(filepath) else ".", exist_ok=True)
+        with open(filepath, "w") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    @classmethod
+    def load(cls, filepath: str, local_id: bytes) -> "RoutingTable":
+        """Load routing table from file, filtering for matching local_id."""
+        try:
+            with open(filepath, "r") as f:
+                data = json.load(f)
+
+            # Verify local_id matches
+            if data.get("local_id") != local_id.hex():
+                # Different node, start fresh but import known peers
+                rt = cls(local_id)
+                for node_data in data.get("nodes", []):
+                    node = NodeInfo.from_dict(node_data)
+                    rt.add_node(node)
+                return rt
+
+            return cls.from_dict(data)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return cls(local_id)
+
 
 # =============================================================================
 # KADEMLIA NODE (DHT Protocol)
@@ -415,6 +464,9 @@ class KademliaNode:
     - Trust-weighted selection (φ bonus for local models)
     """
 
+    # Default data directory for persistence
+    DATA_DIR = os.path.expanduser("~/.bazinga/dht")
+
     def __init__(
         self,
         node_id: bytes,
@@ -422,15 +474,18 @@ class KademliaNode:
         port: int = 5150,
         trust_score: float = 0.5,
         uses_local_model: bool = False,
+        data_dir: Optional[str] = None,
     ):
         self.node_id = node_id
         self.address = address
         self.port = port
         self.trust_score = trust_score
         self.uses_local_model = uses_local_model
+        self.data_dir = data_dir or self.DATA_DIR
 
-        # Routing table
-        self.routing_table = RoutingTable(node_id)
+        # Routing table (try to load from disk)
+        rt_path = os.path.join(self.data_dir, "routing_table.json")
+        self.routing_table = RoutingTable.load(rt_path, node_id)
 
         # Local storage
         self.storage: Dict[str, DHTEntry] = {}
@@ -496,8 +551,17 @@ class KademliaNode:
         asyncio.create_task(self._maintenance_loop())
 
     async def stop(self):
-        """Stop the DHT server."""
+        """Stop the DHT server and save routing table."""
         self.running = False
+
+        # Save routing table to disk
+        rt_path = os.path.join(self.data_dir, "routing_table.json")
+        try:
+            self.routing_table.save(rt_path)
+            print(f"  Saved routing table ({self.routing_table.total_nodes} nodes)")
+        except Exception as e:
+            print(f"  Warning: Could not save routing table: {e}")
+
         if self.server:
             self.server.close()
             await self.server.wait_closed()
@@ -584,6 +648,72 @@ class KademliaNode:
 
             return {
                 "status": "OK",
+                "sender": self.get_info().to_dict(),
+            }
+
+        elif cmd == "QUERY":
+            # Distributed query - forward to query handler if available
+            query = request.get("query", "")
+            topic = request.get("topic", "")
+
+            if hasattr(self, 'query_handler') and self.query_handler:
+                try:
+                    answer, confidence = await self.query_handler(query, topic)
+                    return {
+                        "status": "OK",
+                        "answer": answer,
+                        "confidence": confidence,
+                        "topic": topic,
+                        "sender": self.get_info().to_dict(),
+                    }
+                except Exception as e:
+                    return {
+                        "status": "ERROR",
+                        "message": str(e),
+                        "sender": self.get_info().to_dict(),
+                    }
+
+            return {
+                "status": "NOT_EXPERT",
+                "message": "Node not configured as query responder",
+                "sender": self.get_info().to_dict(),
+            }
+
+        elif cmd == "GRADIENT_SUBMIT":
+            # Federated learning - receive gradient from peer
+            if hasattr(self, 'gradient_sharing') and self.gradient_sharing:
+                try:
+                    from .gradient_sharing import GradientUpdate, handle_gradient_submit
+                    return await handle_gradient_submit(self, request, self.gradient_sharing)
+                except Exception as e:
+                    return {
+                        "status": "ERROR",
+                        "message": str(e),
+                        "sender": self.get_info().to_dict(),
+                    }
+
+            return {
+                "status": "NOT_VALIDATOR",
+                "message": "Node not configured as gradient validator",
+                "sender": self.get_info().to_dict(),
+            }
+
+        elif cmd == "GRADIENT_AGGREGATE":
+            # Federated learning - aggregate gradients
+            if hasattr(self, 'gradient_sharing') and self.gradient_sharing:
+                try:
+                    from .gradient_sharing import handle_gradient_aggregate
+                    return await handle_gradient_aggregate(self, request, self.gradient_sharing)
+                except Exception as e:
+                    return {
+                        "status": "ERROR",
+                        "message": str(e),
+                        "sender": self.get_info().to_dict(),
+                    }
+
+            return {
+                "status": "NOT_VALIDATOR",
+                "message": "Node not configured as gradient validator",
                 "sender": self.get_info().to_dict(),
             }
 

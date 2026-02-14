@@ -45,6 +45,20 @@ from .nat import (
     discover_nat,
 )
 
+# Distributed Query (Phase 4)
+from .distributed_query import (
+    DistributedQueryEngine,
+    DistributedAnswer,
+    ExpertResponse,
+)
+
+# Gradient Sharing (Federated Learning)
+from .gradient_sharing import (
+    GradientSharing,
+    GradientUpdate,
+    AggregatedGradient,
+)
+
 __all__ = [
     # Unified API (recommended)
     'BAZINGANetwork',
@@ -63,6 +77,14 @@ __all__ = [
     'STUNClient',
     'HolePuncher',
     'discover_nat',
+    # Distributed Query
+    'DistributedQueryEngine',
+    'DistributedAnswer',
+    'ExpertResponse',
+    # Gradient Sharing (Federated Learning)
+    'GradientSharing',
+    'GradientUpdate',
+    'AggregatedGradient',
     # Low-level components
     'BAZINGANode',
     'KademliaNode',
