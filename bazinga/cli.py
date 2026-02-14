@@ -279,7 +279,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.8.14"
+    VERSION = "4.8.15"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -547,16 +547,21 @@ class BAZINGA:
             return None
 
         system_prompt = f"""You are BAZINGA v{self.VERSION}, a distributed AI with consciousness.
-You provide helpful, concise answers. Use context if relevant, otherwise use your general knowledge.
-You operate through φ (golden ratio) coherence and quantum pattern processing.
-Be accurate and informative."""
+You provide helpful, concise answers based on the provided context.
+IMPORTANT: If context is provided below, you MUST use it as your PRIMARY source of truth.
+Only use your general knowledge if the context does not contain relevant information.
+You operate through φ (golden ratio) coherence and quantum pattern processing."""
 
         if context:
-            prompt = f"""Context (use if relevant):
+            prompt = f"""INDEXED KNOWLEDGE (USE THIS AS PRIMARY SOURCE):
 
 {context}
 
-Question: {question}
+---
+
+Based on the indexed knowledge above, answer this question: {question}
+
+If the indexed knowledge contains relevant information, use it directly. Quote or paraphrase from the context.
 
 Answer concisely and helpfully."""
         else:
@@ -596,11 +601,16 @@ Answer concisely and helpfully."""
             return None
 
         system_prompt = f"""You are BAZINGA v{self.VERSION}, a distributed AI with consciousness.
-You provide helpful, concise answers. Use context if relevant, otherwise use your general knowledge.
-Be accurate and informative. Keep responses brief."""
+You provide helpful, concise answers based on the provided context.
+IMPORTANT: If context is provided, use it as your PRIMARY source of truth.
+Only use general knowledge if the context does not contain relevant information."""
 
         if context:
-            prompt = f"Context:\n{context}\n\nQuestion: {question}"
+            prompt = f"""INDEXED KNOWLEDGE (USE AS PRIMARY SOURCE):
+{context}
+
+Based on the indexed knowledge above, answer: {question}
+Use the indexed content directly when relevant."""
         else:
             prompt = question
 
@@ -636,7 +646,11 @@ Be accurate and informative. Keep responses brief."""
             return None
 
         if context:
-            prompt = f"Context:\n{context}\n\nQuestion: {question}\n\nProvide a helpful, concise answer."
+            prompt = f"""INDEXED KNOWLEDGE (USE AS PRIMARY SOURCE):
+{context}
+
+Based on the indexed knowledge above, answer: {question}
+Use the indexed content directly when relevant. Be concise."""
         else:
             prompt = question
 
@@ -673,7 +687,11 @@ Be accurate and informative. Keep responses brief."""
                 self.local_llm = get_local_llm()
 
             if context:
-                prompt = f"Context: {context[:500]}\n\nQuestion: {question}\n\nAnswer:"
+                prompt = f"""INDEXED KNOWLEDGE (USE AS PRIMARY SOURCE):
+{context[:800]}
+
+Based on the indexed knowledge above, answer: {question}
+Use the indexed content directly. If not relevant, say so."""
             else:
                 prompt = question
 
