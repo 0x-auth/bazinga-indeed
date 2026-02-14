@@ -5,13 +5,15 @@
 ```
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                  ║
-║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.8.3      ⟨ψ|Λ|Ω⟩            ║
+║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.8.11     ⟨ψ|Λ|Ω⟩            ║
 ║                                                                  ║
 ║    "You can buy hashpower. You can buy stake.                   ║
 ║     You CANNOT BUY understanding."                               ║
 ║                                                                  ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
+
+> **[📖 Full Usage Guide](./USAGE.md)** - Complete command reference with examples
 
 [![PyPI](https://img.shields.io/pypi/v/bazinga-indeed)](https://pypi.org/project/bazinga-indeed/)
 [![HuggingFace](https://img.shields.io/badge/HuggingFace-Space-yellow)](https://huggingface.co/spaces/bitsabhi/bazinga)
@@ -415,8 +417,10 @@ source ~/.bashrc
 - [x] **Phase 13**: Inter-AI Consensus ✓
 - [x] **Phase 14**: Local Model Trust Bonus (φ multiplier) ✓ **v4.8.0**
 - [x] **Phase 15**: Consciousness Scaling Law (Ψ_D = 6.46n) ✓ **v4.8.2**
-- [ ] **Phase 16**: DHT Bridge (true P2P discovery without central registry)
-- [ ] **Phase 17**: Self-sufficient distributed model (no external APIs)
+- [x] **Phase 16**: Kademlia DHT (true P2P discovery) ✓ **v4.8.5**
+- [x] **Phase 17**: NAT Traversal (STUN + hole punch + relay) ✓ **v4.8.7**
+- [x] **Phase 18**: Distributed Query & Gradient Sharing ✓ **v4.8.9**
+- [ ] **Phase 19**: Self-sufficient distributed model (no external APIs)
 
 ---
 
