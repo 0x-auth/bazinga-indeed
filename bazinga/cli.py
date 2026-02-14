@@ -910,7 +910,9 @@ AI COMMANDS (5-Layer Intelligence)
   --code, -c "task"       Generate code with AI (--lang py/js/ts/rust/go)
   --quantum, -q "text"    Quantum pattern analysis (superposition processing)
   --coherence "text"      Check φ-coherence and ΛG boundaries
-  --index PATH [PATH]     Index directories for RAG search
+  --index PATH [PATH]     Index local directories for RAG search
+  --index-public SOURCE   Index public knowledge (wikipedia, arxiv, gutenberg)
+                          --topics "Physics,AI" or preset: science,philosophy,ai,bazinga
   --local                 Force local LLM (works offline)
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -1128,6 +1130,11 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
                         help='Language for code generation (default: python)')
     parser.add_argument('--index', '-i', nargs='+', metavar='PATH',
                         help='Index directories for RAG search')
+    parser.add_argument('--index-public', type=str, metavar='SOURCE',
+                        choices=['wikipedia', 'arxiv', 'gutenberg'],
+                        help='Index public knowledge (wikipedia, arxiv, gutenberg)')
+    parser.add_argument('--topics', type=str, metavar='TOPICS',
+                        help='Topics for --index-public (comma-separated or preset: science,philosophy,ai,bazinga)')
 
     # Mode options
     parser.add_argument('--local', action='store_true',
@@ -2280,6 +2287,40 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     if args.index:
         bazinga = BAZINGA(verbose=args.verbose)
         await bazinga.index(args.index)
+        return
+
+    # Handle --index-public (Wikipedia, arXiv, etc.)
+    if args.index_public:
+        from .public_knowledge import index_public_knowledge, get_preset_topics, TOPIC_PRESETS
+
+        source = args.index_public
+
+        # Get topics
+        if args.topics:
+            # Check if it's a preset
+            if args.topics.lower() in TOPIC_PRESETS:
+                topics = get_preset_topics(args.topics)
+                print(f"Using preset '{args.topics}': {', '.join(topics)}")
+            else:
+                topics = [t.strip() for t in args.topics.split(",")]
+        else:
+            # Default topics based on source
+            if source == "wikipedia":
+                topics = get_preset_topics("bazinga")
+                print(f"Using default BAZINGA topics: {', '.join(topics)}")
+            else:
+                print(f"Error: --topics required for {source}")
+                print(f"  Example: --index-public {source} --topics 'Physics,AI,Consciousness'")
+                print(f"  Presets: science, philosophy, ai, bazinga")
+                return
+
+        result = await index_public_knowledge(source, topics, verbose=True)
+
+        if result.get("error"):
+            print(f"\nError: {result['error']}")
+        else:
+            print(f"\n✅ Indexed {result.get('total_articles', 0)} articles ({result.get('total_chunks', 0)} chunks)")
+            print(f"   Now run 'bazinga --publish' to share with the network!")
         return
 
     # Handle --multi-ai (Inter-AI Consensus)
