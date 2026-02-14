@@ -163,8 +163,13 @@ class WikipediaIndexer:
         articles = []
         continue_token = None
 
+        # Wikipedia requires a proper User-Agent
+        headers = {
+            "User-Agent": "BAZINGA/4.8.21 (https://github.com/0x-auth/bazinga-indeed; contact@bazinga.ai) httpx/0.24"
+        }
+
         # Fetch articles using Wikipedia API
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, headers=headers, follow_redirects=True) as client:
             while len(articles) < limit:
                 # Build API URL
                 params = {
@@ -209,34 +214,34 @@ class WikipediaIndexer:
                     self.stats["errors"] += 1
                     break
 
-        if self.verbose:
-            print(f"  Found {len(articles)} articles")
+            if self.verbose:
+                print(f"  Found {len(articles)} articles")
 
-        # Fetch and index each article
-        chunks_indexed = 0
-        for i, title in enumerate(articles):
-            try:
-                article = await self._fetch_article(client, title)
-                if article:
-                    chunks = article.to_chunks()
-                    for chunk in chunks:
-                        if self.rag:
-                            # Index the chunk
-                            self.rag.add_text(chunk, source=f"wikipedia:{category}/{title}")
-                        chunks_indexed += 1
+            # Fetch and index each article (inside same client context)
+            chunks_indexed = 0
+            for i, title in enumerate(articles):
+                try:
+                    article = await self._fetch_article(client, title)
+                    if article:
+                        chunks = article.to_chunks()
+                        for chunk in chunks:
+                            if self.rag:
+                                # Index the chunk
+                                self.rag.add_text(chunk, source=f"wikipedia:{category}/{title}")
+                            chunks_indexed += 1
 
-                    self.stats["articles_fetched"] += 1
+                        self.stats["articles_fetched"] += 1
 
-                    if self.verbose and (i + 1) % 10 == 0:
-                        print(f"  Indexed {i + 1}/{len(articles)} articles ({chunks_indexed} chunks)")
+                        if self.verbose and (i + 1) % 10 == 0:
+                            print(f"  Indexed {i + 1}/{len(articles)} articles ({chunks_indexed} chunks)")
 
-                    if progress_callback:
-                        progress_callback(f"Indexed: {title}")
+                        if progress_callback:
+                            progress_callback(f"Indexed: {title}")
 
-            except Exception as e:
-                self.stats["errors"] += 1
-                if self.verbose:
-                    print(f"  Error indexing {title}: {e}")
+                except Exception as e:
+                    self.stats["errors"] += 1
+                    if self.verbose:
+                        print(f"  Error indexing {title}: {e}")
 
         self.stats["chunks_indexed"] += chunks_indexed
         self.stats["categories_processed"] += 1
@@ -412,9 +417,12 @@ class ArxivIndexer:
 
         papers = []
 
-        # arXiv API query
-        # http://export.arxiv.org/api/query?search_query=cat:cs.AI&max_results=100
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        # arXiv API query (use HTTPS and follow redirects)
+        # https://export.arxiv.org/api/query?search_query=cat:cs.AI&max_results=100
+        headers = {
+            "User-Agent": "BAZINGA/4.8.21 (https://github.com/0x-auth/bazinga-indeed) httpx/0.24"
+        }
+        async with httpx.AsyncClient(timeout=60.0, headers=headers, follow_redirects=True) as client:
             try:
                 params = {
                     "search_query": f"cat:{category}",
@@ -425,7 +433,7 @@ class ArxivIndexer:
                 }
 
                 response = await client.get(
-                    "http://export.arxiv.org/api/query",
+                    "https://export.arxiv.org/api/query",
                     params=params
                 )
 
