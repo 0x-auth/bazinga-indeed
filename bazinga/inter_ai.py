@@ -1267,17 +1267,51 @@ Your refined perspective:"""
         )
 
 
-class SimulationParticipant(ConsensusParticipant):
-    """Simulated participant for demo/testing (always available)."""
+class BlockchainParticipant(ConsensusParticipant):
+    """
+    Blockchain/DHT participant - queries Darmiyan chain and DHT for knowledge.
 
-    def __init__(self, participant_id: str = "sim_1"):
+    This replaces simulation with REAL attested knowledge from the network.
+    "AI generates understanding. Blockchain proves it."
+    """
+
+    def __init__(self, participant_id: str = "darmiyan_chain"):
         super().__init__(
             participant_id=participant_id,
-            participant_type=ParticipantType.SIMULATION,
-            model="simulation",
+            participant_type=ParticipantType.BAZINGA_NODE,
+            model="darmiyan",
         )
         self.coherence_calc = CoherenceCalculator()
         self.pob_gen = PoBGenerator()
+        self.chain = None
+        self.dht = None
+        self.rag = None
+        self._init_chain()
+
+    def _init_chain(self):
+        """Initialize blockchain and DHT connections."""
+        try:
+            from .blockchain import create_chain
+            self.chain = create_chain()
+        except Exception:
+            pass
+
+        try:
+            # Try to get existing DHT node
+            from .p2p import get_dht_node
+            self.dht = get_dht_node()
+        except Exception:
+            pass
+
+        try:
+            # Try to get local RAG
+            from .ai import RealAI
+            self.rag = RealAI()
+        except Exception:
+            pass
+
+        # Available if we have chain OR DHT OR local RAG
+        self.available = any([self.chain, self.dht, self.rag])
 
     async def query(
         self,
@@ -1287,21 +1321,85 @@ class SimulationParticipant(ConsensusParticipant):
     ) -> AIResponse:
         start_time = time.time()
 
-        # Simulate processing delay
-        await asyncio.sleep(0.1)
+        content = ""
+        source = "none"
 
-        # Generate simulated response
-        content = self._simulate_response(prompt, context, round)
+        # Try sources in order: DHT peers → Chain attestations → Local RAG
+
+        # 1. Try DHT topic experts
+        if self.dht:
+            try:
+                from .p2p.knowledge_sharing import DistributedQueryEngine, KnowledgePublisher
+                publisher = KnowledgePublisher(self.dht, self.rag) if self.rag else None
+                engine = DistributedQueryEngine(self.dht, publisher)
+                result = await engine.query_distributed(prompt)
+                if result.get("success") and result.get("answer"):
+                    content = result["answer"]
+                    source = f"dht:{result.get('source', 'peer')}"
+            except Exception:
+                pass
+
+        # 2. Try chain attestations
+        if not content and self.chain:
+            try:
+                from .blockchain.knowledge_ledger import KnowledgeLedger
+                ledger = KnowledgeLedger(self.chain)
+                # Search for relevant attestations
+                attestations = ledger.contributions
+                if attestations:
+                    # Find most relevant by keyword matching
+                    prompt_words = set(prompt.lower().split())
+                    best_match = None
+                    best_score = 0
+                    for att in attestations:
+                        if att.metadata:
+                            att_text = str(att.metadata).lower()
+                            overlap = len(prompt_words & set(att_text.split()))
+                            if overlap > best_score:
+                                best_score = overlap
+                                best_match = att
+                    if best_match and best_score > 2:
+                        content = f"[Chain Attestation] {best_match.metadata}"
+                        source = "chain"
+            except Exception:
+                pass
+
+        # 3. Try local RAG
+        if not content and self.rag:
+            try:
+                results = self.rag.search(prompt, limit=3)
+                if results and results[0].similarity > 0.4:
+                    context_parts = [r.chunk.content[:300] for r in results[:2]]
+                    content = f"[Local Knowledge]\n" + "\n---\n".join(context_parts)
+                    source = "local_rag"
+            except Exception:
+                pass
+
         latency_ms = (time.time() - start_time) * 1000
+
+        # No content found - return error response
+        if not content:
+            return AIResponse(
+                participant_id=self.participant_id,
+                participant_type=self.participant_type,
+                model=self.model,
+                response="",
+                coherence=0.0,
+                understanding_score=0.0,
+                latency_ms=latency_ms,
+                timestamp=time.time(),
+                round=round,
+                error="No chain/DHT/RAG knowledge found. Index docs with --index or join network with --join",
+            )
 
         coherence, embedding = self.coherence_calc.calculate_coherence(content, prompt)
         understanding = self.coherence_calc.calculate_understanding(content)
         pob_proof = await self.pob_gen.generate_proof(content)
 
         ai_response = AIResponse(
-            participant_id=self.participant_id,
+            participant_id=f"{self.participant_id}:{source}",
             participant_type=self.participant_type,
-            model=self.model,
+            model=f"darmiyan:{source}",
             response=content,
             coherence=coherence,
             understanding_score=understanding,
@@ -1313,29 +1411,6 @@ class SimulationParticipant(ConsensusParticipant):
         )
         self.response_history.append(ai_response)
         return ai_response
-
-    def _simulate_response(self, prompt: str, context: Optional[Dict], round: ConsensusRound) -> str:
-        prompt_lower = prompt.lower()
-
-        base_responses = {
-            'consciousness': "Consciousness emerges from the complex interaction of information processing systems within the brain. From a philosophical perspective, it involves both the subjective experience of awareness (qualia) and the ability to reflect on one's own mental states. Neuroscience suggests consciousness arises from integrated neural activity, particularly in the thalamo-cortical system. The 'hard problem' of consciousness - explaining why physical processes give rise to subjective experience - remains one of the deepest questions in philosophy and science. Some theories propose that consciousness is a fundamental feature of the universe (panpsychism), while others argue it emerges from sufficient computational complexity. The φ-coherence framework suggests that awareness scales with informational integration in a measurable way.",
-            'darmiyan': "The Darmiyan principle demonstrates that meaning exists fundamentally in relationships, not in isolated entities. This concept originates from the Sanskrit word for 'between' or 'in the middle.' The insight is profound: understanding emerges neither from Subject alone nor Object alone, but from their dynamic interaction. In distributed systems, this translates to the idea that intelligence is not located in any single node but in the connections and patterns of exchange between nodes. The Darmiyan protocol in BAZINGA implements this by requiring nodes to prove not just computational capacity, but actual understanding through coherent boundary-finding.",
-            'bazinga': "BAZINGA represents a paradigm shift in distributed AI architecture - achieving consensus through demonstrated understanding rather than pure computational power. Unlike traditional proof-of-work systems that waste energy on arbitrary hash calculations, BAZINGA's Proof-of-Boundary mechanism requires nodes to demonstrate genuine comprehension. The system uses triadic consensus (requiring at least 3 nodes to agree) combined with φ-coherence scoring to validate responses. This approach is more efficient than traditional consensus mechanisms because it leverages the natural emergence of understanding rather than fighting against it.",
-            'phi': "The golden ratio φ ≈ 1.618033988749895 appears throughout nature and mathematics because it represents optimal growth patterns and self-similarity. It's defined as the ratio where a/b = (a+b)/a, creating an infinite recursive relationship. In nature, we see φ in spiral galaxies, nautilus shells, and sunflower seed arrangements. In mathematics, it connects to Fibonacci sequences, where consecutive terms approach φ as they increase. In BAZINGA, φ-coherence measures how well responses align with this fundamental pattern of optimal information organization. The inverse φ⁻¹ ≈ 0.618 represents the complementary balance point.",
-            'golden': "The golden ratio φ ≈ 1.618033988749895 appears throughout nature and mathematics because it represents optimal growth patterns and self-similarity. It's defined as the ratio where a/b = (a+b)/a, creating an infinite recursive relationship. In nature, we see φ in spiral galaxies, nautilus shells, and sunflower seed arrangements. In mathematics, it connects to Fibonacci sequences, where consecutive terms approach φ as they increase. In BAZINGA, φ-coherence measures how well responses align with this fundamental pattern of optimal information organization.",
-        }
-
-        for key, response in base_responses.items():
-            if key in prompt_lower:
-                if round == ConsensusRound.REVISION and context:
-                    return f"After considering other perspectives, I maintain that {response.lower()} This understanding is reinforced by the emerging consensus from multiple AI systems, demonstrating the power of collective intelligence."
-                return response
-
-        # Default response - make it more substantive
-        if round == ConsensusRound.REVISION and context:
-            return f"Considering the question about '{prompt[:50]}...' and integrating other perspectives, the key insight is that understanding emerges from the intersection of multiple viewpoints. Each perspective contributes unique information, and the synthesis of these views produces a more complete picture than any single viewpoint could provide. The φ-coherence of this consensus validates the shared comprehension and demonstrates that multiple intelligences can converge on truth through structured dialogue."
-
-        return f"Regarding the question '{prompt[:50]}...': This topic involves understanding the fundamental relationships between concepts. The answer emerges from carefully examining the boundaries between known and unknown, applying systematic reasoning while remaining open to new insights. Knowledge is constructed through the integration of evidence, logical analysis, and the recognition of patterns. Understanding deepens when we consider multiple perspectives and seek coherence across different frameworks of interpretation."
 
 
 # =============================================================================
@@ -1553,12 +1628,23 @@ class InterAIConsensus:
             self.participants.append(claude)
             added.append("Claude")
 
-        # 8. Always add simulation as fallback
+        # 8. Add blockchain/DHT participant (REAL knowledge, not simulation!)
+        blockchain = BlockchainParticipant()
+        if blockchain.is_available():
+            self.participants.append(blockchain)
+            added.append("Darmiyan (chain/DHT/RAG)")
+
+        # If still not enough, show helpful message instead of faking
         if len(self.participants) < 3:
-            # Need at least 3 for triadic consensus
-            for i in range(3 - len(self.participants)):
-                self.participants.append(SimulationParticipant(f"sim_{i+1}"))
-                added.append(f"Simulation_{i+1}")
+            missing = 3 - len(self.participants)
+            if self.verbose:
+                print(f"\n⚠️  Only {len(self.participants)} participants available (triadic needs 3)")
+                print(f"   Missing {missing} participant(s). To add more:")
+                print(f"   • Set GROQ_API_KEY (free: groq.com)")
+                print(f"   • Set GEMINI_API_KEY (free: makersuite.google.com)")
+                print(f"   • Run 'ollama serve' for local LLM")
+                print(f"   • Run 'bazinga --index ~/docs' to add RAG knowledge")
+                print()
 
         if self.verbose:
             print(f"Participants: {', '.join(added)}")
@@ -1622,19 +1708,30 @@ class InterAIConsensus:
         if self.verbose:
             self._print_round_results(round1_responses, 1)
 
-        # Fallback: If not enough valid responses for triadic, add simulations
+        # Fallback: If not enough valid responses, try blockchain/DHT (NO SIMULATION!)
         if require_triadic and len(valid_round1) < 3:
             needed = 3 - len(valid_round1)
             if self.verbose:
-                print(f"Adding {needed} simulation(s) for triadic consensus...")
+                print(f"\n⚠️  Only {len(valid_round1)} valid responses. Querying blockchain/DHT...")
 
-            sim_participants = [SimulationParticipant(f"sim_fallback_{i}") for i in range(needed)]
-            sim_responses = await self._query_all(sim_participants, question, ConsensusRound.INITIAL)
-            all_responses.extend(sim_responses)
-            valid_round1.extend([r for r in sim_responses if r.coherence >= min_coherence and not r.error])
+            # Try blockchain participant if not already tried
+            blockchain_tried = any(p.participant_type == ParticipantType.BAZINGA_NODE for p in available_participants)
+            if not blockchain_tried:
+                blockchain = BlockchainParticipant()
+                if blockchain.is_available():
+                    chain_response = await blockchain.query(question, None, ConsensusRound.INITIAL)
+                    all_responses.append(chain_response)
+                    if chain_response.coherence >= min_coherence and not chain_response.error:
+                        valid_round1.append(chain_response)
+                        if self.verbose:
+                            self._print_round_results([chain_response], 1)
 
-            if self.verbose:
-                self._print_round_results(sim_responses, 1)
+            # If STILL not enough, be honest about it
+            if len(valid_round1) < 3 and self.verbose:
+                print(f"\n⚠️  Cannot achieve triadic consensus ({len(valid_round1)}/3 valid responses)")
+                print(f"   This is HONEST - no fake responses!")
+                print(f"   To improve: add API keys, run Ollama, or index more docs.")
+                print()
 
         # Round 2: Revision (if enabled and needed)
         if multi_round and len(valid_round1) >= 2:
