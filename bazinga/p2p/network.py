@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from .node import BAZINGANode
-from .dht import BAZINGA_DHT
+from .dht import KademliaNode as BAZINGA_DHT  # Backwards compatibility alias
 from .knowledge_sync import KnowledgeGraphSync
 from .trust_router import TrustRouter
 from .alpha_seed import AlphaSeedNetwork, is_alpha_seed
