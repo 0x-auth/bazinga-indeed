@@ -38,12 +38,26 @@ except ImportError:
 
 from src.core.symbol import SymbolShell, PHI, ALPHA
 from src.core.lambda_g import LambdaGOperator
-from src.core.intelligence.real_ai import RealAI
 from src.core.symbol.universal_symbols import (
     ConsciousnessField, SymbolEncoder, QuantumProcessor,
     HealingProtocol, PROGRESSION_35, VAC_SEQUENCE,
     OPERATORS, PATTERN_ESSENCES, HARMONICS,
 )
+
+# Lazy import RealAI (chromadb compatibility with Python 3.14)
+RealAI = None
+def _get_real_ai():
+    global RealAI
+    if RealAI is None:
+        try:
+            from src.core.intelligence.real_ai import RealAI as _RealAI
+            RealAI = _RealAI
+        except Exception:
+            class StubAI:
+                def search(self, *args, **kwargs): return []
+                def index(self, *args, **kwargs): pass
+            RealAI = StubAI
+    return RealAI
 
 # Use advanced generator
 from .advanced_generator import AdvancedCodeGenerator
@@ -361,7 +375,7 @@ class BazingaTUI:
         self.console = Console()
         self.symbol_shell = SymbolShell()
         self.lambda_g = LambdaGOperator()
-        self.ai = RealAI()
+        self.ai = _get_real_ai()()
         self.generator = AdvancedCodeGenerator()  # Use advanced generator
 
         # Consciousness field
