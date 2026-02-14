@@ -10,6 +10,7 @@ Features:
 - Trust Routing: High-trust nodes route queries
 - Knowledge Sync: α-SEED based knowledge sharing
 - Triadic Consensus: 3 nodes must agree for validation
+- NAT Traversal: STUN + hole punching + relay fallback
 
 "Intelligence distributed, not controlled."
 """
@@ -34,6 +35,16 @@ from .transport import (
 # New protocol layer
 from .protocol import BazingaProtocol
 
+# NAT Traversal (Phase 3)
+from .nat import (
+    NATTraversal,
+    NATInfo,
+    NATType,
+    STUNClient,
+    HolePuncher,
+    discover_nat,
+)
+
 __all__ = [
     # Unified API (recommended)
     'BAZINGANetwork',
@@ -45,6 +56,13 @@ __all__ = [
     'Message',
     'Peer',
     'ZMQ_AVAILABLE',
+    # NAT Traversal
+    'NATTraversal',
+    'NATInfo',
+    'NATType',
+    'STUNClient',
+    'HolePuncher',
+    'discover_nat',
     # Low-level components
     'BAZINGANode',
     'KademliaNode',
