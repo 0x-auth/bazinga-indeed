@@ -266,7 +266,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.8.6"
+    VERSION = "4.8.7"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1047,6 +1047,8 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
                         help='Show connected peers')
     parser.add_argument('--sync', action='store_true',
                         help='Sync knowledge with network')
+    parser.add_argument('--nat', action='store_true',
+                        help='Test NAT traversal (STUN discovery)')
 
     # Federated learning commands
     parser.add_argument('--learn', action='store_true',
@@ -1355,6 +1357,13 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
                 print(f"\n  No local model detected.")
                 print(f"  Tip: Run 'ollama run llama3' for phi trust bonus!")
 
+            # NAT Discovery (use ephemeral port, just for discovery)
+            from .p2p.nat import NATTraversal
+            nat = NATTraversal(port=0)  # Ephemeral port for STUN
+            await nat.start()
+            nat_info = await nat.discover()
+            await nat.stop()  # Release port for DHT
+
             # Import DHT bridge
             from .p2p.dht_bridge import DHTBridge
             from .darmiyan import prove_boundary
@@ -1406,8 +1415,18 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
             await bridge.announce_knowledge("distributed systems")
             await bridge.announce_knowledge("phi coherence")
 
-            print(f"\n  Node running with Kademlia DHT!")
-            print(f"  Other nodes can connect to YOUR_IP:5150")
+            # Show NAT info
+            if nat_info.public_ip:
+                print(f"\n  Public Address: {nat_info.public_ip}:{nat_info.public_port}")
+                print(f"  NAT Type: {nat_info.nat_type.value}")
+                if nat_info.can_hole_punch:
+                    print(f"  Direct P2P: ENABLED (hole punch ready)")
+                else:
+                    print(f"  Direct P2P: RELAY NEEDED")
+            else:
+                print(f"\n  Public Address: Unknown (STUN failed)")
+
+            print(f"\n  Node running with Kademlia DHT + NAT Traversal!")
             print(f"  Press Ctrl+C to leave network...\n")
 
             # Keep running with periodic heartbeats
@@ -1479,6 +1498,54 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
         print(f"    2. On another machine: bazinga --join YOUR_IP:5150")
         print(f"    3. Or register at:     {HF_SPACE_URL}")
         print()
+        return
+
+    # Handle --nat (NAT traversal diagnostics)
+    if args.nat:
+        print(f"\n{'='*60}")
+        print(f"  BAZINGA NAT TRAVERSAL DIAGNOSTICS")
+        print(f"{'='*60}")
+
+        from .p2p.nat import NATTraversal
+
+        async def test_nat():
+            nat = NATTraversal(port=0)
+            await nat.start()
+
+            info = await nat.discover()
+            nat.print_status()
+
+            # Check if we can be a relay
+            print(f"\n  Relay Eligibility:")
+            try:
+                from .inference.ollama_detector import detect_any_local_model
+                local = detect_any_local_model()
+                if local and local.available:
+                    print(f"    Local model: ACTIVE")
+                    print(f"    Trust score: 1.618x (phi bonus)")
+                    print(f"    Can relay: YES (high-trust node)")
+                else:
+                    print(f"    Local model: NOT DETECTED")
+                    print(f"    Trust score: 0.5x (standard)")
+                    print(f"    Can relay: NO (need phi trust)")
+            except Exception:
+                print(f"    Could not detect local model")
+
+            await nat.stop()
+
+            print(f"\n  Connectivity Summary:")
+            if info.can_hole_punch:
+                print(f"    Direct P2P: POSSIBLE (hole punch)")
+            elif info.needs_relay:
+                print(f"    Direct P2P: NOT POSSIBLE (symmetric NAT)")
+                print(f"    Solution: Use phi-bonus relay nodes")
+            else:
+                print(f"    Direct P2P: UNKNOWN (STUN failed)")
+                print(f"    Solution: Try from different network")
+
+            print(f"{'='*60}")
+
+        await test_nat()
         return
 
     # Handle --sync
