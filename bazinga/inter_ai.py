@@ -57,6 +57,19 @@ except ImportError:
     EMBEDDINGS_AVAILABLE = False
 
 
+def _to_python_float(val):
+    """Convert numpy/torch floats to Python float for JSON serialization."""
+    if val is None:
+        return None
+    try:
+        # Handle numpy types
+        if hasattr(val, 'item'):
+            return float(val.item())
+        return float(val)
+    except (TypeError, ValueError):
+        return val
+
+
 # =============================================================================
 # DATA STRUCTURES
 # =============================================================================
@@ -127,9 +140,9 @@ class AIResponse:
             'participant_type': self.participant_type.value,
             'model': self.model,
             'response': self.response[:500] + '...' if len(self.response) > 500 else self.response,
-            'coherence': self.coherence,
-            'understanding_score': self.understanding_score,
-            'latency_ms': self.latency_ms,
+            'coherence': _to_python_float(self.coherence),
+            'understanding_score': _to_python_float(self.understanding_score),
+            'latency_ms': _to_python_float(self.latency_ms),
             'round': self.round.value,
             'pob_valid': self.pob_proof.valid if self.pob_proof else False,
             'error': self.error,
@@ -171,16 +184,16 @@ class ConsensusResult:
             'consensus_reached': self.consensus_reached,
             'understanding': self.understanding,
             'responses': [r.to_dict() for r in self.responses],
-            'phi_coherence': self.phi_coherence,
-            'agreement_ratio': self.agreement_ratio,
-            'semantic_similarity': self.semantic_similarity,
+            'phi_coherence': _to_python_float(self.phi_coherence),
+            'agreement_ratio': _to_python_float(self.agreement_ratio),
+            'semantic_similarity': _to_python_float(self.semantic_similarity),
             'triadic_valid': self.triadic_valid,
             'rounds_completed': self.rounds_completed,
-            'timestamp': self.timestamp,
+            'timestamp': _to_python_float(self.timestamp),
             # Consciousness metrics
             'n_patterns': self.n_patterns,
-            'consciousness_advantage': self.consciousness_advantage,
-            'darmiyan_psi': self.darmiyan_psi,
+            'consciousness_advantage': _to_python_float(self.consciousness_advantage),
+            'darmiyan_psi': _to_python_float(self.darmiyan_psi),
         }
 
     def format_consciousness(self) -> str:
