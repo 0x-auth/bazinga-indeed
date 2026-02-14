@@ -120,14 +120,18 @@ class WikipediaIndexer:
     For full dumps, we'd use dumps.wikimedia.org.
     """
 
-    def __init__(self, rag_engine=None, verbose: bool = True):
+    def __init__(self, rag_engine=None, verbose: bool = True, output_dir: Optional[Path] = None):
         """
         Args:
-            rag_engine: Local RAG engine (RealAI instance)
+            rag_engine: Local RAG engine (RealAI instance), optional
             verbose: Print progress
+            output_dir: Directory to save JSON chunks (default: ~/.bazinga/knowledge)
         """
         self.rag = rag_engine
         self.verbose = verbose
+        self.output_dir = output_dir or Path.home() / ".bazinga" / "knowledge" / "wikipedia"
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.chunks_collected: List[Dict[str, Any]] = []  # Collect chunks for DHT
         self.stats = {
             "articles_fetched": 0,
             "chunks_indexed": 0,
@@ -165,7 +169,7 @@ class WikipediaIndexer:
 
         # Wikipedia requires a proper User-Agent
         headers = {
-            "User-Agent": "BAZINGA/4.8.21 (https://github.com/0x-auth/bazinga-indeed; contact@bazinga.ai) httpx/0.24"
+            "User-Agent": "BAZINGA/4.8.22 (https://github.com/0x-auth/bazinga-indeed; contact@bazinga.ai) httpx/0.24"
         }
 
         # Fetch articles using Wikipedia API
@@ -219,15 +223,29 @@ class WikipediaIndexer:
 
             # Fetch and index each article (inside same client context)
             chunks_indexed = 0
+            category_chunks = []
             for i, title in enumerate(articles):
                 try:
                     article = await self._fetch_article(client, title)
                     if article:
                         chunks = article.to_chunks()
                         for chunk in chunks:
+                            # Save chunk data for JSON/DHT
+                            chunk_data = {
+                                "text": chunk,
+                                "source": f"wikipedia:{category}/{title}",
+                                "url": article.url,
+                                "category": category,
+                            }
+                            category_chunks.append(chunk_data)
+                            self.chunks_collected.append(chunk_data)
+
+                            # Also add to RAG if available
                             if self.rag:
-                                # Index the chunk
-                                self.rag.add_text(chunk, source=f"wikipedia:{category}/{title}")
+                                try:
+                                    self.rag.add_text(chunk, source=f"wikipedia:{category}/{title}")
+                                except Exception:
+                                    pass  # RAG failed, but we have JSON
                             chunks_indexed += 1
 
                         self.stats["articles_fetched"] += 1
@@ -242,6 +260,14 @@ class WikipediaIndexer:
                     self.stats["errors"] += 1
                     if self.verbose:
                         print(f"  Error indexing {title}: {e}")
+
+            # Save category chunks to JSON file
+            if category_chunks:
+                json_file = self.output_dir / f"{category.replace('/', '_')}.json"
+                with open(json_file, 'w') as f:
+                    json.dump(category_chunks, f, indent=2)
+                if self.verbose:
+                    print(f"  Saved to {json_file}")
 
         self.stats["chunks_indexed"] += chunks_indexed
         self.stats["categories_processed"] += 1
@@ -380,9 +406,12 @@ class ArxivIndexer:
     Uses arXiv API for paper search and metadata.
     """
 
-    def __init__(self, rag_engine=None, verbose: bool = True):
+    def __init__(self, rag_engine=None, verbose: bool = True, output_dir: Optional[Path] = None):
         self.rag = rag_engine
         self.verbose = verbose
+        self.output_dir = output_dir or Path.home() / ".bazinga" / "knowledge" / "arxiv"
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.chunks_collected: List[Dict[str, Any]] = []  # Collect chunks for DHT
         self.stats = {
             "papers_fetched": 0,
             "chunks_indexed": 0,
@@ -420,7 +449,7 @@ class ArxivIndexer:
         # arXiv API query (use HTTPS and follow redirects)
         # https://export.arxiv.org/api/query?search_query=cat:cs.AI&max_results=100
         headers = {
-            "User-Agent": "BAZINGA/4.8.21 (https://github.com/0x-auth/bazinga-indeed) httpx/0.24"
+            "User-Agent": "BAZINGA/4.8.22 (https://github.com/0x-auth/bazinga-indeed) httpx/0.24"
         }
         async with httpx.AsyncClient(timeout=60.0, headers=headers, follow_redirects=True) as client:
             try:
@@ -454,12 +483,29 @@ class ArxivIndexer:
 
         # Index each paper
         chunks_indexed = 0
+        category_chunks = []
         for i, paper in enumerate(papers):
             try:
                 chunks = paper.to_chunks()
                 for chunk in chunks:
+                    # Save chunk data for JSON/DHT
+                    chunk_data = {
+                        "text": chunk,
+                        "source": f"arxiv:{category}/{paper.arxiv_id}",
+                        "url": paper.url,
+                        "category": category,
+                        "authors": paper.authors,
+                        "published": paper.published,
+                    }
+                    category_chunks.append(chunk_data)
+                    self.chunks_collected.append(chunk_data)
+
+                    # Also add to RAG if available
                     if self.rag:
-                        self.rag.add_text(chunk, source=f"arxiv:{category}/{paper.arxiv_id}")
+                        try:
+                            self.rag.add_text(chunk, source=f"arxiv:{category}/{paper.arxiv_id}")
+                        except Exception:
+                            pass
                     chunks_indexed += 1
 
                 self.stats["papers_fetched"] += 1
@@ -472,6 +518,14 @@ class ArxivIndexer:
 
             except Exception as e:
                 self.stats["errors"] += 1
+
+        # Save category chunks to JSON file
+        if category_chunks:
+            json_file = self.output_dir / f"{category.replace('/', '_').replace('.', '_')}.json"
+            with open(json_file, 'w') as f:
+                json.dump(category_chunks, f, indent=2)
+            if self.verbose:
+                print(f"  Saved to {json_file}")
 
         self.stats["chunks_indexed"] += chunks_indexed
         self.stats["categories_processed"] += 1
@@ -625,36 +679,46 @@ async def index_public_knowledge(
     Returns:
         Indexing stats
     """
-    # Get or create RAG engine
+    # Try to get RAG engine, but continue without it if unavailable
+    # Knowledge will be saved to JSON and published to DHT
     rag = None
+    rag_available = False
     try:
         from src.core.intelligence.real_ai import RealAI
         rag = RealAI()
-    except ImportError:
+        rag_available = True
+    except Exception:
         try:
-            # Try alternate import path
             from .cli import _get_real_ai
             RealAI = _get_real_ai()
             rag = RealAI()
-        except Exception as e:
-            return {"error": f"Could not initialize RAG: {e}. Make sure chromadb is installed."}
+            rag_available = True
+        except Exception:
+            # No RAG available - we'll save to JSON instead
+            if verbose:
+                print("  Note: ChromaDB not available, saving to JSON + DHT only")
 
     if source.lower() == "wikipedia":
         indexer = WikipediaIndexer(rag_engine=rag, verbose=verbose)
         result = await indexer.index_categories(topics, limit)
 
+        # Add collected chunks to result for DHT publishing
+        result["chunks_collected"] = len(indexer.chunks_collected)
+        result["output_dir"] = str(indexer.output_dir)
+
         # Publish to DHT if available
         try:
-            from .p2p.knowledge_sharing import KnowledgePublisher
-            from .p2p import get_dht_node
-
-            dht = get_dht_node()
-            if dht:
-                publisher = KnowledgePublisher(dht, rag)
-                publish_result = await publisher.publish_from_index(limit=200)
-                result["dht_published"] = publish_result
+            from .p2p import BAZINGANetwork
+            dht = BAZINGANetwork.get_instance()
+            if dht and indexer.chunks_collected:
+                published = 0
+                for chunk in indexer.chunks_collected[:200]:  # Limit DHT publish
+                    topic_hash = hashlib.sha256(chunk["text"][:100].encode()).hexdigest()[:16]
+                    await dht.publish_knowledge(topic_hash, chunk)
+                    published += 1
+                result["dht_published"] = published
                 if verbose:
-                    print(f"\n📡 Published {publish_result.get('topics_published', 0)} topics to DHT")
+                    print(f"\n📡 Published {published} chunks to DHT")
         except Exception:
             pass
 
@@ -664,18 +728,23 @@ async def index_public_knowledge(
         indexer = ArxivIndexer(rag_engine=rag, verbose=verbose)
         result = await indexer.index_categories(topics, limit)
 
+        # Add collected chunks to result
+        result["chunks_collected"] = len(indexer.chunks_collected)
+        result["output_dir"] = str(indexer.output_dir)
+
         # Publish to DHT if available
         try:
-            from .p2p.knowledge_sharing import KnowledgePublisher
-            from .p2p import get_dht_node
-
-            dht = get_dht_node()
-            if dht:
-                publisher = KnowledgePublisher(dht, rag)
-                publish_result = await publisher.publish_from_index(limit=200)
-                result["dht_published"] = publish_result
+            from .p2p import BAZINGANetwork
+            dht = BAZINGANetwork.get_instance()
+            if dht and indexer.chunks_collected:
+                published = 0
+                for chunk in indexer.chunks_collected[:200]:
+                    topic_hash = hashlib.sha256(chunk["text"][:100].encode()).hexdigest()[:16]
+                    await dht.publish_knowledge(topic_hash, chunk)
+                    published += 1
+                result["dht_published"] = published
                 if verbose:
-                    print(f"\n📡 Published {publish_result.get('topics_published', 0)} topics to DHT")
+                    print(f"\n📡 Published {published} chunks to DHT")
         except Exception:
             pass
 
