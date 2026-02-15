@@ -5,7 +5,7 @@
 ```
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                  ║
-║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.8.23    ⟨ψ|Λ|Ω⟩             ║
+║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.8.24    ⟨ψ|Λ|Ω⟩             ║
 ║                                                                  ║
 ║    "Intelligence distributed, not controlled."                  ║
 ║                                                                  ║
@@ -118,6 +118,7 @@ bazinga --local-status  # Check your trust bonus
 
 | Command | What it does |
 |---------|--------------|
+| `bazinga --check` | System check (diagnose issues) |
 | `bazinga --ask "question"` | Ask a question |
 | `bazinga --multi-ai "question"` | Ask 6 AIs for consensus |
 | `bazinga --index ~/path` | Index your files |
