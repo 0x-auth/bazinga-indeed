@@ -82,31 +82,90 @@ class ReadTool(Tool):
 
 
 class BashTool(Tool):
-    """Execute shell commands."""
+    """Execute shell commands with safety confirmation for destructive operations."""
 
     name = "bash"
-    description = "Run a bash command. Args: command (str). Use for git, npm, python, etc."
+    description = "Run a bash command. Args: command (str). Use for git, npm, python, etc. Destructive commands require confirmation."
 
-    # Commands that are blocked for safety
+    # Commands that are BLOCKED completely (too dangerous)
     BLOCKED_PATTERNS = [
         "rm -rf /",
         "rm -rf ~",
+        "rm -rf /*",
         ":(){:|:&};:",  # Fork bomb
         "mkfs",
         "> /dev/sda",
         "dd if=/dev/zero",
+        "chmod -R 777 /",
     ]
 
-    def execute(self, command: str, timeout: int = 30, **kwargs) -> Dict[str, Any]:
+    # Commands that REQUIRE user confirmation (φ-signature)
+    DESTRUCTIVE_PATTERNS = [
+        "rm ",           # Any remove
+        "rm -",          # Remove with flags
+        "git push",      # Pushing to remote
+        "git reset",     # Reset commits
+        "git checkout .", # Discard changes
+        "pip install",   # Installing packages
+        "pip uninstall", # Uninstalling packages
+        "npm install",   # Installing packages
+        "brew install",  # Installing packages
+        "sudo ",         # Any sudo command
+        "mv ",           # Moving files
+        "chmod ",        # Changing permissions
+        "chown ",        # Changing ownership
+        "> ",            # Overwriting files
+        "truncate",      # Truncating files
+    ]
+
+    # Track confirmed commands in session
+    _confirmed_commands = set()
+
+    def _is_destructive(self, command: str) -> bool:
+        """Check if command is destructive and needs confirmation."""
+        cmd_lower = command.lower().strip()
+        for pattern in self.DESTRUCTIVE_PATTERNS:
+            if pattern.lower() in cmd_lower:
+                return True
+        return False
+
+    def _get_confirmation(self, command: str) -> bool:
+        """Ask user for φ-signature (confirmation) before destructive command."""
+        print()
+        print("⚠️  DESTRUCTIVE COMMAND DETECTED")
+        print("━" * 50)
+        print(f"  Command: {command}")
+        print("━" * 50)
+        print()
+        try:
+            response = input("  Confirm execution? [y/N] φ-signature: ").strip().lower()
+            return response in ('y', 'yes', 'φ', 'phi')
+        except (EOFError, KeyboardInterrupt):
+            print("\n  Cancelled.")
+            return False
+
+    def execute(self, command: str, timeout: int = 30, confirmed: bool = False, **kwargs) -> Dict[str, Any]:
         """Execute a bash command."""
         try:
-            # Basic safety check
+            # Check for completely blocked commands
             for blocked in self.BLOCKED_PATTERNS:
                 if blocked in command:
                     return {
                         "success": False,
-                        "error": f"Blocked dangerous command pattern: {blocked}"
+                        "error": f"🛑 BLOCKED: This command pattern is too dangerous: {blocked}"
                     }
+
+            # Check for destructive commands that need confirmation
+            if self._is_destructive(command) and not confirmed:
+                # Check if already confirmed this session
+                if command not in self._confirmed_commands:
+                    if not self._get_confirmation(command):
+                        return {
+                            "success": False,
+                            "error": "Command cancelled by user (φ-signature not provided)"
+                        }
+                    # Remember confirmation for this session
+                    self._confirmed_commands.add(command)
 
             # Run command
             result = subprocess.run(
@@ -228,12 +287,39 @@ class SearchTool(Tool):
 
 
 class EditTool(Tool):
-    """Edit file contents."""
+    """Edit file contents with preview and confirmation."""
 
     name = "edit"
-    description = "Edit a file by replacing text. Args: path (str), old_text (str), new_text (str)"
+    description = "Edit a file by replacing text. Args: path (str), old_text (str), new_text (str). Shows diff preview."
 
-    def execute(self, path: str, old_text: str, new_text: str, **kwargs) -> Dict[str, Any]:
+    def _show_diff_and_confirm(self, path: str, old_text: str, new_text: str) -> bool:
+        """Show diff preview and ask for confirmation."""
+        print()
+        print("📝 EDIT PREVIEW")
+        print("━" * 50)
+        print(f"  File: {path}")
+        print()
+        print("  ─── REMOVE ───")
+        for line in old_text.split('\n')[:5]:
+            print(f"  - {line[:70]}")
+        if old_text.count('\n') > 5:
+            print(f"  ... ({old_text.count(chr(10)) - 5} more lines)")
+        print()
+        print("  +++ ADD +++")
+        for line in new_text.split('\n')[:5]:
+            print(f"  + {line[:70]}")
+        if new_text.count('\n') > 5:
+            print(f"  ... ({new_text.count(chr(10)) - 5} more lines)")
+        print()
+        print("━" * 50)
+        try:
+            response = input("  Apply this edit? [y/N] φ-signature: ").strip().lower()
+            return response in ('y', 'yes', 'φ', 'phi')
+        except (EOFError, KeyboardInterrupt):
+            print("\n  Cancelled.")
+            return False
+
+    def execute(self, path: str, old_text: str, new_text: str, confirmed: bool = False, **kwargs) -> Dict[str, Any]:
         """Edit a file by replacing old_text with new_text."""
         try:
             filepath = Path(path).expanduser()
@@ -260,13 +346,21 @@ class EditTool(Tool):
                     "error": f"Found {count} occurrences of old_text. Please provide more context to make it unique."
                 }
 
+            # Show preview and confirm
+            if not confirmed:
+                if not self._show_diff_and_confirm(path, old_text, new_text):
+                    return {
+                        "success": False,
+                        "error": "Edit cancelled by user (φ-signature not provided)"
+                    }
+
             # Apply edit
             new_content = content.replace(old_text, new_text)
             filepath.write_text(new_content)
 
             return {
                 "success": True,
-                "message": f"Edited {path}",
+                "message": f"✓ Edited {path}",
                 "path": str(filepath)
             }
 
@@ -277,15 +371,47 @@ class EditTool(Tool):
 
 
 class WriteTool(Tool):
-    """Write/create a file."""
+    """Write/create a file with confirmation."""
 
     name = "write"
-    description = "Write content to a file (creates if doesn't exist). Args: path (str), content (str)"
+    description = "Write content to a file (creates if doesn't exist). Args: path (str), content (str). Requires confirmation."
 
-    def execute(self, path: str, content: str, **kwargs) -> Dict[str, Any]:
+    def _confirm_write(self, path: str, content: str, exists: bool) -> bool:
+        """Ask for confirmation before writing."""
+        print()
+        action = "OVERWRITE" if exists else "CREATE"
+        print(f"📝 {action} FILE")
+        print("━" * 50)
+        print(f"  Path: {path}")
+        print(f"  Size: {len(content)} chars, {content.count(chr(10)) + 1} lines")
+        print()
+        print("  Preview (first 5 lines):")
+        for line in content.split('\n')[:5]:
+            print(f"    {line[:70]}")
+        if content.count('\n') > 5:
+            print(f"    ... ({content.count(chr(10)) - 5} more lines)")
+        print()
+        print("━" * 50)
+        try:
+            response = input(f"  {action.lower()} this file? [y/N] φ-signature: ").strip().lower()
+            return response in ('y', 'yes', 'φ', 'phi')
+        except (EOFError, KeyboardInterrupt):
+            print("\n  Cancelled.")
+            return False
+
+    def execute(self, path: str, content: str, confirmed: bool = False, **kwargs) -> Dict[str, Any]:
         """Write content to a file."""
         try:
             filepath = Path(path).expanduser()
+            exists = filepath.exists()
+
+            # Confirm before writing
+            if not confirmed:
+                if not self._confirm_write(path, content, exists):
+                    return {
+                        "success": False,
+                        "error": "Write cancelled by user (φ-signature not provided)"
+                    }
 
             # Create parent directories if needed
             filepath.parent.mkdir(parents=True, exist_ok=True)
