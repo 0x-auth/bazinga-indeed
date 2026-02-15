@@ -279,7 +279,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.8.24"
+    VERSION = "4.9.0"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1215,6 +1215,10 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     parser.add_argument('--check', action='store_true',
                         help='System check: verify setup, diagnose issues, suggest fixes')
 
+    # Agent mode (NEW!)
+    parser.add_argument('--agent', type=str, nargs='?', const='', metavar='TASK',
+                        help='Start agent shell (or run single task)')
+
     # Hidden/advanced
     parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--demo', action='store_true', help=argparse.SUPPRESS)
@@ -1413,6 +1417,19 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
             print("  ═══════════════════════════════════════════════════════")
 
         print()
+        return
+
+    # Handle --agent (NEW! Agent mode)
+    if args.agent is not None:
+        from .agent.shell import run_agent_shell, run_agent_once
+
+        if args.agent == '':
+            # Interactive shell mode
+            run_agent_shell(verbose=args.verbose)
+        else:
+            # Single task mode
+            result = await run_agent_once(args.agent, verbose=args.verbose)
+            print(result)
         return
 
     # Handle --constants
