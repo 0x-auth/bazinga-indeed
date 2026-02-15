@@ -20,6 +20,7 @@ from typing import Optional, List, Dict
 
 from .loop import AgentLoop
 from .tools import SearchTool
+from .context import get_project_context, ProjectContext
 
 
 class SessionMemory:
@@ -100,20 +101,21 @@ class AgentShell:
 
     BANNER = '''
 ╔══════════════════════════════════════════════════════════════╗
-║                    BAZINGA AGENT v0.2                        ║
+║                    BAZINGA AGENT v0.3                        ║
 ║            "The first AI you actually own"                   ║
 ╚══════════════════════════════════════════════════════════════╝
 
   Commands:
     /help     - Show this help
     /tools    - List available tools
+    /project  - Show auto-detected project context
     /memory   - Show session memory
     /clear    - Clear screen
     /reset    - Reset session memory
     /verbose  - Toggle verbose mode
     /exit     - Exit agent
 
-  Just type naturally. The agent remembers your session context.
+  The agent auto-detects your project and remembers session context.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 '''
@@ -124,6 +126,9 @@ class AgentShell:
         self.search_tool = SearchTool()
         self.memory = SessionMemory()
         self.running = True
+
+        # Auto-detect project context
+        self.project_context = get_project_context()
 
     def print_banner(self):
         """Print the welcome banner."""
@@ -142,6 +147,14 @@ class AgentShell:
             print("       Run: bazinga --check")
 
         print(f"  CWD: {os.getcwd()}")
+
+        # Show project context
+        if self.project_context.project_type != "unknown":
+            proj = self.project_context
+            print(f"  Project: {proj.name} ({proj.project_type})")
+            if proj.git_branch:
+                print(f"  Branch: {proj.git_branch}")
+
         print()
 
     def handle_command(self, cmd: str) -> bool:
@@ -176,6 +189,25 @@ class AgentShell:
             print()
             return True
 
+        if cmd == "/project":
+            proj = self.project_context
+            print("\n📁 Project Context (auto-detected):")
+            print(f"   Name: {proj.name}")
+            print(f"   Type: {proj.project_type}")
+            print(f"   Root: {proj.root}")
+            if proj.git_branch:
+                print(f"   Branch: {proj.git_branch}")
+            if proj.description:
+                print(f"   Description: {proj.description[:100]}...")
+            if proj.key_files:
+                print(f"   Key files: {', '.join(proj.key_files[:8])}")
+            if proj.directories:
+                print(f"   Directories: {', '.join(proj.directories[:8])}")
+            if proj.dependencies:
+                print(f"   Dependencies: {', '.join(proj.dependencies[:8])}")
+            print()
+            return True
+
         if cmd == "/reset":
             self.memory.clear()
             print("Session memory cleared.")
@@ -199,8 +231,12 @@ class AgentShell:
         return False
 
     def get_context(self, user_input: str) -> str:
-        """Get relevant context from indexed knowledge + session memory."""
+        """Get relevant context from project + session memory + RAG."""
         parts = []
+
+        # Add project context (auto-detected)
+        if self.project_context.project_type != "unknown":
+            parts.append(self.project_context.to_prompt())
 
         # Add session memory context
         session_context = self.memory.get_context_summary()
