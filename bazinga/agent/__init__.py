@@ -20,8 +20,10 @@ Tools:
 from .tools import Tool, ReadTool, BashTool, SearchTool, EditTool, WriteTool, GlobTool, GrepTool
 from .loop import AgentLoop
 from .shell import AgentShell, SessionMemory
+from .context import ProjectContext, ProjectDetector, get_project_context
 
 __all__ = [
     'Tool', 'ReadTool', 'BashTool', 'SearchTool', 'EditTool', 'WriteTool', 'GlobTool', 'GrepTool',
-    'AgentLoop', 'AgentShell', 'SessionMemory'
+    'AgentLoop', 'AgentShell', 'SessionMemory',
+    'ProjectContext', 'ProjectDetector', 'get_project_context'
 ]
