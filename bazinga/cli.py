@@ -279,7 +279,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.8.17"
+    VERSION = "4.8.24"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -904,13 +904,11 @@ async def main():
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 QUICK START:
-  bazinga                             Interactive mode (shows local model status)
+  bazinga --check                     System check (verify setup, diagnose issues)
   bazinga --ask "What is AI?"         Ask any question
-  bazinga --local-status              Show local model detection & trust multiplier
-  bazinga --proof                     Generate Proof-of-Boundary
-  bazinga --join                      Join P2P network
-  bazinga --chain                     Show blockchain status
-  bazinga --mine                      Mine a block (zero-energy PoB)
+  bazinga --multi-ai "question"       Ask 6 AIs for consensus
+  bazinga --index ~/Documents         Index your files for RAG
+  bazinga --local-status              Show local model & trust multiplier
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI COMMANDS (5-Layer Intelligence)
@@ -1214,6 +1212,8 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
                         help='Show local model detection and trust multiplier status')
     parser.add_argument('--bootstrap-local', action='store_true',
                         help='Setup local model (install Ollama + pull llama3) for φ trust bonus')
+    parser.add_argument('--check', action='store_true',
+                        help='System check: verify setup, diagnose issues, suggest fixes')
 
     # Hidden/advanced
     parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
@@ -1240,6 +1240,179 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
                 print(f"  Local Model: not detected (run 'ollama pull llama3')")
         except Exception:
             print(f"  Local Model: {'available' if LOCAL_LLM_AVAILABLE else 'not installed'}")
+        return
+
+    # Handle --check (system diagnostic)
+    if args.check:
+        import json
+
+        print()
+        print("╔══════════════════════════════════════════════════════════════╗")
+        print("║              BAZINGA SYSTEM CHECK                            ║")
+        print("║              \"The first AI you actually own\"                 ║")
+        print("╚══════════════════════════════════════════════════════════════╝")
+        print()
+
+        issues = []
+        suggestions = []
+
+        # 1. Python version
+        py_version = f"{sys.version_info.major}.{sys.version_info.minor}"
+        py_ok = sys.version_info >= (3, 11)
+        if py_ok:
+            print(f"  ✓ Python {py_version}")
+        else:
+            print(f"  ✗ Python {py_version} (need 3.11+)")
+            issues.append("Python version too old")
+
+        # 2. httpx installed
+        if HTTPX_AVAILABLE:
+            print(f"  ✓ httpx installed")
+        else:
+            print(f"  ✗ httpx not installed")
+            issues.append("httpx not installed")
+            suggestions.append("pip install httpx")
+
+        # 3. Check Ollama / local model
+        local_model_name = None
+        local_trust = 1.0
+        try:
+            from .inference.ollama_detector import detect_any_local_model
+            local_status = detect_any_local_model()
+
+            if local_status.available:
+                local_model_name = local_status.models[0] if local_status.models else local_status.model_type.value
+                local_trust = local_status.trust_multiplier
+                print(f"  ✓ Ollama detected → {local_model_name}")
+                print(f"  ✓ Trust Multiplier: {local_trust:.3f}x (φ bonus ACTIVE)")
+            else:
+                print(f"  ⚠ Ollama not detected (optional, for offline & φ bonus)")
+                suggestions.append("Install Ollama for 1.618x trust bonus: bazinga --bootstrap-local")
+        except Exception as e:
+            print(f"  ⚠ Local model check failed: {e}")
+            suggestions.append("Install Ollama for offline use: bazinga --bootstrap-local")
+
+        # 4. API Keys (optional)
+        api_count = 0
+        if GROQ_KEY:
+            print(f"  ✓ GROQ_API_KEY configured")
+            api_count += 1
+        else:
+            print(f"  ⚠ No GROQ_API_KEY (optional, for cloud fallback)")
+
+        if GEMINI_KEY:
+            print(f"  ✓ GEMINI_API_KEY configured")
+            api_count += 1
+
+        if ANTHROPIC_KEY:
+            print(f"  ✓ ANTHROPIC_API_KEY configured")
+            api_count += 1
+
+        if api_count == 0 and not local_model_name:
+            suggestions.append("Set GROQ_API_KEY for free cloud AI: export GROQ_API_KEY=your-key")
+
+        # 5. Check indexed knowledge
+        bazinga_dir = Path.home() / ".bazinga"
+        knowledge_dir = bazinga_dir / "knowledge"
+        total_chunks = 0
+
+        # Count JSON files from public knowledge
+        if knowledge_dir.exists():
+            for json_file in knowledge_dir.rglob("*.json"):
+                try:
+                    with open(json_file) as f:
+                        data = json.load(f)
+                        if isinstance(data, list):
+                            total_chunks += len(data)
+                except:
+                    pass
+
+        # Check ChromaDB if available
+        vectordb_path = bazinga_dir / "vectordb" / "chroma.sqlite3"
+        if vectordb_path.exists():
+            try:
+                import sqlite3
+                conn = sqlite3.connect(str(vectordb_path))
+                cursor = conn.execute("SELECT COUNT(*) FROM embeddings")
+                chroma_count = cursor.fetchone()[0]
+                total_chunks += chroma_count
+                conn.close()
+            except:
+                pass
+
+        if total_chunks > 0:
+            print(f"  ✓ Knowledge indexed: {total_chunks} chunks")
+        else:
+            print(f"  ⚠ No knowledge indexed")
+            suggestions.append("Index your docs: bazinga --index ~/Documents")
+            suggestions.append("Index Wikipedia: bazinga --index-public wikipedia --topics ai")
+
+        # 6. Check wallet/identity
+        wallet_path = bazinga_dir / "wallet" / "wallet.json"
+        if wallet_path.exists():
+            try:
+                with open(wallet_path) as f:
+                    wallet = json.load(f)
+                    node_id = wallet.get('node_id', '')[:12]
+                    print(f"  ✓ Identity: bzn_{node_id}...")
+            except:
+                print(f"  ✓ Wallet exists")
+        else:
+            print(f"  ⚠ No wallet yet (will be created on first use)")
+
+        # 7. Check chain/PoB
+        chain_path = bazinga_dir / "chain" / "chain.json"
+        pob_count = 0
+        if chain_path.exists():
+            try:
+                with open(chain_path) as f:
+                    chain = json.load(f)
+                    pob_count = len(chain.get('blocks', []))
+                    if pob_count > 0:
+                        print(f"  ✓ Proof-of-Boundary: {pob_count} blocks mined")
+            except:
+                pass
+
+        if pob_count == 0:
+            print(f"  ⚠ No PoB blocks yet")
+            suggestions.append("Generate your first proof: bazinga --proof && bazinga --mine")
+
+        # Summary
+        print()
+        print("━" * 64)
+
+        if issues:
+            print()
+            print("  ISSUES FOUND:")
+            for issue in issues:
+                print(f"    ✗ {issue}")
+
+        if suggestions:
+            print()
+            print("  SUGGESTIONS:")
+            for i, suggestion in enumerate(suggestions, 1):
+                print(f"    {i}. {suggestion}")
+
+        print()
+
+        # Ready status
+        if not issues and (local_model_name or api_count > 0):
+            print("  ═══════════════════════════════════════════════════════")
+            print("  ✨ YOU'RE READY! Run: bazinga --ask \"anything\"")
+            if local_model_name:
+                print(f"     Your queries earn {local_trust:.3f}x trust (φ bonus active)")
+            print("  ═══════════════════════════════════════════════════════")
+        elif not issues:
+            print("  ═══════════════════════════════════════════════════════")
+            print("  ⚠ Almost ready! Set up an API key or install Ollama.")
+            print("    Quick start: bazinga --bootstrap-local")
+            print("  ═══════════════════════════════════════════════════════")
+        else:
+            print("  ═══════════════════════════════════════════════════════")
+            print("  ✗ Fix the issues above to get started.")
+            print("  ═══════════════════════════════════════════════════════")
+
+        print()
         return
 
     # Handle --constants

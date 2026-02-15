@@ -1,6 +1,6 @@
-# BAZINGA Usage Guide v4.8.23
+# BAZINGA Usage Guide v4.8.24
 
-**Complete guide to BAZINGA - Distributed AI with Proof-of-Boundary Consensus**
+**Complete guide to BAZINGA - The first AI you actually own**
 
 > "Run local, earn trust, own your intelligence."
 
@@ -10,17 +10,18 @@
 
 1. [Installation](#installation)
 2. [Quick Start](#quick-start)
-3. [Local Model Setup (Recommended)](#local-model-setup-recommended)
-4. [API Keys Setup](#api-keys-setup)
-5. [Command Reference](#command-reference)
-6. [Public Knowledge Indexing](#public-knowledge-indexing-new-in-v4822)
-7. [Interactive Mode](#interactive-mode)
-8. [Inter-AI Consensus](#inter-ai-consensus)
-9. [P2P Network](#p2p-network)
-10. [Blockchain Commands](#blockchain-commands)
-11. [Consciousness Scaling Law](#consciousness-scaling-law)
-12. [Architecture](#architecture)
-13. [Troubleshooting](#troubleshooting)
+3. [System Check](#system-check-new-in-v4824)
+4. [Local Model Setup (Recommended)](#local-model-setup-recommended)
+5. [API Keys Setup](#api-keys-setup)
+6. [Command Reference](#command-reference)
+7. [Public Knowledge Indexing](#public-knowledge-indexing-new-in-v4822)
+8. [Interactive Mode](#interactive-mode)
+9. [Inter-AI Consensus](#inter-ai-consensus)
+10. [P2P Network](#p2p-network)
+11. [Blockchain Commands](#blockchain-commands)
+12. [Consciousness Scaling Law](#consciousness-scaling-law)
+13. [Architecture](#architecture)
+14. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -30,8 +31,8 @@
 # Install from PyPI
 pip install bazinga-indeed
 
-# Verify installation
-bazinga --version
+# Run system check (NEW!)
+bazinga --check
 ```
 
 ### Requirements
@@ -44,6 +45,9 @@ bazinga --version
 ## Quick Start
 
 ```bash
+# First: Run system check to verify setup
+bazinga --check
+
 # Ask a question
 bazinga --ask "What is the golden ratio?"
 
@@ -56,18 +60,51 @@ bazinga --index ~/Documents
 # Index public knowledge
 bazinga --index-public wikipedia --topics ai
 
-# Check your local model status & trust multiplier
-bazinga --local-status
-
-# See consciousness scaling visualization
-bazinga --consciousness
-
-# Generate a Proof-of-Boundary
-bazinga --proof
-
 # Interactive mode
 bazinga
 ```
+
+---
+
+## System Check (NEW in v4.8.24)
+
+Run `bazinga --check` to diagnose your setup:
+
+```bash
+$ bazinga --check
+
+╔══════════════════════════════════════════════════════════════╗
+║              BAZINGA SYSTEM CHECK                            ║
+║              "The first AI you actually own"                 ║
+╚══════════════════════════════════════════════════════════════╝
+
+  ✓ Python 3.13
+  ✓ httpx installed
+  ✓ Ollama detected → llama3:latest
+  ✓ Trust Multiplier: 1.618x (φ bonus ACTIVE)
+  ⚠ No GROQ_API_KEY (optional, for cloud fallback)
+  ✓ Knowledge indexed: 138 chunks
+  ✓ Identity: bzn_ab33...
+  ✓ Proof-of-Boundary: 5 blocks mined
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ═══════════════════════════════════════════════════════
+  ✨ YOU'RE READY! Run: bazinga --ask "anything"
+     Your queries earn 1.618x trust (φ bonus active)
+  ═══════════════════════════════════════════════════════
+```
+
+The check verifies:
+- **Python version** (3.11+ required)
+- **httpx** installed (for API calls)
+- **Ollama/local model** (optional, for φ trust bonus)
+- **API keys** (optional, for cloud fallback)
+- **Indexed knowledge** (your documents + Wikipedia/arXiv)
+- **Wallet/identity** (your node ID)
+- **Proof-of-Boundary blocks** (your mining history)
+
+If something is missing, it shows actionable suggestions to fix it.
 
 ---
 
@@ -200,6 +237,22 @@ source ~/.bashrc
 ---
 
 ## Command Reference
+
+### System & Setup
+
+```bash
+# System check - verify setup, diagnose issues
+bazinga --check
+
+# Show version and API status
+bazinga --version
+
+# Show all constants (φ, α, ψ, etc.)
+bazinga --constants
+
+# One-command local setup
+bazinga --bootstrap-local
+```
 
 ### AI Commands
 
