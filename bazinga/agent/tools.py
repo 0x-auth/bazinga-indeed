@@ -304,6 +304,102 @@ class WriteTool(Tool):
             return {"success": False, "error": str(e)}
 
 
+class GlobTool(Tool):
+    """Find files matching a pattern."""
+
+    name = "glob"
+    description = "Find files matching a glob pattern. Args: pattern (str), e.g. '**/*.py', 'src/**/*.js'"
+
+    def execute(self, pattern: str, path: str = ".", **kwargs) -> Dict[str, Any]:
+        """Find files matching a glob pattern."""
+        try:
+            import glob as glob_module
+
+            base_path = Path(path).expanduser()
+            if not base_path.exists():
+                base_path = Path.cwd()
+
+            # Use glob to find files
+            full_pattern = str(base_path / pattern)
+            matches = glob_module.glob(full_pattern, recursive=True)
+
+            # Limit results
+            matches = matches[:50]
+
+            # Make paths relative for cleaner output
+            try:
+                cwd = Path.cwd()
+                matches = [str(Path(m).relative_to(cwd)) for m in matches]
+            except ValueError:
+                matches = [str(m) for m in matches]
+
+            return {
+                "success": True,
+                "files": matches,
+                "count": len(matches),
+                "pattern": pattern
+            }
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+
+class GrepTool(Tool):
+    """Search for text in files."""
+
+    name = "grep"
+    description = "Search for text/regex in files. Args: pattern (str), path (str, default='.')"
+
+    def execute(self, pattern: str, path: str = ".", **kwargs) -> Dict[str, Any]:
+        """Search for pattern in files."""
+        try:
+            import re
+
+            base_path = Path(path).expanduser()
+            if not base_path.exists():
+                return {"success": False, "error": f"Path not found: {path}"}
+
+            results = []
+            regex = re.compile(pattern, re.IGNORECASE)
+
+            # Search files
+            files_to_search = []
+            if base_path.is_file():
+                files_to_search = [base_path]
+            else:
+                # Search common code files
+                for ext in ['*.py', '*.js', '*.ts', '*.md', '*.txt', '*.json', '*.yaml', '*.yml']:
+                    files_to_search.extend(base_path.rglob(ext))
+
+            for filepath in files_to_search[:100]:  # Limit files
+                try:
+                    content = filepath.read_text(errors='replace')
+                    for i, line in enumerate(content.split('\n'), 1):
+                        if regex.search(line):
+                            results.append({
+                                "file": str(filepath),
+                                "line": i,
+                                "text": line.strip()[:200]
+                            })
+                            if len(results) >= 20:
+                                break
+                except:
+                    pass
+
+                if len(results) >= 20:
+                    break
+
+            return {
+                "success": True,
+                "matches": results,
+                "count": len(results),
+                "pattern": pattern
+            }
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+
 # Registry of all available tools
 TOOLS = {
     "read": ReadTool(),
@@ -311,6 +407,8 @@ TOOLS = {
     "search": SearchTool(),
     "edit": EditTool(),
     "write": WriteTool(),
+    "glob": GlobTool(),
+    "grep": GrepTool(),
 }
 
 
