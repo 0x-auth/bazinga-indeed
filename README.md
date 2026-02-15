@@ -5,7 +5,7 @@
 ```
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                  ║
-║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.8.24    ⟨ψ|Λ|Ω⟩             ║
+║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.9.0     ⟨ψ|Λ|Ω⟩             ║
 ║                                                                  ║
 ║    "Intelligence distributed, not controlled."                  ║
 ║                                                                  ║
@@ -118,16 +118,14 @@ bazinga --local-status  # Check your trust bonus
 
 | Command | What it does |
 |---------|--------------|
+| `bazinga --agent` | **Agent mode** - read, edit, run commands (NEW!) |
 | `bazinga --check` | System check (diagnose issues) |
 | `bazinga --ask "question"` | Ask a question |
 | `bazinga --multi-ai "question"` | Ask 6 AIs for consensus |
 | `bazinga --index ~/path` | Index your files |
 | `bazinga --index-public wikipedia --topics ai` | Index Wikipedia |
-| `bazinga --index-public arxiv --topics cs.AI` | Index arXiv papers |
 | `bazinga --local` | Force local LLM |
 | `bazinga --local-status` | Show local model & trust |
-| `bazinga --consciousness 5` | Show consciousness scaling |
-| `bazinga --proof` | Generate Proof-of-Boundary |
 | `bazinga` | Interactive mode |
 
 **[→ Full Usage Guide (USAGE.md)](./USAGE.md)** — All commands, architecture, philosophy
