@@ -5,9 +5,9 @@
 ```
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                  ║
-║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.9.0     ⟨ψ|Λ|Ω⟩             ║
+║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.9.8     ⟨ψ|Λ|Ω⟩             ║
 ║                                                                  ║
-║    "Intelligence distributed, not controlled."                  ║
+║    "No single AI can mess up your code without consensus."      ║
 ║                                                                  ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
@@ -118,10 +118,10 @@ bazinga --local-status  # Check your trust bonus
 
 | Command | What it does |
 |---------|--------------|
-| `bazinga --agent` | **Agent mode** - read, edit, run commands (NEW!) |
-| `bazinga --check` | System check (diagnose issues) |
-| `bazinga --ask "question"` | Ask a question |
+| `bazinga --agent` | **Agent mode** - AI with blockchain-verified code fixes (NEW!) |
 | `bazinga --multi-ai "question"` | Ask 6 AIs for consensus |
+| `bazinga --ask "question"` | Ask a question |
+| `bazinga --check` | System check (diagnose issues) |
 | `bazinga --index ~/path` | Index your files |
 | `bazinga --index-public wikipedia --topics ai` | Index Wikipedia |
 | `bazinga --local` | Force local LLM |
@@ -129,6 +129,47 @@ bazinga --local-status  # Check your trust bonus
 | `bazinga` | Interactive mode |
 
 **[→ Full Usage Guide (USAGE.md)](./USAGE.md)** — All commands, architecture, philosophy
+
+---
+
+## 🆕 Blockchain-Verified Code Fixes (v4.9.7+)
+
+**Your idea, implemented:** Multiple AIs must agree before applying code changes.
+
+```bash
+bazinga --agent
+> Fix the bare except in utils.py
+
+🔍 Requesting consensus from available providers...
+  groq_llama-3.1: ✅ APPROVE (φ=0.76)
+  gemini_gemini-2: ✅ APPROVE (φ=0.71)
+  ollama_llama3.2: ✅ APPROVE (φ=0.68)
+
+✅ Consensus reached! φ=0.72, approval=100%
+⛓️ Recorded on chain: block 42
+✅ Fix applied (backup: utils.py.bak)
+```
+
+**Python API:**
+```python
+from bazinga import verified_code_fix
+
+success, msg = verified_code_fix(
+    "utils.py",
+    "except:",
+    "except Exception:",
+    "Replace bare except for better error handling"
+)
+```
+
+**How it works:**
+1. Agent proposes a fix
+2. Multiple AIs review (triadic consensus: ≥3 must agree)
+3. φ-coherence measured (quality gate)
+4. PoB attestation on blockchain (audit trail)
+5. Only then: fix applied with backup
+
+**"No single AI can mess up your code."**
 
 ---
 
