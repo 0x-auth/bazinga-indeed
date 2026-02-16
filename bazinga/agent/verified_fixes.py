@@ -20,7 +20,7 @@ Flow:
 4. Fix recorded on chain (DarmiyanChain)
 5. Only then: fix applied to file
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 

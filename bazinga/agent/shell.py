@@ -21,6 +21,7 @@ from typing import Optional, List, Dict
 from .loop import AgentLoop
 from .tools import SearchTool
 from .context import get_project_context, ProjectContext
+from .memory import get_persistent_memory, PersistentMemory, ProjectMemory
 
 
 class SessionMemory:
@@ -101,21 +102,23 @@ class AgentShell:
 
     BANNER = '''
 ╔══════════════════════════════════════════════════════════════╗
-║                    BAZINGA AGENT v0.3                        ║
+║                    BAZINGA AGENT v0.4                        ║
 ║            "The first AI you actually own"                   ║
 ╚══════════════════════════════════════════════════════════════╝
 
   Commands:
     /help     - Show this help
     /tools    - List available tools
-    /project  - Show auto-detected project context
-    /memory   - Show session memory
+    /project  - Show project context
+    /history  - Show persistent memory (across sessions)
+    /memory   - Show current session memory
     /clear    - Clear screen
-    /reset    - Reset session memory
+    /reset    - Reset current session
+    /forget   - Clear all memory for this project
     /verbose  - Toggle verbose mode
     /exit     - Exit agent
 
-  The agent auto-detects your project and remembers session context.
+  The agent remembers across sessions. Your data stays local.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 '''
@@ -124,11 +127,15 @@ class AgentShell:
         self.verbose = verbose
         self.agent = AgentLoop(verbose=verbose)
         self.search_tool = SearchTool()
-        self.memory = SessionMemory()
+        self.session_memory = SessionMemory()  # Current session
         self.running = True
 
         # Auto-detect project context
         self.project_context = get_project_context()
+
+        # Load persistent memory for this project
+        self.persistent = get_persistent_memory()
+        self.project_memory = self.persistent.load_project_memory()
 
     def print_banner(self):
         """Print the welcome banner."""
@@ -155,6 +162,12 @@ class AgentShell:
             if proj.git_branch:
                 print(f"  Branch: {proj.git_branch}")
 
+        # Show persistent memory status
+        if self.project_memory.total_interactions > 0:
+            print(f"  Memory: {self.project_memory.total_interactions} previous interactions")
+            if self.project_memory.last_task:
+                print(f"  Last: {self.project_memory.last_task[:50]}...")
+
         print()
 
     def handle_command(self, cmd: str) -> bool:
@@ -175,18 +188,41 @@ class AgentShell:
 
         if cmd == "/memory":
             print("\n📝 Session Memory:")
-            print(f"   Interactions: {len(self.memory.history)}")
-            print(f"   Files read: {len(self.memory.files_read)}")
-            if self.memory.files_read:
-                for f in self.memory.files_read[-5:]:
+            print(f"   Interactions: {len(self.session_memory.history)}")
+            print(f"   Files read: {len(self.session_memory.files_read)}")
+            if self.session_memory.files_read:
+                for f in self.session_memory.files_read[-5:]:
                     print(f"     - {f}")
-            print(f"   Commands run: {len(self.memory.commands_run)}")
-            if self.memory.history:
+            print(f"   Commands run: {len(self.session_memory.commands_run)}")
+            if self.session_memory.history:
                 print(f"\n   Last interaction:")
-                last = self.memory.history[-1]
+                last = self.session_memory.history[-1]
                 print(f"     You: {last['user'][:60]}...")
                 print(f"     Agent: {last['agent'][:60]}...")
             print()
+            return True
+
+        if cmd == "/history":
+            print("\n🧠 Persistent Memory (across sessions):")
+            print(f"   Project: {self.project_memory.project_name}")
+            print(f"   Total interactions: {self.project_memory.total_interactions}")
+            if self.project_memory.last_task:
+                print(f"   Last task: {self.project_memory.last_task[:80]}...")
+            if self.project_memory.recent_files:
+                print(f"\n   Recent files:")
+                for f in self.project_memory.recent_files[-10:]:
+                    print(f"     - {f}")
+            if self.project_memory.interactions:
+                print(f"\n   Recent interactions:")
+                for interaction in self.project_memory.interactions[-5:]:
+                    print(f"     [{interaction['timestamp'][:10]}] {interaction['user'][:50]}...")
+            print()
+            return True
+
+        if cmd == "/forget":
+            self.persistent.clear_project_memory(self.project_memory.project_id)
+            self.project_memory = self.persistent.load_project_memory()
+            print("🧹 Persistent memory cleared for this project.")
             return True
 
         if cmd == "/project":
@@ -209,12 +245,18 @@ class AgentShell:
             return True
 
         if cmd == "/reset":
-            self.memory.clear()
+            self.session_memory.clear()
             print("Session memory cleared.")
             return True
 
         if cmd == "/clear":
-            os.system('clear' if os.name != 'nt' else 'cls')
+            # SECURITY: Use subprocess instead of os.system
+            import subprocess
+            try:
+                subprocess.run(['clear'] if os.name != 'nt' else ['cls'], shell=False)
+            except (FileNotFoundError, subprocess.SubprocessError):
+                # Fallback: print newlines
+                print("\n" * 50)
             return True
 
         if cmd == "/verbose":
@@ -231,15 +273,20 @@ class AgentShell:
         return False
 
     def get_context(self, user_input: str) -> str:
-        """Get relevant context from project + session memory + RAG."""
+        """Get relevant context from project + session memory + persistent memory + RAG."""
         parts = []
 
         # Add project context (auto-detected)
         if self.project_context.project_type != "unknown":
             parts.append(self.project_context.to_prompt())
 
-        # Add session memory context
-        session_context = self.memory.get_context_summary()
+        # Add persistent memory context (across sessions)
+        persistent_context = self.persistent.get_context_summary(self.project_memory)
+        if persistent_context:
+            parts.append(persistent_context)
+
+        # Add session memory context (current session)
+        session_context = self.session_memory.get_context_summary()
         if session_context:
             parts.append(session_context)
 
@@ -312,9 +359,19 @@ class AgentShell:
                 print()
                 print(f"✨ {step.final_answer}")
 
-        # Save to memory
+        # Save to session memory
         if final_answer:
-            self.memory.add_interaction(user_input, final_answer, tools_used)
+            self.session_memory.add_interaction(user_input, final_answer, tools_used)
+
+            # Save to persistent memory (across sessions)
+            files_touched = [t.split(":", 1)[1] for t in tools_used if t.startswith("read:")]
+            self.persistent.add_interaction(
+                self.project_memory,
+                user_input,
+                final_answer,
+                tools_used,
+                files_touched
+            )
 
         print()
 

@@ -19,7 +19,7 @@ Components:
 - Chain: The immutable ledger
 - Wallet: Identity and signing (not money storage)
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 

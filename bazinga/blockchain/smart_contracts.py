@@ -26,7 +26,7 @@ Example: Knowledge Escrow
 The AI layer (φ-coherence, λG) is what makes these contracts
 ABOUT understanding, not just about math.
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 

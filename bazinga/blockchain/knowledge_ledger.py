@@ -20,7 +20,7 @@ Transaction format:
 The actual knowledge lives in ChromaDB / local KB.
 The blockchain just proves provenance and quality.
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 

@@ -19,7 +19,7 @@ How it works:
 4. Publish topics to DHT
 5. Now ANY peer can query your knowledge!
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 

@@ -19,7 +19,7 @@ Design for TODAY (APIs) and TOMORROW (BAZINGA nodes):
 - Same consensus logic works for both
 - When network grows, just swap participants
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 
