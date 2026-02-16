@@ -12,7 +12,7 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "4.9.3"
+__version__ = "4.9.8"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
 
 # New in v3.4.0: Quantum, ΛG, Tensor modules
@@ -59,12 +59,11 @@ def get_p2p_network():
 
 def get_federated_coordinator():
     """Get the Federated Learning Coordinator."""
-    from .federated import FederatedCoordinator
+    from .federated.federated_coordinator import FederatedCoordinator
     return FederatedCoordinator
 
 def get_federated_node():
     """Get the FederatedNode (complete federated learning node)."""
-    from .federated import FederatedCoordinator
     from .federated.federated_coordinator import FederatedNode
     return FederatedNode
 
@@ -131,3 +130,53 @@ def multi_ai_ask(question: str, verbose: bool = True):
     """
     from .inter_ai import multi_ai_ask_sync
     return multi_ai_ask_sync(question, verbose)
+
+def get_verified_fix_engine():
+    """
+    Get the Blockchain-Verified Fix Engine.
+
+    NEW in v4.9.7: Multiple AIs must agree before applying code changes.
+
+    Usage:
+        from bazinga import get_verified_fix_engine
+        engine = get_verified_fix_engine()
+
+        # Create and apply a verified fix
+        proposal = engine.create_proposal(
+            file_path="utils.py",
+            original_code="except:",
+            proposed_fix="except Exception:",
+            explanation="Replace bare except"
+        )
+        consensus = await engine.get_consensus(proposal)
+        if consensus.consensus_reached:
+            await engine.apply_fix(proposal)
+    """
+    from .agent.verified_fixes import VerifiedFixEngine
+    return VerifiedFixEngine
+
+def verified_code_fix(
+    file_path: str,
+    old_code: str,
+    new_code: str,
+    reason: str,
+    verbose: bool = True
+):
+    """
+    Apply a blockchain-verified code fix (sync version).
+
+    Multiple AIs must reach consensus before the fix is applied.
+    The fix is attested on the Darmiyan blockchain for audit trail.
+
+    Usage:
+        from bazinga import verified_code_fix
+
+        success, msg = verified_code_fix(
+            "utils.py",
+            "except:",
+            "except Exception:",
+            "Replace bare except with specific exception"
+        )
+    """
+    from .agent.verified_fixes import verified_fix_sync
+    return verified_fix_sync(file_path, old_code, new_code, reason, verbose=verbose)

@@ -317,7 +317,10 @@ class CoherenceCalculator:
                 phi_distance = abs(coherence - PHI_INVERSE)
                 coherence += (1 - phi_distance) * 0.1
 
-            return min(1.0, max(0.0, coherence)), response_emb.tolist()
+            # Convert numpy float32 to Python float for JSON serialization
+            coherence_float = float(min(1.0, max(0.0, coherence)))
+            embedding_list = [float(x) for x in response_emb.tolist()]
+            return coherence_float, embedding_list
 
         except Exception:
             return self._heuristic_coherence(response, prompt), None
@@ -395,7 +398,7 @@ class CoherenceCalculator:
                         sim = np.dot(embeddings[i], embeddings[j]) / (
                             np.linalg.norm(embeddings[i]) * np.linalg.norm(embeddings[j])
                         )
-                        similarities.append(sim)
+                        similarities.append(float(sim))  # Convert numpy float32 to Python float
 
                 return float(np.mean(similarities)) if similarities else 0.0
             except Exception:
@@ -1921,10 +1924,10 @@ class InterAIConsensus:
         return {
             'total_queries': total,
             'consensus_reached': reached,
-            'consensus_rate': reached / total,
-            'avg_phi_coherence': avg_coherence,
-            'avg_semantic_similarity': avg_similarity,
-            'triadic_valid_rate': sum(1 for c in self.consensus_history if c.triadic_valid) / total,
+            'consensus_rate': _to_python_float(reached / total),
+            'avg_phi_coherence': _to_python_float(avg_coherence),
+            'avg_semantic_similarity': _to_python_float(avg_similarity),
+            'triadic_valid_rate': _to_python_float(sum(1 for c in self.consensus_history if c.triadic_valid) / total),
             'participants': len(self.participants),
             'embeddings_available': self.coherence_calc.embeddings_available,
         }
