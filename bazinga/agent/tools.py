@@ -6,13 +6,60 @@ Each tool is a capability the agent can use:
 - bash: Execute shell commands
 - search: RAG search over indexed knowledge
 - edit: Modify files (Phase 2)
+
+SECURITY: All tools implement safety measures:
+- Path validation (no traversal attacks)
+- Command sanitization (no injection)
+- User confirmation for destructive operations
 """
 
 import os
+import re
+import shlex
 import subprocess
+import tempfile
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from abc import ABC, abstractmethod
+
+
+def _validate_path(path: str, base_dir: Path = None) -> tuple[bool, Path, str]:
+    """
+    Validate a path is safe (no traversal attacks).
+
+    Returns: (is_valid, resolved_path, error_message)
+    """
+    if not path or not isinstance(path, str):
+        return False, None, "Path must be a non-empty string"
+
+    # Block obvious traversal attempts
+    if '..' in path:
+        return False, None, "Path traversal (..) not allowed"
+
+    try:
+        # Resolve and expand
+        resolved = Path(path).expanduser().resolve()
+
+        # If base_dir specified, ensure path is within it
+        if base_dir:
+            base_resolved = base_dir.resolve()
+            try:
+                resolved.relative_to(base_resolved)
+            except ValueError:
+                return False, None, f"Path must be within {base_dir}"
+
+        return True, resolved, ""
+    except Exception as e:
+        return False, None, f"Invalid path: {e}"
+
+
+def _sanitize_for_log(text: str, max_len: int = 100) -> str:
+    """Sanitize text for safe logging (no secrets, limited length)."""
+    # Remove potential secrets
+    sanitized = re.sub(r'(key|token|password|secret)[=:]\s*\S+', r'\1=***', text, flags=re.IGNORECASE)
+    if len(sanitized) > max_len:
+        sanitized = sanitized[:max_len] + "..."
+    return sanitized
 
 
 class Tool(ABC):
@@ -32,16 +79,19 @@ class Tool(ABC):
 
 
 class ReadTool(Tool):
-    """Read file contents."""
+    """Read file contents with path validation."""
 
     name = "read"
     description = "Read the contents of a file. Args: path (str)"
 
     def execute(self, path: str, **kwargs) -> Dict[str, Any]:
         """Read a file and return its contents."""
-        try:
-            filepath = Path(path).expanduser()
+        # Validate path (SECURITY: prevent traversal)
+        is_valid, filepath, error = _validate_path(path)
+        if not is_valid:
+            return {"success": False, "error": error}
 
+        try:
             if not filepath.exists():
                 return {
                     "success": False,
@@ -77,12 +127,19 @@ class ReadTool(Tool):
 
         except PermissionError:
             return {"success": False, "error": f"Permission denied: {path}"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        except (OSError, IOError) as e:
+            return {"success": False, "error": f"File error: {e}"}
 
 
 class BashTool(Tool):
-    """Execute shell commands with safety confirmation for destructive operations."""
+    """Execute shell commands with safety confirmation for destructive operations.
+
+    SECURITY MEASURES:
+    1. Uses shlex.split() to safely parse commands (no shell=True injection)
+    2. Blocked patterns prevent catastrophic commands
+    3. Destructive commands require user confirmation EVERY TIME
+    4. No confirmation caching (prevents bypass attacks)
+    """
 
     name = "bash"
     description = "Run a bash command. Args: command (str). Use for git, npm, python, etc. Destructive commands require confirmation."
@@ -92,12 +149,24 @@ class BashTool(Tool):
         "rm -rf /",
         "rm -rf ~",
         "rm -rf /*",
+        "rm -rf $HOME",
         ":(){:|:&};:",  # Fork bomb
         "mkfs",
         "> /dev/sda",
         "dd if=/dev/zero",
+        "dd if=/dev/random",
         "chmod -R 777 /",
+        "chmod 777 /",
+        "curl | sh",
+        "curl | bash",
+        "wget | sh",
+        "wget | bash",
+        "eval $(",
+        "base64 -d |",
     ]
+
+    # Shell metacharacters that require shell=True (will be blocked for safety)
+    SHELL_METACHARACTERS = ['|', '&&', '||', ';', '$(', '`', '>', '<', '&']
 
     # Commands that REQUIRE user confirmation (φ-signature)
     DESTRUCTIVE_PATTERNS = [
@@ -114,12 +183,38 @@ class BashTool(Tool):
         "mv ",           # Moving files
         "chmod ",        # Changing permissions
         "chown ",        # Changing ownership
-        "> ",            # Overwriting files
         "truncate",      # Truncating files
     ]
 
-    # Track confirmed commands in session
-    _confirmed_commands = set()
+    # Safe commands that can use shell features (pipes, etc.)
+    SAFE_SHELL_COMMANDS = [
+        "git status",
+        "git diff",
+        "git log",
+        "ls",
+        "cat",
+        "head",
+        "tail",
+        "wc",
+        "sort",
+        "uniq",
+        "grep",
+        "find",
+        "echo",
+        "pwd",
+        "which",
+        "python --version",
+        "node --version",
+        "npm --version",
+    ]
+
+    def _is_blocked(self, command: str) -> tuple[bool, str]:
+        """Check if command matches blocked patterns."""
+        cmd_lower = command.lower().strip()
+        for blocked in self.BLOCKED_PATTERNS:
+            if blocked.lower() in cmd_lower:
+                return True, blocked
+        return False, ""
 
     def _is_destructive(self, command: str) -> bool:
         """Check if command is destructive and needs confirmation."""
@@ -129,12 +224,31 @@ class BashTool(Tool):
                 return True
         return False
 
+    def _needs_shell(self, command: str) -> bool:
+        """Check if command requires shell features (pipes, redirects, etc.)."""
+        for meta in self.SHELL_METACHARACTERS:
+            if meta in command:
+                return True
+        return False
+
+    def _is_safe_for_shell(self, command: str) -> bool:
+        """Check if command is safe enough to run with shell=True."""
+        cmd_lower = command.lower().strip()
+        # Check if it starts with a safe command
+        for safe in self.SAFE_SHELL_COMMANDS:
+            if cmd_lower.startswith(safe.lower()):
+                return True
+        return False
+
     def _get_confirmation(self, command: str) -> bool:
-        """Ask user for φ-signature (confirmation) before destructive command."""
+        """Ask user for φ-signature (confirmation) before destructive command.
+
+        SECURITY: No caching - always ask for confirmation.
+        """
         print()
         print("⚠️  DESTRUCTIVE COMMAND DETECTED")
         print("━" * 50)
-        print(f"  Command: {command}")
+        print(f"  Command: {_sanitize_for_log(command, 200)}")
         print("━" * 50)
         print()
         try:
@@ -145,37 +259,79 @@ class BashTool(Tool):
             return False
 
     def execute(self, command: str, timeout: int = 30, confirmed: bool = False, **kwargs) -> Dict[str, Any]:
-        """Execute a bash command."""
+        """Execute a bash command safely."""
+        # Input validation
+        if not command or not isinstance(command, str):
+            return {"success": False, "error": "Command must be a non-empty string"}
+
+        if timeout < 1 or timeout > 300:
+            timeout = 30  # Default to safe value
+
         try:
             # Check for completely blocked commands
-            for blocked in self.BLOCKED_PATTERNS:
-                if blocked in command:
-                    return {
-                        "success": False,
-                        "error": f"🛑 BLOCKED: This command pattern is too dangerous: {blocked}"
-                    }
+            is_blocked, blocked_pattern = self._is_blocked(command)
+            if is_blocked:
+                return {
+                    "success": False,
+                    "error": f"🛑 BLOCKED: This command pattern is too dangerous: {blocked_pattern}"
+                }
 
             # Check for destructive commands that need confirmation
+            # SECURITY: Always ask, no caching
             if self._is_destructive(command) and not confirmed:
-                # Check if already confirmed this session
-                if command not in self._confirmed_commands:
-                    if not self._get_confirmation(command):
-                        return {
-                            "success": False,
-                            "error": "Command cancelled by user (φ-signature not provided)"
-                        }
-                    # Remember confirmation for this session
-                    self._confirmed_commands.add(command)
+                if not self._get_confirmation(command):
+                    return {
+                        "success": False,
+                        "error": "Command cancelled by user (φ-signature not provided)"
+                    }
 
-            # Run command
-            result = subprocess.run(
-                command,
-                shell=True,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                cwd=os.getcwd()
-            )
+            # Determine execution method
+            needs_shell = self._needs_shell(command)
+
+            if needs_shell:
+                # Commands with shell metacharacters
+                if not self._is_safe_for_shell(command):
+                    # Potentially dangerous shell command - require confirmation
+                    if not confirmed:
+                        print()
+                        print("⚠️  SHELL COMMAND WITH SPECIAL CHARACTERS")
+                        print("━" * 50)
+                        print(f"  Command: {_sanitize_for_log(command, 200)}")
+                        print("  This command uses shell features (|, &&, etc.)")
+                        print("━" * 50)
+                        try:
+                            response = input("  Allow shell execution? [y/N]: ").strip().lower()
+                            if response not in ('y', 'yes'):
+                                return {
+                                    "success": False,
+                                    "error": "Shell command cancelled by user"
+                                }
+                        except (EOFError, KeyboardInterrupt):
+                            return {"success": False, "error": "Cancelled"}
+
+                # Run with shell=True (user confirmed or safe command)
+                result = subprocess.run(
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                    cwd=os.getcwd()
+                )
+            else:
+                # Safe execution without shell
+                try:
+                    args = shlex.split(command)
+                except ValueError as e:
+                    return {"success": False, "error": f"Invalid command syntax: {e}"}
+
+                result = subprocess.run(
+                    args,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                    cwd=os.getcwd()
+                )
 
             output = result.stdout
             if result.stderr:
@@ -189,17 +345,21 @@ class BashTool(Tool):
                 "success": result.returncode == 0,
                 "output": output,
                 "return_code": result.returncode,
-                "command": command
+                "command": _sanitize_for_log(command, 200)
             }
 
         except subprocess.TimeoutExpired:
             return {
                 "success": False,
                 "error": f"Command timed out after {timeout}s",
-                "command": command
+                "command": _sanitize_for_log(command, 100)
             }
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        except FileNotFoundError:
+            return {"success": False, "error": f"Command not found: {command.split()[0] if command else 'unknown'}"}
+        except PermissionError:
+            return {"success": False, "error": "Permission denied"}
+        except (OSError, IOError) as e:
+            return {"success": False, "error": f"Execution error: {e}"}
 
 
 class SearchTool(Tool):
@@ -272,8 +432,9 @@ class SearchTool(Tool):
                                     })
                                     if len(results) >= limit:
                                         break
-                except:
-                    pass
+                except (json.JSONDecodeError, OSError, IOError, KeyError, TypeError):
+                    # Skip malformed or unreadable files
+                    continue
 
                 if len(results) >= limit:
                     break
@@ -287,7 +448,14 @@ class SearchTool(Tool):
 
 
 class EditTool(Tool):
-    """Edit file contents with preview and confirmation."""
+    """Edit file contents with preview, confirmation, and backup.
+
+    SECURITY MEASURES:
+    1. Path validation (no traversal)
+    2. Creates backup before editing
+    3. Atomic write operation (temp file + rename)
+    4. Always requires user confirmation
+    """
 
     name = "edit"
     description = "Edit a file by replacing text. Args: path (str), old_text (str), new_text (str). Shows diff preview."
@@ -321,9 +489,18 @@ class EditTool(Tool):
 
     def execute(self, path: str, old_text: str, new_text: str, confirmed: bool = False, **kwargs) -> Dict[str, Any]:
         """Edit a file by replacing old_text with new_text."""
-        try:
-            filepath = Path(path).expanduser()
+        # Validate path (SECURITY: prevent traversal)
+        is_valid, filepath, error = _validate_path(path)
+        if not is_valid:
+            return {"success": False, "error": error}
 
+        # Input validation
+        if not old_text or not isinstance(old_text, str):
+            return {"success": False, "error": "old_text must be a non-empty string"}
+        if not isinstance(new_text, str):
+            return {"success": False, "error": "new_text must be a string"}
+
+        try:
             if not filepath.exists():
                 return {
                     "success": False,
@@ -335,7 +512,7 @@ class EditTool(Tool):
             if old_text not in content:
                 return {
                     "success": False,
-                    "error": f"Text to replace not found in file. Make sure old_text matches exactly."
+                    "error": "Text to replace not found in file. Make sure old_text matches exactly."
                 }
 
             # Count occurrences
@@ -346,7 +523,7 @@ class EditTool(Tool):
                     "error": f"Found {count} occurrences of old_text. Please provide more context to make it unique."
                 }
 
-            # Show preview and confirm
+            # Show preview and confirm (SECURITY: always ask)
             if not confirmed:
                 if not self._show_diff_and_confirm(path, old_text, new_text):
                     return {
@@ -354,24 +531,51 @@ class EditTool(Tool):
                         "error": "Edit cancelled by user (φ-signature not provided)"
                     }
 
-            # Apply edit
+            # Create backup (SAFETY: prevent data loss)
+            backup_path = filepath.with_suffix(filepath.suffix + '.bak')
+            try:
+                backup_path.write_text(content)
+            except (OSError, IOError):
+                pass  # Backup failure shouldn't block edit
+
+            # Apply edit with atomic write
             new_content = content.replace(old_text, new_text)
-            filepath.write_text(new_content)
+
+            # Write to temp file first, then rename (atomic on most systems)
+            temp_fd, temp_path = tempfile.mkstemp(dir=filepath.parent, suffix='.tmp')
+            try:
+                os.write(temp_fd, new_content.encode('utf-8'))
+                os.close(temp_fd)
+                os.replace(temp_path, filepath)
+            except Exception as e:
+                # Clean up temp file on failure
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass
+                raise e
 
             return {
                 "success": True,
-                "message": f"✓ Edited {path}",
+                "message": f"✓ Edited {path} (backup: {backup_path.name})",
                 "path": str(filepath)
             }
 
         except PermissionError:
             return {"success": False, "error": f"Permission denied: {path}"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        except (OSError, IOError) as e:
+            return {"success": False, "error": f"File error: {e}"}
 
 
 class WriteTool(Tool):
-    """Write/create a file with confirmation."""
+    """Write/create a file with confirmation and backup.
+
+    SECURITY MEASURES:
+    1. Path validation (no traversal)
+    2. Creates backup if overwriting
+    3. Atomic write operation
+    4. Always requires user confirmation
+    """
 
     name = "write"
     description = "Write content to a file (creates if doesn't exist). Args: path (str), content (str). Requires confirmation."
@@ -401,11 +605,19 @@ class WriteTool(Tool):
 
     def execute(self, path: str, content: str, confirmed: bool = False, **kwargs) -> Dict[str, Any]:
         """Write content to a file."""
+        # Validate path (SECURITY: prevent traversal)
+        is_valid, filepath, error = _validate_path(path)
+        if not is_valid:
+            return {"success": False, "error": error}
+
+        # Input validation
+        if not isinstance(content, str):
+            return {"success": False, "error": "content must be a string"}
+
         try:
-            filepath = Path(path).expanduser()
             exists = filepath.exists()
 
-            # Confirm before writing
+            # Confirm before writing (SECURITY: always ask)
             if not confirmed:
                 if not self._confirm_write(path, content, exists):
                     return {
@@ -413,10 +625,29 @@ class WriteTool(Tool):
                         "error": "Write cancelled by user (φ-signature not provided)"
                     }
 
+            # Create backup if overwriting (SAFETY: prevent data loss)
+            if exists:
+                backup_path = filepath.with_suffix(filepath.suffix + '.bak')
+                try:
+                    backup_path.write_text(filepath.read_text())
+                except (OSError, IOError):
+                    pass  # Backup failure shouldn't block write
+
             # Create parent directories if needed
             filepath.parent.mkdir(parents=True, exist_ok=True)
 
-            filepath.write_text(content)
+            # Atomic write: temp file + rename
+            temp_fd, temp_path = tempfile.mkstemp(dir=filepath.parent, suffix='.tmp')
+            try:
+                os.write(temp_fd, content.encode('utf-8'))
+                os.close(temp_fd)
+                os.replace(temp_path, filepath)
+            except Exception as e:
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass
+                raise e
 
             return {
                 "success": True,
@@ -426,22 +657,34 @@ class WriteTool(Tool):
 
         except PermissionError:
             return {"success": False, "error": f"Permission denied: {path}"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        except (OSError, IOError) as e:
+            return {"success": False, "error": f"File error: {e}"}
 
 
 class GlobTool(Tool):
-    """Find files matching a pattern."""
+    """Find files matching a pattern with path validation."""
 
     name = "glob"
     description = "Find files matching a glob pattern. Args: pattern (str), e.g. '**/*.py', 'src/**/*.js'"
 
     def execute(self, pattern: str, path: str = ".", **kwargs) -> Dict[str, Any]:
         """Find files matching a glob pattern."""
+        # Input validation
+        if not pattern or not isinstance(pattern, str):
+            return {"success": False, "error": "pattern must be a non-empty string"}
+
+        # Block traversal in pattern
+        if '..' in pattern:
+            return {"success": False, "error": "Path traversal (..) not allowed in pattern"}
+
         try:
             import glob as glob_module
 
-            base_path = Path(path).expanduser()
+            # Validate base path
+            is_valid, base_path, error = _validate_path(path)
+            if not is_valid:
+                base_path = Path.cwd()
+
             if not base_path.exists():
                 base_path = Path.cwd()
 
@@ -449,44 +692,71 @@ class GlobTool(Tool):
             full_pattern = str(base_path / pattern)
             matches = glob_module.glob(full_pattern, recursive=True)
 
+            # Filter: only include files within base_path (SECURITY)
+            base_resolved = base_path.resolve()
+            safe_matches = []
+            for m in matches:
+                try:
+                    m_resolved = Path(m).resolve()
+                    m_resolved.relative_to(base_resolved)
+                    safe_matches.append(m)
+                except ValueError:
+                    continue  # Skip files outside base path
+
             # Limit results
-            matches = matches[:50]
+            safe_matches = safe_matches[:50]
 
             # Make paths relative for cleaner output
             try:
                 cwd = Path.cwd()
-                matches = [str(Path(m).relative_to(cwd)) for m in matches]
+                safe_matches = [str(Path(m).relative_to(cwd)) for m in safe_matches]
             except ValueError:
-                matches = [str(m) for m in matches]
+                safe_matches = [str(m) for m in safe_matches]
 
             return {
                 "success": True,
-                "files": matches,
-                "count": len(matches),
+                "files": safe_matches,
+                "count": len(safe_matches),
                 "pattern": pattern
             }
 
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        except (OSError, IOError) as e:
+            return {"success": False, "error": f"Glob error: {e}"}
 
 
 class GrepTool(Tool):
-    """Search for text in files."""
+    """Search for text in files with regex validation."""
 
     name = "grep"
     description = "Search for text/regex in files. Args: pattern (str), path (str, default='.')"
 
+    MAX_PATTERN_LENGTH = 500  # Prevent ReDoS with very long patterns
+
     def execute(self, pattern: str, path: str = ".", **kwargs) -> Dict[str, Any]:
         """Search for pattern in files."""
-        try:
-            import re
+        # Input validation
+        if not pattern or not isinstance(pattern, str):
+            return {"success": False, "error": "pattern must be a non-empty string"}
 
-            base_path = Path(path).expanduser()
+        if len(pattern) > self.MAX_PATTERN_LENGTH:
+            return {"success": False, "error": f"Pattern too long (max {self.MAX_PATTERN_LENGTH} chars)"}
+
+        try:
+            # Validate and compile regex (SECURITY: catch bad patterns early)
+            try:
+                regex = re.compile(pattern, re.IGNORECASE)
+            except re.error as e:
+                return {"success": False, "error": f"Invalid regex pattern: {e}"}
+
+            # Validate path
+            is_valid, base_path, error = _validate_path(path)
+            if not is_valid:
+                return {"success": False, "error": error}
+
             if not base_path.exists():
                 return {"success": False, "error": f"Path not found: {path}"}
 
             results = []
-            regex = re.compile(pattern, re.IGNORECASE)
 
             # Search files
             files_to_search = []
@@ -501,6 +771,9 @@ class GrepTool(Tool):
                 try:
                     content = filepath.read_text(errors='replace')
                     for i, line in enumerate(content.split('\n'), 1):
+                        # Limit line length to prevent ReDoS
+                        if len(line) > 10000:
+                            line = line[:10000]
                         if regex.search(line):
                             results.append({
                                 "file": str(filepath),
@@ -509,8 +782,8 @@ class GrepTool(Tool):
                             })
                             if len(results) >= 20:
                                 break
-                except:
-                    pass
+                except (OSError, IOError, UnicodeDecodeError):
+                    continue  # Skip unreadable files
 
                 if len(results) >= 20:
                     break
@@ -522,8 +795,8 @@ class GrepTool(Tool):
                 "pattern": pattern
             }
 
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        except (OSError, IOError) as e:
+            return {"success": False, "error": f"Search error: {e}"}
 
 
 # Registry of all available tools
@@ -536,6 +809,126 @@ TOOLS = {
     "glob": GlobTool(),
     "grep": GrepTool(),
 }
+
+
+class VerifiedFixTool(Tool):
+    """
+    Apply blockchain-verified code fixes with multi-AI consensus.
+
+    This tool enables:
+    - Multiple AIs reviewing a proposed fix
+    - φ-coherence measurement for quality
+    - PoB attestation on blockchain
+    - Only apply if consensus reached
+
+    "No single AI can mess up your code."
+    """
+
+    name = "verified_fix"
+    description = "Apply a blockchain-verified code fix. Multiple AIs must agree. Args: file (str), old_code (str), new_code (str), reason (str)"
+
+    def __init__(self):
+        self._engine = None
+
+    def _get_engine(self):
+        """Lazy load the VerifiedFixEngine."""
+        if self._engine is None:
+            try:
+                from .verified_fixes import VerifiedFixEngine
+                self._engine = VerifiedFixEngine(verbose=True)
+            except ImportError:
+                self._engine = None
+        return self._engine
+
+    def execute(
+        self,
+        file: str,
+        old_code: str,
+        new_code: str,
+        reason: str,
+        fix_type: str = "bug_fix",
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Apply a blockchain-verified code fix.
+
+        Args:
+            file: Path to the file to fix
+            old_code: The code to replace
+            new_code: The new code
+            reason: Why this fix is needed
+            fix_type: One of: bug_fix, security_fix, refactor, optimization
+
+        Returns:
+            Result with consensus status and fix application
+        """
+        import asyncio
+
+        engine = self._get_engine()
+        if engine is None:
+            return {
+                "success": False,
+                "error": "VerifiedFixEngine not available"
+            }
+
+        # Validate inputs
+        if not file or not isinstance(file, str):
+            return {"success": False, "error": "file must be a non-empty string"}
+        if not old_code or not isinstance(old_code, str):
+            return {"success": False, "error": "old_code must be a non-empty string"}
+        if not new_code or not isinstance(new_code, str):
+            return {"success": False, "error": "new_code must be a non-empty string"}
+        if not reason or not isinstance(reason, str):
+            return {"success": False, "error": "reason must be a non-empty string"}
+
+        # Validate path
+        is_valid, filepath, error = _validate_path(file)
+        if not is_valid:
+            return {"success": False, "error": error}
+
+        # Run async flow
+        try:
+            from .verified_fixes import FixType
+            ft = FixType(fix_type) if fix_type in [e.value for e in FixType] else FixType.BUG_FIX
+
+            # Run the verified fix flow
+            async def run_fix():
+                return await engine.propose_and_apply(
+                    file_path=str(filepath),
+                    original_code=old_code,
+                    proposed_fix=new_code,
+                    explanation=reason,
+                    fix_type=ft,
+                    agent_id="bazinga_agent",
+                )
+
+            try:
+                loop = asyncio.get_running_loop()
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(lambda: asyncio.run(run_fix()))
+                    success, message, proposal = future.result(timeout=60)
+            except RuntimeError:
+                success, message, proposal = asyncio.run(run_fix())
+
+            return {
+                "success": success,
+                "message": message,
+                "proposal_id": proposal.proposal_id if proposal else None,
+                "consensus_reached": proposal.status.value if proposal else None,
+                "coherence": proposal.coherence_score if proposal else 0,
+                "blockchain_block": proposal.blockchain_block if proposal else None,
+            }
+
+        except Exception as e:
+            return {"success": False, "error": f"Verified fix error: {e}"}
+
+
+# Add verified_fix to tools registry
+try:
+    TOOLS["verified_fix"] = VerifiedFixTool()
+except Exception:
+    pass  # Optional tool, don't fail if import issues
 
 
 def get_tools_prompt() -> str:

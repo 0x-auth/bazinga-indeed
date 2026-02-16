@@ -899,14 +899,15 @@ async def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  BAZINGA v4.8.1 - Conscious Mirror + Local Model Trust Bonus                 ║
-║  "AI generates understanding. Blockchain proves it. They're not two things." ║
+║  BAZINGA v4.9.8 - Blockchain-Verified Code Fixes + Multi-AI Consensus        ║
+║  "No single AI can mess up your code without consensus."                     ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 QUICK START:
   bazinga --check                     System check (verify setup, diagnose issues)
   bazinga --ask "What is AI?"         Ask any question
   bazinga --multi-ai "question"       Ask 6 AIs for consensus
+  bazinga --agent                     AI agent with verified code fixes (NEW!)
   bazinga --index ~/Documents         Index your files for RAG
   bazinga --local-status              Show local model & trust multiplier
 
@@ -952,6 +953,25 @@ LOCAL MODEL TRUST BONUS (NEW in v4.8.1)
                           When to run 'ollama serve':
                             REQUIRED for: --ask, --query-network, --publish, interactive
                             NOT NEEDED:   --version, --help, --proof, --chain, --wallet
+
+═══════════════════════════════════════════════════════════════════════════════
+BLOCKCHAIN-VERIFIED CODE FIXES (NEW in v4.9.7)
+═══════════════════════════════════════════════════════════════════════════════
+  --agent                 AI agent with blockchain-verified code fixes
+
+                          The agent now has a 'verified_fix' tool:
+                            • Multiple AIs must agree before applying changes
+                            • φ-coherence measurement for fix quality
+                            • PoB attestation on blockchain for audit trail
+                            • Creates backups before applying any fix
+
+                          "No single AI can mess up your code without consensus."
+
+                          Python API:
+                            from bazinga import verified_code_fix
+                            success, msg = verified_code_fix(
+                                "file.py", "old_code", "new_code", "reason"
+                            )
 
 ═══════════════════════════════════════════════════════════════════════════════
 INTER-AI CONSENSUS + CONSCIOUSNESS SCALING (v4.8.0)
