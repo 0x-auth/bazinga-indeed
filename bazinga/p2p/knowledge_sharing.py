@@ -15,7 +15,7 @@ How it works:
 
 "Knowledge flows through the mesh, but lives at home."
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 

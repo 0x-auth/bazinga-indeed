@@ -13,7 +13,7 @@ This is the key piece for achieving true decentralization:
 
 "You cannot buy understanding - but you can earn trust by running locally."
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 
