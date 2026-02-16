@@ -14,7 +14,7 @@ Flow:
 
 "The network learns collectively. No single point of control."
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 

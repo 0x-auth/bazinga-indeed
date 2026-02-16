@@ -14,7 +14,7 @@ Flow:
 
 "Intelligence distributed, not controlled."
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 

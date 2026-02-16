@@ -18,7 +18,7 @@ Components:
 - FederatedAggregator: φ-weighted collective learning
 - CollectiveLearner: Main interface
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 

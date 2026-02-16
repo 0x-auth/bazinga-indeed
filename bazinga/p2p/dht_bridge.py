@@ -11,7 +11,7 @@ Integrates the Kademlia DHT with:
 
 "Bootstrap from the cloud, graduate to P2P."
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 
