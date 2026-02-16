@@ -12,7 +12,7 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "4.9.12"
+__version__ = "4.9.13"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
 
 # New in v3.4.0: Quantum, ΛG, Tensor modules
@@ -180,3 +180,70 @@ def verified_code_fix(
     """
     from .agent.verified_fixes import verified_fix_sync
     return verified_fix_sync(file_path, old_code, new_code, reason, verbose=verbose)
+
+# ============================================================
+# DARMIYAN ATTESTATION SERVICE (PAID)
+# "Prove you knew it, before they knew it"
+# ============================================================
+
+def get_attestation_service():
+    """
+    Get the Darmiyan Attestation Service.
+
+    Blockchain-verified knowledge attestation for:
+    - Prior art / IP protection
+    - Research timestamp proof
+    - Code authorship verification
+
+    BAZINGA CLI = FREE
+    Attestation = PAID (₹99-999)
+    """
+    from .attestation_service import DarmiyanAttestationService
+    return DarmiyanAttestationService()
+
+def attest_knowledge(content: str, email: str, tier: str = "standard"):
+    """
+    Create a knowledge attestation (step 1: get receipt, then pay).
+
+    Usage:
+        from bazinga import attest_knowledge
+
+        receipt = attest_knowledge(
+            content="My research finding or code or idea...",
+            email="me@example.com",
+            tier="standard"  # basic=₹99, standard=₹299, premium=₹999
+        )
+
+        print(f"Attestation ID: {receipt.attestation_id}")
+        print(f"Pay and email receipt to bits.abhi@gmail.com")
+    """
+    from .attestation_service import attest_knowledge as _attest
+    return _attest(content, email, tier)
+
+def verify_attestation(attestation_id: str):
+    """
+    Verify an attestation exists on chain (FREE).
+
+    Usage:
+        from bazinga import verify_attestation
+
+        proof = verify_attestation("φATT_ABC123XYZ789")
+        if proof:
+            print(f"Verified! Timestamp: {proof.timestamp}")
+            print(f"Block: {proof.block_number}")
+    """
+    from .attestation_service import verify_attestation as _verify
+    return _verify(attestation_id)
+
+def get_attestation_certificate(attestation_id: str):
+    """
+    Get a printable certificate for an attestation.
+
+    Usage:
+        from bazinga import get_attestation_certificate
+
+        cert = get_attestation_certificate("φATT_ABC123XYZ789")
+        print(cert)  # Printable certificate
+    """
+    from .attestation_service import get_certificate
+    return get_certificate(attestation_id)
