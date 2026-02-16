@@ -1215,7 +1215,11 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     parser.add_argument('--wallet', action='store_true',
                         help='Show wallet/identity info (not money!)')
     parser.add_argument('--attest', type=str, metavar='CONTENT',
-                        help='Attest knowledge to the chain')
+                        help='Attest knowledge to blockchain (paid service: ₹99-999)')
+    parser.add_argument('--verify', type=str, metavar='ATTESTATION_ID',
+                        help='Verify an attestation (FREE) - check if knowledge was attested')
+    parser.add_argument('--attest-pricing', action='store_true',
+                        help='Show attestation pricing tiers')
     parser.add_argument('--publish', action='store_true',
                         help='Publish indexed knowledge topics to DHT (makes knowledge discoverable)')
     parser.add_argument('--query-network', type=str, metavar='QUESTION',
@@ -2221,31 +2225,126 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
         print()
         return
 
-    # Handle --attest (knowledge attestation)
+    # Handle --attest-pricing
+    if args.attest_pricing:
+        print(f"\n  DARMIYAN ATTESTATION SERVICE - PRICING")
+        print(f"  'Prove you knew it, before they knew it'")
+        print(f"=" * 55)
+        print()
+        print(f"  ┌─────────────┬────────┬─────────────────────────────────┐")
+        print(f"  │ Tier        │ Price  │ Features                        │")
+        print(f"  ├─────────────┼────────┼─────────────────────────────────┤")
+        print(f"  │ Basic       │ ₹99    │ Timestamp + Hash + Basic Proof  │")
+        print(f"  │ Standard    │ ₹299   │ + φ-Coherence + PoB + Cert      │")
+        print(f"  │ Premium     │ ₹999   │ + Multi-AI Consensus + Legal    │")
+        print(f"  └─────────────┴────────┴─────────────────────────────────┘")
+        print()
+        print(f"  Use cases:")
+        print(f"    • Prior art / IP protection")
+        print(f"    • Research timestamp proof")
+        print(f"    • Code authorship verification")
+        print(f"    • Idea attestation before sharing")
+        print()
+        print(f"  Usage: bazinga --attest \"Your content here\"")
+        print(f"  Verify: bazinga --verify φATT_XXXXXXXXXXXX (FREE)")
+        print()
+        return
+
+    # Handle --attest (knowledge attestation - PAID SERVICE)
     if args.attest:
-        print(f"\n  KNOWLEDGE ATTESTATION")
-        print(f"=" * 50)
+        print(f"\n  DARMIYAN ATTESTATION SERVICE")
+        print(f"  'Prove you knew it, before they knew it'")
+        print(f"=" * 55)
 
-        from .blockchain import create_chain, create_wallet
-        chain = create_chain()
-        wallet = create_wallet()
+        from .attestation_service import get_attestation_service, ATTESTATION_TIERS
 
-        # Add attestation
-        tx_hash = chain.add_knowledge(
+        service = get_attestation_service()
+
+        # Get email
+        print()
+        email = input("  Your email (for receipt): ").strip()
+        if not email or '@' not in email:
+            print("  Invalid email. Attestation cancelled.")
+            return
+
+        # Choose tier
+        print()
+        print("  Pricing tiers:")
+        print("    1. Basic   - ₹99  (timestamp + hash)")
+        print("    2. Standard - ₹299 (+ φ-coherence + certificate)")
+        print("    3. Premium  - ₹999 (+ multi-AI consensus)")
+        print()
+        tier_choice = input("  Choose tier [1/2/3] (default: 2): ").strip() or "2"
+        tier_map = {"1": "basic", "2": "standard", "3": "premium"}
+        tier = tier_map.get(tier_choice, "standard")
+        price = ATTESTATION_TIERS[tier]["price_inr"]
+
+        # Create attestation
+        receipt = service.create_attestation(
             content=args.attest,
-            summary=args.attest[:50] + "..." if len(args.attest) > 50 else args.attest,
-            sender=wallet.node_id,
-            confidence=0.9,
-            source_type="human",
+            email=email,
+            tier=tier
         )
 
-        print(f"\n  Knowledge added to pending pool:")
-        print(f"    Content: {args.attest[:60]}{'...' if len(args.attest) > 60 else ''}")
-        print(f"    TX Hash: {tx_hash[:24]}...")
-        print(f"    Sender: {wallet.node_id}")
         print()
-        print(f"  Run 'bazinga --mine' to include in a block.")
+        print(f"  ✓ Attestation Created!")
+        print(f"=" * 55)
+        print(f"  Attestation ID:  {receipt.attestation_id}")
+        print(f"  Content Hash:    {receipt.content_hash[:32]}...")
+        print(f"  Timestamp:       {receipt.timestamp}")
+        print(f"  φ-Coherence:     {receipt.phi_coherence:.4f}")
+        print(f"  Tier:            {tier.upper()} (₹{price})")
+        print(f"  Status:          PENDING PAYMENT")
         print()
+        print(f"  ┌─────────────────────────────────────────────────┐")
+        print(f"  │  COMPLETE YOUR ATTESTATION                     │")
+        print(f"  │                                                 │")
+        print(f"  │  1. Pay ₹{price:<4} at: razorpay.me/@bitsabhi    │")
+        print(f"  │  2. Email receipt to: bits.abhi@gmail.com      │")
+        print(f"  │  3. Include: {receipt.attestation_id}        │")
+        print(f"  │                                                 │")
+        print(f"  │  Your attestation will be written to chain     │")
+        print(f"  │  within 24 hours of payment confirmation.      │")
+        print(f"  └─────────────────────────────────────────────────┘")
+        print()
+        print(f"  Verify later: bazinga --verify {receipt.attestation_id}")
+        print()
+        return
+
+    # Handle --verify (verify attestation - FREE)
+    if args.verify:
+        print(f"\n  ATTESTATION VERIFICATION")
+        print(f"=" * 55)
+
+        from .attestation_service import get_attestation_service
+
+        service = get_attestation_service()
+        proof = service.verify_attestation(args.verify)
+
+        if not proof:
+            print(f"\n  ✗ Attestation not found or not yet confirmed.")
+            print(f"    ID: {args.verify}")
+            print()
+            print(f"  Possible reasons:")
+            print(f"    • Payment not yet confirmed")
+            print(f"    • Invalid attestation ID")
+            print(f"    • Attestation not yet written to chain")
+            print()
+            return
+
+        # Show certificate
+        cert = service.get_certificate(args.verify)
+        if cert:
+            print(cert)
+        else:
+            print(f"\n  ✓ Attestation VERIFIED!")
+            print(f"=" * 55)
+            print(f"  ID:           {proof.attestation_id}")
+            print(f"  Content Hash: {proof.content_hash[:32]}...")
+            print(f"  Timestamp:    {proof.timestamp}")
+            print(f"  Block:        #{proof.block_number}")
+            print(f"  Chain Valid:  {'✓ YES' if proof.chain_valid else '✗ NO'}")
+            print()
         return
 
     # Handle --publish (distributed knowledge sharing)
