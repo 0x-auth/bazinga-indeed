@@ -1,8 +1,8 @@
-# BAZINGA Usage Guide v4.8.24
+# BAZINGA Usage Guide v4.9.8
 
 **Complete guide to BAZINGA - The first AI you actually own**
 
-> "Run local, earn trust, own your intelligence."
+> "No single AI can mess up your code without consensus."
 
 ---
 
@@ -10,18 +10,20 @@
 
 1. [Installation](#installation)
 2. [Quick Start](#quick-start)
-3. [System Check](#system-check-new-in-v4824)
-4. [Local Model Setup (Recommended)](#local-model-setup-recommended)
-5. [API Keys Setup](#api-keys-setup)
-6. [Command Reference](#command-reference)
-7. [Public Knowledge Indexing](#public-knowledge-indexing-new-in-v4822)
-8. [Interactive Mode](#interactive-mode)
-9. [Inter-AI Consensus](#inter-ai-consensus)
-10. [P2P Network](#p2p-network)
-11. [Blockchain Commands](#blockchain-commands)
-12. [Consciousness Scaling Law](#consciousness-scaling-law)
-13. [Architecture](#architecture)
-14. [Troubleshooting](#troubleshooting)
+3. [Blockchain-Verified Code Fixes](#blockchain-verified-code-fixes-new-in-v497) ⭐ NEW
+4. [Agent Mode](#agent-mode)
+5. [System Check](#system-check)
+6. [Local Model Setup (Recommended)](#local-model-setup-recommended)
+7. [API Keys Setup](#api-keys-setup)
+8. [Command Reference](#command-reference)
+9. [Public Knowledge Indexing](#public-knowledge-indexing)
+10. [Interactive Mode](#interactive-mode)
+11. [Inter-AI Consensus](#inter-ai-consensus)
+12. [P2P Network](#p2p-network)
+13. [Blockchain Commands](#blockchain-commands)
+14. [Consciousness Scaling Law](#consciousness-scaling-law)
+15. [Architecture](#architecture)
+16. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -66,7 +68,188 @@ bazinga
 
 ---
 
-## System Check (NEW in v4.8.24)
+## Blockchain-Verified Code Fixes (NEW in v4.9.7)
+
+**The breakthrough feature:** Multiple AIs must reach consensus before any code changes are applied.
+
+### Why This Matters
+
+| Problem | Solution |
+|---------|----------|
+| Single AI makes mistakes | Triadic consensus (≥3 AIs must agree) |
+| No quality gate | φ-coherence measurement (≥0.45 required) |
+| No audit trail | PoB attestation on blockchain |
+| Accidental destructive changes | Automatic backups before any edit |
+
+### Using the Agent with Verified Fixes
+
+```bash
+bazinga --agent
+```
+
+The agent now has a `verified_fix` tool:
+
+```
+bazinga> Fix the bare except in utils.py
+
+📝 Created fix proposal: 957534c621115ba2
+🔍 Requesting consensus from available providers...
+
+  groq_llama-3.1: ✅ APPROVE (φ=0.76)
+    "This fix is correct. Replacing bare except with specific exception..."
+  gemini_gemini-2: ✅ APPROVE (φ=0.71)
+    "APPROVE. The change improves error handling..."
+  ollama_llama3.2: ✅ APPROVE (φ=0.68)
+    "The fix is safe and complete..."
+
+✅ Consensus reached! φ=0.72, approval=100%
+⛓️ Recorded on chain: block 42
+✅ Fix applied to utils.py (backup: utils.py.bak)
+```
+
+### Python API
+
+```python
+from bazinga import verified_code_fix
+
+# Simple API
+success, msg = verified_code_fix(
+    file_path="utils.py",
+    old_code="except:",
+    new_code="except Exception as e:",
+    reason="Replace bare except for better error handling"
+)
+
+print(msg)
+# ✅ Fix applied to utils.py (backup: utils.py.bak)
+#    Chain attestation: block 42
+```
+
+### Advanced Usage
+
+```python
+from bazinga.agent import VerifiedFixEngine, FixType
+import asyncio
+
+async def apply_security_fix():
+    engine = VerifiedFixEngine(verbose=True)
+
+    # Create proposal
+    proposal = engine.create_proposal(
+        file_path="auth.py",
+        original_code="password = input()",
+        proposed_fix="password = getpass.getpass()",
+        explanation="Use getpass for secure password input",
+        fix_type=FixType.SECURITY_FIX,
+    )
+
+    # Get multi-AI consensus
+    verdict = await engine.get_consensus(proposal)
+
+    if verdict.consensus_reached:
+        # Attest on blockchain
+        await engine.attest_on_chain(proposal)
+
+        # Apply the fix
+        success, msg = await engine.apply_fix(proposal)
+        print(msg)
+    else:
+        print(f"Consensus not reached: {verdict.synthesized_verdict}")
+
+asyncio.run(apply_security_fix())
+```
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. AGENT PROPOSES FIX                                       │
+│    CodeFixProposal: file, old_code, new_code, reason        │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 2. MULTI-AI CONSENSUS (InterAIConsensus)                    │
+│    • Query Groq, Gemini, Claude, Ollama                     │
+│    • Each AI reviews: "Is this fix correct?"                │
+│    • Triadic requirement: ≥3 AIs with φ-coherence ≥ 0.45   │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 3. PROOF-OF-BOUNDARY ATTESTATION                            │
+│    • Generate PoB proof (P/G ≈ φ⁴)                          │
+│    • Record on DarmiyanChain                                │
+│    • Immutable audit trail                                  │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 4. APPLY FIX (only if consensus reached!)                   │
+│    • Create backup (file.py.bak)                            │
+│    • Atomic write (temp file + rename)                      │
+│    • Update trust oracle                                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Requirements for Full Consensus
+
+For triadic consensus, you need at least 3 AI providers responding:
+
+1. **Groq** - Set `GROQ_API_KEY` (free, 14,400 req/day)
+2. **Ollama** - Run `ollama serve` locally
+3. **Gemini** - Set `GOOGLE_API_KEY` (free tier)
+
+Or index documents for the Darmiyan chain:
+```bash
+bazinga --index ~/your-codebase
+```
+
+---
+
+## Agent Mode
+
+The BAZINGA agent is a free, local alternative to Claude Code.
+
+```bash
+bazinga --agent              # Start interactive shell
+bazinga --agent "do X"       # One-shot task
+```
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `read` | Read file contents |
+| `edit` | Edit files (find & replace) |
+| `write` | Write/create files |
+| `bash` | Run shell commands |
+| `glob` | Find files by pattern |
+| `grep` | Search text in files |
+| `search` | RAG search indexed knowledge |
+| `verified_fix` | **Blockchain-verified code fixes** (NEW!) |
+
+### Agent Shell Commands
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Show help |
+| `/tools` | List available tools |
+| `/project` | Show auto-detected project context |
+| `/memory` | Show current session memory |
+| `/history` | Show persistent memory (across sessions) |
+| `/verbose` | Toggle verbose mode |
+| `/exit` | Exit agent |
+
+### Session & Persistent Memory
+
+The agent remembers context:
+- **Session memory**: Current conversation
+- **Persistent memory**: Across sessions (stored in `~/.bazinga/memory/`)
+
+---
+
+## System Check
 
 Run `bazinga --check` to diagnose your setup:
 
@@ -684,39 +867,119 @@ bazinga --consciousness 5
 
 ## Architecture
 
+### High-Level Overview
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      BAZINGA v4.8.23                            │
+│                      BAZINGA v4.9.8                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  YOUR QUESTION                                                  │
+│  YOUR REQUEST (question, code fix, task)                        │
 │       │                                                         │
 │       ▼                                                         │
 │  ┌─────────────────────────────────────────────────────────┐   │
+│  │  INTELLIGENCE LAYERS                                     │   │
 │  │  Layer 0: Memory     → Learned patterns (instant)       │   │
 │  │  Layer 1: Quantum    → Superposition processing         │   │
 │  │  Layer 2: λG Check   → V.A.C. emergence                 │   │
 │  │  Layer 3: RAG        → Your indexed docs                │   │
 │  │  Layer 4: Local LLM  → Ollama (φ trust bonus!)          │   │
-│  │  Layer 5: Groq       → FREE cloud API                   │   │
-│  │  Layer 6: Gemini     → FREE cloud API                   │   │
-│  │  Layer 7: Claude     → Paid fallback                    │   │
+│  │  Layer 5: Cloud APIs → Groq/Gemini/Claude               │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │       │                                                         │
 │       ▼                                                         │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Darmiyan Network: Proof-of-Boundary Consensus          │   │
+│  │  BLOCKCHAIN-VERIFIED FIXES (NEW in v4.9.7)              │   │
 │  │  ┌─────────┐    ┌─────────┐    ┌─────────┐             │   │
-│  │  │ Node A  │────│ Node B  │────│ Node C  │  (Triadic)  │   │
-│  │  │ P/G≈φ⁴  │    │ P/G≈φ⁴  │    │ P/G≈φ⁴  │             │   │
-│  │  │ φ trust │    │ φ trust │    │ φ trust │             │   │
+│  │  │ Groq    │    │ Gemini  │    │ Ollama  │  (Triadic)  │   │
+│  │  │ φ=0.76  │────│ φ=0.71  │────│ φ=0.68  │  Consensus  │   │
+│  │  │ APPROVE │    │ APPROVE │    │ APPROVE │             │   │
 │  │  └─────────┘    └─────────┘    └─────────┘             │   │
+│  │       │              │              │                   │   │
+│  │       └──────────────┼──────────────┘                   │   │
+│  │                      ▼                                   │   │
+│  │              PoB Attestation → Chain                    │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │       │                                                         │
 │       ▼                                                         │
-│  YOUR ANSWER (never fails, always responds)                     │
+│  YOUR ANSWER / VERIFIED CODE FIX (with audit trail)             │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+### Module Structure
+
+```
+bazinga/
+├── __init__.py              # Main exports, version
+├── cli.py                   # Command-line interface
+│
+├── agent/                   # AI Agent (like Claude Code)
+│   ├── loop.py             # ReAct agent loop
+│   ├── tools.py            # read, edit, bash, glob, grep, verified_fix
+│   ├── shell.py            # Interactive REPL
+│   ├── verified_fixes.py   # ⭐ NEW: Blockchain-verified code fixes
+│   ├── memory.py           # Session & persistent memory
+│   └── context.py          # Auto-detect project context
+│
+├── inter_ai.py             # Multi-AI consensus (φ-coherence)
+│
+├── blockchain/             # Darmiyan Chain
+│   ├── chain.py           # Blockchain implementation
+│   ├── knowledge_ledger.py # Knowledge attestations
+│   └── trust_oracle.py    # Trust scoring
+│
+├── darmiyan/               # Proof-of-Boundary
+│   ├── protocol.py        # PoB v2 (content-addressed)
+│   └── consensus.py       # Triadic consensus
+│
+├── decentralized/          # P2P & Governance
+│   ├── consensus.py       # DAO voting
+│   └── p2p.py            # Kademlia DHT
+│
+├── federated/              # Federated Learning
+│   └── federated_coordinator.py
+│
+└── inference/              # Model serving
+    └── local_model.py     # Ollama/llama-cpp
+```
+
+### Data Flow for Verified Fixes
+
+```
+1. User: "Fix the bug in auth.py"
+        │
+        ▼
+2. Agent reads auth.py, analyzes with LLM
+        │
+        ▼
+3. Agent creates CodeFixProposal
+   ┌────────────────────────────┐
+   │ file: auth.py              │
+   │ old:  password = input()   │
+   │ new:  getpass.getpass()    │
+   │ reason: Security fix       │
+   └────────────────────────────┘
+        │
+        ▼
+4. InterAIConsensus.ask() queries 3+ AIs
+   ┌─────────────────────────────────────┐
+   │ Groq:   "APPROVE" φ=0.76           │
+   │ Gemini: "APPROVE" φ=0.71           │
+   │ Ollama: "APPROVE" φ=0.68           │
+   └─────────────────────────────────────┘
+        │
+        ▼
+5. Consensus reached? (triadic + φ ≥ 0.45)
+   ├── NO  → Reject fix, explain why
+   └── YES ─┐
+            ▼
+6. Generate PoB proof (P/G ≈ φ⁴)
+   Record on DarmiyanChain
+            │
+            ▼
+7. Apply fix with backup
+   Return success + chain reference
 ```
 
 ---
