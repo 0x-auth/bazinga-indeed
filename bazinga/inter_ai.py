@@ -833,17 +833,43 @@ Provide your refined perspective, noting where you agree or disagree."""
 class OllamaParticipant(ConsensusParticipant):
     """Ollama local model participant (FREE - runs locally)."""
 
-    def __init__(self, model: str = "llama3.2", host: str = "http://localhost:11434"):
+    def __init__(self, model: str = None, host: str = "http://localhost:11434"):
         self.host = host
+        # Auto-detect model if not specified
+        detected_model = model or self._detect_model()
         super().__init__(
-            participant_id=f"ollama_{model[:8]}",
+            participant_id=f"ollama_{detected_model[:8] if detected_model else 'unknown'}",
             participant_type=ParticipantType.OLLAMA,
-            model=model,
+            model=detected_model or "llama3",
         )
         self.coherence_calc = CoherenceCalculator()
         self.pob_gen = PoBGenerator()
         # Check availability
         self.available = self._check_available()
+
+    def _detect_model(self) -> Optional[str]:
+        """Auto-detect available Ollama model."""
+        if not HTTPX_AVAILABLE:
+            return None
+        try:
+            import httpx
+            with httpx.Client(timeout=2.0) as client:
+                response = client.get(f"{self.host}/api/tags")
+                if response.status_code == 200:
+                    data = response.json()
+                    models = data.get("models", [])
+                    if models:
+                        # Prefer llama3, then any available model
+                        for m in models:
+                            name = m.get("name", "")
+                            if "llama3" in name.lower():
+                                return name.split(":")[0] if ":" in name else name
+                        # Return first available model
+                        first_model = models[0].get("name", "")
+                        return first_model.split(":")[0] if ":" in first_model else first_model
+        except Exception:
+            pass
+        return None
 
     def _check_available(self) -> bool:
         """Check if Ollama is running."""
@@ -1321,8 +1347,12 @@ class BlockchainParticipant(ConsensusParticipant):
 
         try:
             # Try to get local RAG
-            from .ai import RealAI
+            from .cli import _get_real_ai
+            RealAI = _get_real_ai()
             self.rag = RealAI()
+            # Check if it's a stub (error case)
+            if hasattr(self.rag, 'error') and self.rag.error:
+                self.rag = None
         except Exception:
             pass
 
@@ -1380,14 +1410,83 @@ class BlockchainParticipant(ConsensusParticipant):
             except Exception:
                 pass
 
-        # 3. Try local RAG
+        # 3. Try chain's search_knowledge
+        if not content and self.chain:
+            try:
+                results = self.chain.search_knowledge(prompt, limit=5)
+                if results:
+                    context_parts = []
+                    for r in results[:3]:
+                        summary = r.get('summary', '')
+                        if summary and len(summary) > 20:
+                            context_parts.append(summary[:400])
+                    if context_parts:
+                        content = f"[Chain Knowledge]\n" + "\n---\n".join(context_parts)
+                        source = "chain_search"
+            except Exception:
+                pass
+
+        # 4. Try local RAG
         if not content and self.rag:
             try:
-                results = self.rag.search(prompt, limit=3)
-                if results and results[0].similarity > 0.4:
-                    context_parts = [r.chunk.content[:300] for r in results[:2]]
-                    content = f"[Local Knowledge]\n" + "\n---\n".join(context_parts)
-                    source = "local_rag"
+                results = self.rag.search(prompt, n_results=5)
+                if results:
+                    context_parts = []
+                    for r in results[:3]:
+                        # Handle different result formats
+                        if isinstance(r, dict):
+                            text = r.get('text', r.get('content', r.get('document', str(r))))
+                        elif hasattr(r, 'chunk'):
+                            text = r.chunk.content if hasattr(r.chunk, 'content') else str(r.chunk)
+                        elif hasattr(r, 'content'):
+                            text = r.content
+                        else:
+                            text = str(r)
+                        if text and len(text) > 20:
+                            context_parts.append(text[:400])
+                    if context_parts:
+                        content = f"[Local Knowledge]\n" + "\n---\n".join(context_parts)
+                        source = "local_rag"
+            except Exception:
+                pass
+
+        # 5. Try JSON knowledge fallback (same as SearchTool)
+        if not content:
+            try:
+                import json
+                import re
+                from pathlib import Path
+                knowledge_dir = Path.home() / ".bazinga" / "knowledge"
+                # Extract words, handling punctuation and hyphens
+                raw_words = re.findall(r'[a-zA-Z]+', prompt.lower())
+                # Remove common words
+                stop_words = {'the', 'a', 'an', 'is', 'are', 'was', 'were', 'in', 'on', 'at', 'to', 'for', 'of', 'and', 'or', 'what', 'how', 'why', 'explain', 'can', 'you', 'me', 'it', 'this', 'that'}
+                query_words = [w for w in raw_words if w not in stop_words and len(w) > 2]
+                context_parts = []
+
+                if knowledge_dir.exists() and query_words:
+                    for json_file in list(knowledge_dir.rglob("*.json"))[:15]:
+                        try:
+                            with open(json_file) as f:
+                                data = json.load(f)
+                                if isinstance(data, list):
+                                    for chunk in data[:100]:
+                                        text = chunk.get('text', '') if isinstance(chunk, dict) else str(chunk)
+                                        text_lower = text.lower()
+                                        # Match if ANY query word is found
+                                        matches = sum(1 for w in query_words if w in text_lower)
+                                        if matches >= 1:  # At least one word match
+                                            context_parts.append(text[:400])
+                                            if len(context_parts) >= 3:
+                                                break
+                        except (json.JSONDecodeError, OSError):
+                            continue
+                        if len(context_parts) >= 3:
+                            break
+
+                if context_parts:
+                    content = f"[Indexed Knowledge]\n" + "\n---\n".join(context_parts)
+                    source = "json_knowledge"
             except Exception:
                 pass
 
