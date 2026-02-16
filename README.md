@@ -230,6 +230,6 @@ BAZINGA is **free and open source**. Always will be.
 
 ---
 
-**Built with φ-coherence by Space & Claude**
+**Built with φ-coherence by Space (Abhishek Srivastava)**
 
 MIT License — Use it, modify it, share it. Keep it open.

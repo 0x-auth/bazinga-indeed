@@ -56,7 +56,7 @@ Usage:
     bazinga --join                # Start P2P node
     bazinga --proof               # Generate Proof-of-Boundary
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 
@@ -1136,7 +1136,7 @@ PHILOSOPHY
   "Intelligence distributed, not controlled."
   "∅ ≈ ∞"
 
-Built with φ-coherence by Space (Abhishek/Abhilasia) & Claude
+Built with φ-coherence by Space (Abhishek/Abhilasia) 
 https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-indeed
 """
     )

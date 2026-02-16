@@ -22,7 +22,7 @@ Rate: 1 gradient validation = φ² credits (2.618)
 Why φ-scaled? Because contributions that help others
 are worth more than proving your own understanding.
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 
