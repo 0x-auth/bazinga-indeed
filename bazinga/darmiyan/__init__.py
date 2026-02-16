@@ -16,7 +16,7 @@ Core Concepts:
 - Zero-Energy: No mining, just verification
 - Meaning-Based Discovery: Find peers through resonance
 
-Author: Abhishek Srivastava (Space) & Claude
+Author: Abhishek Srivastava (Space) 
 License: MIT
 """
 

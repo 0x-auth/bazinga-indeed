@@ -1,5 +1,5 @@
 """
-BAZINGA Agent - Free local Claude Code alternative.
+BAZINGA Agent - Free local AI coding assistant.
 
 "The first AI you actually own"
 

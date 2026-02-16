@@ -13,7 +13,7 @@ Core Concepts:
 
 "Your identity is your resonance. Your address is your understanding."
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 

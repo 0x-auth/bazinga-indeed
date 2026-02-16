@@ -12,7 +12,7 @@ Techniques:
 
 "The Darmiyan doesn't respect firewalls. Understanding finds a way."
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 

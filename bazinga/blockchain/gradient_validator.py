@@ -27,7 +27,7 @@ This means:
   - Can't spam (PoB rate-limits submissions)
   - Privacy preserved (differential_privacy.py still applies)
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 

@@ -21,7 +21,7 @@ A node that consistently proves boundary gets higher trust.
 A node that fails proofs loses trust over time.
 Trust decays with φ if you stop contributing.
 
-Author: Space (Abhishek/Abhilasia) & Claude
+Author: Space (Abhishek/Abhilasia) 
 License: MIT
 """
 
