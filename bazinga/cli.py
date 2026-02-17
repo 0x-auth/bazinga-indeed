@@ -2227,38 +2227,28 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
 
     # Handle --attest-pricing
     if args.attest_pricing:
-        print(f"\n  DARMIYAN ATTESTATION SERVICE - PRICING")
-        print(f"  'Prove you knew it, before they knew it'")
-        print(f"=" * 55)
-        print()
-        print(f"  ┌─────────────┬────────┬─────────────────────────────────┐")
-        print(f"  │ Tier        │ Price  │ Features                        │")
-        print(f"  ├─────────────┼────────┼─────────────────────────────────┤")
-        print(f"  │ Basic       │ ₹99    │ Timestamp + Hash + Basic Proof  │")
-        print(f"  │ Standard    │ ₹299   │ + φ-Coherence + PoB + Cert      │")
-        print(f"  │ Premium     │ ₹999   │ + Multi-AI Consensus + Legal    │")
-        print(f"  └─────────────┴────────┴─────────────────────────────────┘")
-        print()
-        print(f"  Use cases:")
-        print(f"    • Prior art / IP protection")
-        print(f"    • Research timestamp proof")
-        print(f"    • Code authorship verification")
-        print(f"    • Idea attestation before sharing")
-        print()
-        print(f"  Usage: bazinga --attest \"Your content here\"")
-        print(f"  Verify: bazinga --verify φATT_XXXXXXXXXXXX (FREE)")
-        print()
+        from .payment_gateway import show_pricing
+        show_pricing()
         return
 
-    # Handle --attest (knowledge attestation - PAID SERVICE)
+    # Handle --attest (knowledge attestation)
     if args.attest:
         print(f"\n  DARMIYAN ATTESTATION SERVICE")
         print(f"  'Prove you knew it, before they knew it'")
         print(f"=" * 55)
 
-        from .attestation_service import get_attestation_service, ATTESTATION_TIERS
+        from .attestation_service import (
+            get_attestation_service, ATTESTATION_TIERS,
+            PAYMENTS_ENABLED, FREE_ATTESTATIONS_PER_MONTH
+        )
 
         service = get_attestation_service()
+
+        # Show current mode
+        if not PAYMENTS_ENABLED:
+            print()
+            print(f"  🎁 FREE MODE: {FREE_ATTESTATIONS_PER_MONTH} attestations/month")
+            print(f"     (Building the mesh - payments coming later)")
 
         # Get email
         print()
@@ -2267,47 +2257,70 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
             print("  Invalid email. Attestation cancelled.")
             return
 
-        # Choose tier
+        # Choose tier (still track tier for when payments enabled)
         print()
-        print("  Pricing tiers:")
-        print("    1. Basic   - ₹99  (timestamp + hash)")
-        print("    2. Standard - ₹299 (+ φ-coherence + certificate)")
-        print("    3. Premium  - ₹999 (+ multi-AI consensus)")
+        print("  Feature tiers:")
+        print("    1. Basic    - Timestamp + Hash")
+        print("    2. Standard - + φ-Coherence + Certificate")
+        print("    3. Premium  - + Multi-AI Consensus")
         print()
         tier_choice = input("  Choose tier [1/2/3] (default: 2): ").strip() or "2"
         tier_map = {"1": "basic", "2": "standard", "3": "premium"}
         tier = tier_map.get(tier_choice, "standard")
-        price = ATTESTATION_TIERS[tier]["price_inr"]
 
         # Create attestation
-        receipt = service.create_attestation(
-            content=args.attest,
-            email=email,
-            tier=tier
-        )
+        try:
+            receipt = service.create_attestation(
+                content=args.attest,
+                email=email,
+                tier=tier
+            )
+        except ValueError as e:
+            print(f"\n  ⚠️  {e}")
+            return
 
         print()
-        print(f"  ✓ Attestation Created!")
-        print(f"=" * 55)
-        print(f"  Attestation ID:  {receipt.attestation_id}")
-        print(f"  Content Hash:    {receipt.content_hash[:32]}...")
-        print(f"  Timestamp:       {receipt.timestamp}")
-        print(f"  φ-Coherence:     {receipt.phi_coherence:.4f}")
-        print(f"  Tier:            {tier.upper()} (₹{price})")
-        print(f"  Status:          PENDING PAYMENT")
-        print()
-        print(f"  ┌─────────────────────────────────────────────────┐")
-        print(f"  │  COMPLETE YOUR ATTESTATION                     │")
-        print(f"  │                                                 │")
-        print(f"  │  1. Pay ₹{price:<4} at: razorpay.me/@bitsabhi    │")
-        print(f"  │  2. Email receipt to: bits.abhi@gmail.com      │")
-        print(f"  │  3. Include: {receipt.attestation_id}        │")
-        print(f"  │                                                 │")
-        print(f"  │  Your attestation will be written to chain     │")
-        print(f"  │  within 24 hours of payment confirmation.      │")
-        print(f"  └─────────────────────────────────────────────────┘")
-        print()
-        print(f"  Verify later: bazinga --verify {receipt.attestation_id}")
+        if receipt.status == "attested":
+            # FREE mode - already on chain
+            print(f"  ✓ Attestation COMPLETE! (FREE)")
+            print(f"=" * 55)
+            print(f"  Attestation ID:  {receipt.attestation_id}")
+            print(f"  Content Hash:    {receipt.content_hash[:32]}...")
+            print(f"  Timestamp:       {receipt.timestamp}")
+            print(f"  φ-Coherence:     {receipt.phi_coherence:.4f}")
+            print(f"  Block Number:    #{receipt.block_number}")
+            print(f"  Status:          ✓ ON CHAIN")
+            print()
+            print(f"  🎉 Your knowledge is now attested on the Darmiyan blockchain!")
+            print()
+
+            # Show certificate
+            cert = service.get_certificate(receipt.attestation_id)
+            if cert:
+                print(cert)
+        else:
+            # PAID mode - needs payment
+            from .payment_gateway import get_payment_gateway, select_payment_method
+            gateway = get_payment_gateway()
+
+            print(f"  ✓ Attestation Created!")
+            print(f"=" * 55)
+            print(f"  Attestation ID:  {receipt.attestation_id}")
+            print(f"  Content Hash:    {receipt.content_hash[:32]}...")
+            print(f"  Timestamp:       {receipt.timestamp}")
+            print(f"  φ-Coherence:     {receipt.phi_coherence:.4f}")
+            print(f"  Tier:            {tier.upper()}")
+            print(f"  Status:          PENDING PAYMENT")
+            print()
+
+            # Select payment method (India vs Global)
+            method = select_payment_method()
+
+            # Create payment and show instructions
+            payment = gateway.create_payment(receipt.attestation_id, tier, method)
+            print(gateway.get_payment_instructions(payment))
+
+        print(f"  Verify: bazinga --verify {receipt.attestation_id}")
         print()
         return
 
