@@ -42,10 +42,21 @@ from .phi_coherence import PhiCoherence
 
 # Constants
 PHI = 1.618033988749895
+
+# ============================================================
+# MONETIZATION SWITCH
+# ============================================================
+# Set to True when ready to charge for attestations
+# Until then, all attestations are FREE (building the mesh)
+PAYMENTS_ENABLED = False  # <-- FLIP THIS WHEN READY
+
+# Free tier limits (when payments disabled)
+FREE_ATTESTATIONS_PER_MONTH = 3  # Free users get 3/month
+
 ATTESTATION_TIERS = {
-    "basic": {"price_inr": 99, "features": ["timestamp", "hash", "basic_proof"]},
-    "standard": {"price_inr": 299, "features": ["timestamp", "hash", "phi_coherence", "pob_proof", "certificate"]},
-    "premium": {"price_inr": 999, "features": ["timestamp", "hash", "phi_coherence", "pob_proof", "certificate", "multi_ai_consensus", "legal_format"]},
+    "basic": {"price_inr": 99, "price_usd": 1.20, "features": ["timestamp", "hash", "basic_proof"]},
+    "standard": {"price_inr": 299, "price_usd": 3.60, "features": ["timestamp", "hash", "phi_coherence", "pob_proof", "certificate"]},
+    "premium": {"price_inr": 999, "price_usd": 12.00, "features": ["timestamp", "hash", "phi_coherence", "pob_proof", "certificate", "multi_ai_consensus", "legal_format"]},
 }
 
 
@@ -137,6 +148,18 @@ class DarmiyanAttestationService:
         words = len(content.split())
         return min(1.0, (words / 100) * PHI) if words > 0 else 0.0
 
+    def _get_user_attestation_count_this_month(self, email: str) -> int:
+        """Count how many attestations this user has made this month"""
+        from datetime import datetime
+        current_month = datetime.now().strftime("%Y-%m")
+        count = 0
+        for att in self.registry["attestations"]:
+            if att.get("email") == email:
+                att_month = att.get("timestamp", "")[:7]  # YYYY-MM
+                if att_month == current_month:
+                    count += 1
+        return count
+
     def create_attestation(
         self,
         content: str,
@@ -145,7 +168,14 @@ class DarmiyanAttestationService:
         metadata: Optional[Dict] = None
     ) -> AttestationReceipt:
         """
-        Create a new knowledge attestation (pending payment).
+        Create a new knowledge attestation.
+
+        When PAYMENTS_ENABLED=False (current mode):
+            - First 3 attestations per month are FREE and auto-confirmed
+            - After that, user must wait for next month
+
+        When PAYMENTS_ENABLED=True (future):
+            - Attestation requires payment to be confirmed
 
         Args:
             content: The knowledge/code/idea to attest
@@ -154,10 +184,19 @@ class DarmiyanAttestationService:
             metadata: Optional additional metadata
 
         Returns:
-            AttestationReceipt with payment instructions
+            AttestationReceipt with status
         """
         if tier not in ATTESTATION_TIERS:
             tier = "standard"
+
+        # Check free tier limits (when payments disabled)
+        if not PAYMENTS_ENABLED:
+            count = self._get_user_attestation_count_this_month(email)
+            if count >= FREE_ATTESTATIONS_PER_MONTH:
+                raise ValueError(
+                    f"Free tier limit reached ({FREE_ATTESTATIONS_PER_MONTH}/month). "
+                    f"Wait for next month or contribute to the mesh to earn credits!"
+                )
 
         # Generate attestation
         attestation_id = self._generate_attestation_id()
@@ -169,6 +208,15 @@ class DarmiyanAttestationService:
         # Generate PoB proof
         pob = prove_boundary()
 
+        # Determine status based on payment mode
+        if PAYMENTS_ENABLED:
+            status = "pending_payment"
+            block_number = -1
+        else:
+            # FREE MODE: Auto-confirm and write to chain immediately
+            status = "free_tier"
+            block_number = -1  # Will be set after mining
+
         # Create receipt
         receipt = AttestationReceipt(
             attestation_id=attestation_id,
@@ -177,9 +225,9 @@ class DarmiyanAttestationService:
             timestamp_unix=timestamp_unix,
             phi_coherence=phi_coherence,
             pob_valid=pob.valid,
-            block_number=-1,  # Not on chain yet
+            block_number=block_number,
             tier=tier,
-            status="pending_payment"
+            status=status
         )
 
         # Save to registry
@@ -192,6 +240,10 @@ class DarmiyanAttestationService:
         })
         self.registry["stats"]["total"] += 1
         self._save_registry()
+
+        # If FREE mode, auto-confirm to blockchain
+        if not PAYMENTS_ENABLED:
+            receipt = self.confirm_payment(attestation_id, "FREE_TIER_AUTO")
 
         return receipt
 
@@ -216,7 +268,8 @@ class DarmiyanAttestationService:
         if not attestation:
             raise ValueError(f"Attestation {attestation_id} not found")
 
-        if attestation["status"] != "pending_payment":
+        # Allow both pending_payment and free_tier to be confirmed
+        if attestation["status"] not in ("pending_payment", "free_tier"):
             raise ValueError(f"Attestation {attestation_id} already processed")
 
         # Add to blockchain
@@ -247,7 +300,7 @@ class DarmiyanAttestationService:
             self.chain.add_block(pob_proofs=pob_proofs)
 
         # Update attestation
-        block_number = len(self.chain.chain) - 1
+        block_number = len(self.chain.blocks) - 1
         attestation["status"] = "attested"
         attestation["block_number"] = block_number
         attestation["payment_ref"] = payment_ref
@@ -290,10 +343,10 @@ class DarmiyanAttestationService:
 
         # Verify on chain
         block_number = attestation["block_number"]
-        if block_number < 0 or block_number >= len(self.chain.chain):
+        if block_number < 0 or block_number >= len(self.chain.blocks):
             return None
 
-        block = self.chain.chain[block_number]
+        block = self.chain.blocks[block_number]
         chain_valid = self.chain.validate_chain()
 
         return AttestationProof(
@@ -384,8 +437,8 @@ class DarmiyanAttestationService:
         """Get service statistics"""
         return {
             **self.registry["stats"],
-            "chain_length": len(self.chain.chain),
-            "chain_valid": self.chain.validate_chain() if self.chain.chain else True
+            "chain_length": len(self.chain.blocks),
+            "chain_valid": self.chain.validate_chain() if self.chain.blocks else True
         }
 
 
