@@ -1218,6 +1218,8 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
                         help='Attest knowledge to blockchain (paid service: ₹99-999)')
     parser.add_argument('--verify', type=str, metavar='ATTESTATION_ID',
                         help='Verify an attestation (FREE) - check if knowledge was attested')
+    parser.add_argument('--share', action='store_true',
+                        help='Generate shareable PNG/PDF certificate (use with --verify)')
     parser.add_argument('--attest-pricing', action='store_true',
                         help='Show attestation pricing tiers')
     parser.add_argument('--publish', action='store_true',
@@ -2358,6 +2360,38 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
             print(f"  Block:        #{proof.block_number}")
             print(f"  Chain Valid:  {'✓ YES' if proof.chain_valid else '✗ NO'}")
             print()
+
+        # Handle --share flag
+        if args.share:
+            print()
+            print(f"  📤 EXPORTING SHAREABLE CERTIFICATE...")
+            print(f"=" * 55)
+
+            # Try PNG first, fall back to HTML
+            export_path = service.export_certificate(args.verify, "png")
+            if not export_path:
+                export_path = service.export_certificate(args.verify, "html")
+
+            if export_path:
+                print(f"  ✓ Certificate exported!")
+                print(f"  📁 File: {export_path}")
+                print()
+                print(f"  Share on:")
+                print(f"    • Twitter/X - attach the image")
+                print(f"    • Research papers - include as figure")
+                print(f"    • LinkedIn - proof of innovation")
+                print()
+
+                # Also create HTML for easy viewing
+                html_path = service.export_certificate(args.verify, "html")
+                if html_path and html_path != export_path:
+                    print(f"  🌐 HTML version: {html_path}")
+                    print(f"     (Open in browser, print to PDF)")
+                print()
+            else:
+                print(f"  ✗ Export failed. Certificate shown above can be screenshot.")
+                print()
+
         return
 
     # Handle --publish (distributed knowledge sharing)
