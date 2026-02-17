@@ -534,6 +534,153 @@ class DarmiyanAttestationService:
 """
         return certificate
 
+    def export_certificate(self, attestation_id: str, format: str = "png") -> Optional[str]:
+        """
+        Export certificate as PNG or PDF for sharing.
+
+        Args:
+            attestation_id: The attestation ID
+            format: "png" or "pdf"
+
+        Returns:
+            Path to exported file, or None if failed
+        """
+        cert = self.get_certificate(attestation_id)
+        if not cert:
+            return None
+
+        # Create exports directory
+        export_dir = self.data_dir / "exports"
+        export_dir.mkdir(parents=True, exist_ok=True)
+
+        filename = f"{attestation_id}.{format}"
+        filepath = export_dir / filename
+
+        if format == "txt":
+            # Simple text export
+            filepath.write_text(cert)
+            return str(filepath)
+
+        elif format == "html":
+            # HTML export (can be opened in browser and printed to PDF)
+            html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Darmiyan Attestation Certificate - {attestation_id}</title>
+    <style>
+        body {{
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }}
+        pre {{
+            background: #111;
+            padding: 30px;
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0,255,136,0.3);
+            font-size: 11px;
+            line-height: 1.4;
+            white-space: pre;
+            overflow-x: auto;
+        }}
+        .glow {{
+            text-shadow: 0 0 10px #00ff88;
+        }}
+    </style>
+</head>
+<body>
+    <pre class="glow">{cert}</pre>
+</body>
+</html>"""
+            html_path = export_dir / f"{attestation_id}.html"
+            html_path.write_text(html)
+            return str(html_path)
+
+        elif format == "png":
+            # Try to create PNG using PIL if available
+            try:
+                from PIL import Image, ImageDraw, ImageFont
+
+                # Certificate dimensions
+                width = 1200
+                height = 1600
+
+                # Create image with dark background
+                img = Image.new('RGB', (width, height), color=(10, 10, 10))
+                draw = ImageDraw.Draw(img)
+
+                # Try to use a monospace font
+                try:
+                    font = ImageFont.truetype("/System/Library/Fonts/Menlo.ttc", 14)
+                    title_font = ImageFont.truetype("/System/Library/Fonts/Menlo.ttc", 18)
+                except:
+                    try:
+                        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 14)
+                        title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 18)
+                    except:
+                        font = ImageFont.load_default()
+                        title_font = font
+
+                # Draw certificate text
+                lines = cert.split('\n')
+                y = 30
+                for line in lines:
+                    # Green text color
+                    draw.text((30, y), line, font=font, fill=(0, 255, 136))
+                    y += 18
+
+                # Add glow effect border
+                draw.rectangle([(10, 10), (width-10, height-10)], outline=(0, 255, 136), width=2)
+
+                # Save
+                img.save(str(filepath))
+                return str(filepath)
+
+            except ImportError:
+                # PIL not available, fall back to HTML
+                return self.export_certificate(attestation_id, "html")
+
+        elif format == "pdf":
+            # Try to create PDF
+            try:
+                from reportlab.lib.pagesizes import letter
+                from reportlab.pdfgen import canvas
+                from reportlab.lib.colors import HexColor
+
+                pdf_path = export_dir / f"{attestation_id}.pdf"
+                c = canvas.Canvas(str(pdf_path), pagesize=letter)
+                width, height = letter
+
+                # Dark background
+                c.setFillColor(HexColor('#0a0a0a'))
+                c.rect(0, 0, width, height, fill=1)
+
+                # Green text
+                c.setFillColor(HexColor('#00ff88'))
+                c.setFont("Courier", 8)
+
+                lines = cert.split('\n')
+                y = height - 40
+                for line in lines:
+                    c.drawString(30, y, line)
+                    y -= 12
+
+                c.save()
+                return str(pdf_path)
+
+            except ImportError:
+                # reportlab not available, fall back to HTML
+                return self.export_certificate(attestation_id, "html")
+
+        return None
+
     def get_pricing(self) -> Dict:
         """Get attestation pricing tiers"""
         return ATTESTATION_TIERS
