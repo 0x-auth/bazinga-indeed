@@ -279,7 +279,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.9.23"
+    VERSION = "4.9.24"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1258,6 +1258,8 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
                         help='Filter KB search to GDrive only')
     parser.add_argument('--kb-mac', action='store_true',
                         help='Filter KB search to Mac only')
+    parser.add_argument('--kb-phone', type=str, metavar='PATH',
+                        help='Set phone data path and index it (e.g., ~/Downloads/phone-data)')
 
     # Hidden/advanced
     parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
@@ -1470,6 +1472,14 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
             # Single task mode
             result = await run_agent_once(args.agent, verbose=args.verbose)
             print(result)
+        return
+
+    # Handle --kb-phone (set phone data path)
+    if hasattr(args, 'kb_phone') and args.kb_phone:
+        from .kb import BazingaKB
+        kb = BazingaKB()
+        kb.set_phone_data_path(os.path.expanduser(args.kb_phone))
+        kb.show_sources()
         return
 
     # Handle --kb (Knowledge Base queries)
