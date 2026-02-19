@@ -12,7 +12,7 @@ Attack Vectors:
 4. Ratio Manipulation - Edge cases around φ⁴ tolerance
 5. Triadic Collusion - 3 malicious nodes working together
 
-Author: Claude + Space
+Author: Space (Abhishek Srivastava)
 """
 
 import sys

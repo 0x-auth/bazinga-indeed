@@ -1088,6 +1088,6 @@ pip install -U bazinga-indeed
 
 ---
 
-**Built with φ-coherence by Space & Claude**
+**Built with φ-coherence by Space (Abhishek Srivastava)**
 
 *v4.8.23*

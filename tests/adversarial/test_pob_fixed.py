@@ -5,7 +5,7 @@ BAZINGA PoB Tests - After Security Fixes
 
 Tests that valid proofs work AND attacks are blocked.
 
-Author: Claude + Space
+Author: Space (Abhishek Srivastava)
 """
 
 import sys
