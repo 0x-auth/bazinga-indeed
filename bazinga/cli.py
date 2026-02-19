@@ -279,7 +279,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.9.3"
+    VERSION = "4.9.23"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1245,6 +1245,20 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     parser.add_argument('--agent', type=str, nargs='?', const='', metavar='TASK',
                         help='Start agent shell (or run single task)')
 
+    # Knowledge Base commands (NEW!)
+    parser.add_argument('--kb', type=str, nargs='?', const='', metavar='QUERY',
+                        help='Query Knowledge Base (Gmail, GDrive, Mac, Phone)')
+    parser.add_argument('--kb-sources', action='store_true',
+                        help='Show KB data sources and index status')
+    parser.add_argument('--kb-sync', action='store_true',
+                        help='Re-index all KB sources (Gmail, GDrive, Mac)')
+    parser.add_argument('--kb-gmail', action='store_true',
+                        help='Filter KB search to Gmail only')
+    parser.add_argument('--kb-gdrive', action='store_true',
+                        help='Filter KB search to GDrive only')
+    parser.add_argument('--kb-mac', action='store_true',
+                        help='Filter KB search to Mac only')
+
     # Hidden/advanced
     parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--demo', action='store_true', help=argparse.SUPPRESS)
@@ -1457,6 +1471,40 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
             result = await run_agent_once(args.agent, verbose=args.verbose)
             print(result)
         return
+
+    # Handle --kb (Knowledge Base queries)
+    if args.kb is not None or args.kb_sources or args.kb_sync:
+        from .kb import BazingaKB
+        kb = BazingaKB()
+
+        if args.kb_sources:
+            kb.show_sources()
+            return
+
+        if args.kb_sync:
+            kb.sync_all()
+            return
+
+        if args.kb is not None:
+            sources = []
+            if args.kb_gmail:
+                sources.append('gmail')
+            if args.kb_gdrive:
+                sources.append('gdrive')
+            if args.kb_mac:
+                sources.append('mac')
+
+            if not sources:
+                sources = None  # Search all
+
+            if args.kb == '':
+                # Interactive KB mode
+                kb.show_sources()
+                print("\nUsage: bazinga --kb \"your query here\"")
+            else:
+                results = kb.search(args.kb, sources=sources)
+                kb.display_results(results, args.kb)
+            return
 
     # Handle --constants
     if args.constants:
