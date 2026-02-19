@@ -17,7 +17,7 @@ New Attack Vectors:
 9. Trust Score Gaming - Inflate reputation artificially
 10. Gradient Poisoning - Inject malicious gradients
 
-Author: Claude + Space
+Author: Space (Abhishek Srivastava)
 """
 
 import sys
