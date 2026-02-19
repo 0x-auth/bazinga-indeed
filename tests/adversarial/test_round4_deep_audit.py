@@ -18,7 +18,7 @@ Deep dive vulnerabilities found by Claude security audit.
 10. MEDIUM: Unbounded knowledge submissions
 11. MEDIUM: Race condition in validator selection
 
-Author: Claude + Space
+Author: Space (Abhishek Srivastava)
 Date: Feb 2026
 """
 
