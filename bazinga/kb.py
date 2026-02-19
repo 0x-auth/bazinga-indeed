@@ -72,7 +72,7 @@ class BazingaKB:
         if KB_CONFIG.exists():
             with open(KB_CONFIG) as f:
                 return json.load(f)
-        return {'phone_server': None, 'last_sync': None}
+        return {'phone_server': None, 'phone_data_path': None, 'last_sync': None}
 
     def _save_config(self):
         """Save KB configuration."""
@@ -223,12 +223,95 @@ class BazingaKB:
 
         return items
 
+    def _load_phone_index(self) -> List[Dict]:
+        """Load Phone data index."""
+        items = []
+
+        # Check for phone index file first
+        if SOURCES['phone'].exists():
+            try:
+                with open(SOURCES['phone']) as f:
+                    data = json.load(f)
+                    for file in data.get('files', []):
+                        items.append({
+                            'source': 'phone',
+                            'id': file.get('id', ''),
+                            'title': file.get('name', ''),
+                            'path': file.get('path', ''),
+                            'size': file.get('size', 0),
+                            'content': file.get('path', '') + ' ' + file.get('name', '')
+                        })
+            except Exception:
+                pass
+
+        # Also scan phone_data_path if configured
+        phone_path = self.config.get('phone_data_path')
+        if phone_path:
+            phone_dir = Path(phone_path)
+            if phone_dir.exists():
+                try:
+                    for file_path in phone_dir.rglob("*"):
+                        if file_path.is_file() and not file_path.name.startswith('.'):
+                            items.append({
+                                'source': 'phone',
+                                'id': str(file_path)[-12:],
+                                'title': file_path.name,
+                                'path': str(file_path),
+                                'size': file_path.stat().st_size if file_path.exists() else 0,
+                                'content': str(file_path)
+                            })
+                except PermissionError:
+                    pass
+
+        return items
+
+    def set_phone_data_path(self, path: str):
+        """Set the phone data directory path."""
+        self.config['phone_data_path'] = path
+        self._save_config()
+        print(f"✅ Phone data path set to: {path}")
+        # Index it
+        self.index_phone_data(path)
+
+    def index_phone_data(self, path: str):
+        """Index phone data directory and save to phone_index.json."""
+        phone_dir = Path(path)
+        if not phone_dir.exists():
+            print(f"❌ Path does not exist: {path}")
+            return
+
+        print(f"\n📱 Indexing phone data from: {path}")
+        files = []
+        count = 0
+
+        for file_path in phone_dir.rglob("*"):
+            if file_path.is_file() and not file_path.name.startswith('.'):
+                try:
+                    files.append({
+                        'id': str(file_path)[-12:],
+                        'name': file_path.name,
+                        'path': str(file_path),
+                        'size': file_path.stat().st_size,
+                        'ext': file_path.suffix.lower(),
+                    })
+                    count += 1
+                except Exception:
+                    continue
+
+        # Save index
+        INDEX_DIR.mkdir(parents=True, exist_ok=True)
+        with open(SOURCES['phone'], 'w') as f:
+            json.dump({'files': files, 'indexed_at': datetime.now().isoformat()}, f, indent=2)
+
+        print(f"✅ Indexed {count} files from phone data")
+        print(f"   Index saved to: {SOURCES['phone']}")
+
     def search(self, query: str, sources: Optional[List[str]] = None, limit: int = 20) -> List[Dict]:
         """Search the knowledge base."""
         all_items = []
 
         if sources is None:
-            sources = ['gmail', 'gdrive', 'mac']
+            sources = ['gmail', 'gdrive', 'mac', 'phone']
 
         # Load all sources
         if 'gmail' in sources:
@@ -239,6 +322,9 @@ class BazingaKB:
 
         if 'mac' in sources:
             all_items.extend(self._load_mac_index())
+
+        if 'phone' in sources:
+            all_items.extend(self._load_phone_index())
 
         # Calculate relevance for each item
         results = []
@@ -341,11 +427,25 @@ class BazingaKB:
         print(f"   Status: Indexed on-demand")
 
         # Phone
+        phone_count = 0
+        if SOURCES['phone'].exists():
+            try:
+                with open(SOURCES['phone']) as f:
+                    data = json.load(f)
+                    phone_count = len(data.get('files', []))
+            except Exception:
+                pass
+
         print(f"\n📱 Phone")
-        if self.config.get('phone_server'):
+        if phone_count > 0:
+            print(f"   Indexed: {phone_count} files")
+        if self.config.get('phone_data_path'):
+            print(f"   Path: {self.config['phone_data_path']}")
+        elif self.config.get('phone_server'):
             print(f"   Server: {self.config['phone_server']}")
         else:
             print(f"   Status: Not configured")
+            print(f"   Setup: bazinga --kb-phone /path/to/phone-data")
 
         print(f"\n📅 Last sync: {self.config.get('last_sync', 'Never')}")
 
