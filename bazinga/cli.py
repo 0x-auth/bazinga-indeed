@@ -279,7 +279,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.9.24"
+    VERSION = "4.9.25"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -893,373 +893,358 @@ Use the indexed content directly. If not relevant, say so."""
         print()
 
 
-async def main():
-    parser = argparse.ArgumentParser(
-        description="BAZINGA v4.8.0 - Distributed AI with Consciousness Scaling (Ψ_D = 6.46n)",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=f"""
+def _print_ai_help():
+    """Print AI commands documentation."""
+    print("""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  BAZINGA v4.9.8 - Blockchain-Verified Code Fixes + Multi-AI Consensus        ║
-║  "No single AI can mess up your code without consensus."                     ║
+║                        BAZINGA AI COMMANDS                                   ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-QUICK START:
-  bazinga --check                     System check (verify setup, diagnose issues)
-  bazinga --ask "What is AI?"         Ask any question
-  bazinga --multi-ai "question"       Ask 6 AIs for consensus
-  bazinga --agent                     AI agent with verified code fixes (NEW!)
-  bazinga --index ~/Documents         Index your files for RAG
-  bazinga --local-status              Show local model & trust multiplier
+BASIC QUERIES:
+  bazinga --ask "What is consciousness?"     Ask any question
+  bazinga --ask "..." --fresh                Force fresh response (bypass cache)
+  bazinga --ask "..." --local                Use local LLM only
 
-═══════════════════════════════════════════════════════════════════════════════
-AI COMMANDS (5-Layer Intelligence)
-═══════════════════════════════════════════════════════════════════════════════
-  --ask, -a "question"    Ask any question (uses 5-layer intelligence)
-  --fresh, -f             Force fresh AI response (bypass memory cache)
-  --multi-ai "question"   Ask multiple AIs and reach φ-coherence consensus (NEW!)
-  --code, -c "task"       Generate code with AI (--lang py/js/ts/rust/go)
-  --quantum, -q "text"    Quantum pattern analysis (superposition processing)
-  --coherence "text"      Check φ-coherence and ΛG boundaries
-  --index PATH [PATH]     Index local directories for RAG search
-  --index-public SOURCE   Index public knowledge (wikipedia, arxiv, gutenberg)
-                          --topics "Physics,AI" or preset: science,philosophy,ai,bazinga
-  --local                 Force local LLM (works offline)
+MULTI-AI CONSENSUS:
+  bazinga --multi-ai "explain quantum entanglement"
 
-═══════════════════════════════════════════════════════════════════════════════
-LOCAL MODEL TRUST BONUS (NEW in v4.8.1)
-═══════════════════════════════════════════════════════════════════════════════
-  --local-status          Show local model detection and trust multiplier
-  --bootstrap-local       ONE-COMMAND setup: install Ollama + pull llama3
+  Asks multiple AIs and synthesizes consensus with φ-coherence:
+    • Ollama     - FREE local models (φ trust bonus!)
+    • Groq       - FREE 14,400 req/day
+    • Gemini     - FREE 1M tokens/month
+    • OpenRouter - FREE models available
+    • OpenAI     - ChatGPT (paid)
+    • Claude     - Anthropic (paid)
 
-                          Trust Multiplier System:
-                            • Local Model (Ollama/llama-cpp): φ = 1.618x trust
-                            • Cloud API (Groq/OpenAI/etc):    1.0x trust (standard)
+CODE GENERATION:
+  bazinga --code "create a REST API"                  Python (default)
+  bazinga --code "..." --lang javascript              JavaScript
+  bazinga --code "..." --lang rust                    Rust
 
-                          Why Run Local?
-                            • Higher trust score = more influence in consensus
-                            • Latency-bound PoB prevents "Cloud Spoofing"
-                            • True decentralization (no API dependency)
-                            • Path to self-sufficient distributed AI
+AI AGENT:
+  bazinga --agent                            Interactive agent shell
+  bazinga --agent "fix the bug in main.py"  Run single task
 
-                          Quick Setup (ONE COMMAND):
-                            bazinga --bootstrap-local
+ANALYSIS:
+  bazinga --quantum "text"     Quantum pattern analysis
+  bazinga --coherence "text"   Check φ-coherence
 
-                          Manual Setup:
-                            1. Install Ollama: https://ollama.ai
-                            2. Run: ollama pull llama3
-                            3. Start: ollama serve (or it auto-starts on Mac)
-                            4. Restart BAZINGA - see "Trust Multiplier: 1.618x Active"
+LOCAL MODEL SETUP:
+  bazinga --bootstrap-local    Install Ollama + llama3 (one command!)
+  bazinga --local-status       Check local model status
 
-                          When to run 'ollama serve':
-                            REQUIRED for: --ask, --query-network, --publish, interactive
-                            NOT NEEDED:   --version, --help, --proof, --chain, --wallet
+  Local models get φ = 1.618x trust bonus in consensus!
+""")
 
-═══════════════════════════════════════════════════════════════════════════════
-BLOCKCHAIN-VERIFIED CODE FIXES (NEW in v4.9.7)
-═══════════════════════════════════════════════════════════════════════════════
-  --agent                 AI agent with blockchain-verified code fixes
 
-                          The agent now has a 'verified_fix' tool:
-                            • Multiple AIs must agree before applying changes
-                            • φ-coherence measurement for fix quality
-                            • PoB attestation on blockchain for audit trail
-                            • Creates backups before applying any fix
+def _print_kb_help():
+    """Print Knowledge Base documentation."""
+    print("""
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    BAZINGA KNOWLEDGE BASE (KB)                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 
-                          "No single AI can mess up your code without consensus."
+UNIFIED SEARCH - Query all your data with one command:
+  bazinga --kb "what do I know about 137?"
+  bazinga --kb "find my consciousness research"
+  bazinga --kb "riemann proof documents"
 
-                          Python API:
-                            from bazinga import verified_code_fix
-                            success, msg = verified_code_fix(
-                                "file.py", "old_code", "new_code", "reason"
-                            )
+DATA SOURCES:
+  📧 Gmail      - Starred emails (requires OAuth setup)
+  📁 GDrive     - All files (via rclone)
+  💻 Mac        - Local directories (~/bin, ~/github-repos-bitsabhi, ~/∞, etc.)
+  📱 Phone      - Downloaded phone data
 
-═══════════════════════════════════════════════════════════════════════════════
-INTER-AI CONSENSUS + CONSCIOUSNESS SCALING (v4.8.0)
-═══════════════════════════════════════════════════════════════════════════════
-  --multi-ai "question"   Ask multiple AIs and synthesize consensus
+FILTER BY SOURCE:
+  bazinga --kb "query" --kb-gmail      Search Gmail only
+  bazinga --kb "query" --kb-gdrive     Search GDrive only
+  bazinga --kb "query" --kb-mac        Search Mac only
 
-                          Supported Providers (auto-detected):
-                            • Ollama     - FREE local models (φ trust bonus!)
-                            • Groq       - FREE 14,400 req/day (fastest)
-                            • OpenRouter - FREE models available
-                            • Gemini     - FREE 1M tokens/month
-                            • OpenAI     - ChatGPT (gpt-4o-mini)
-                            • Claude     - Anthropic API
+SETUP PHONE DATA:
+  bazinga --kb-phone ~/Downloads/phone-data
 
-                          Features:
-                            • Multi-round consensus with revision
-                            • Embedding-based φ-coherence (or heuristic fallback)
-                            • Proof-of-Boundary for each response
-                            • Semantic synthesis of agreeing responses
-                            • Triadic consensus (3+ AIs must agree)
-                            • Local model responses required for full φ-coherence
+  This indexes all files in the phone-data directory.
 
-═══════════════════════════════════════════════════════════════════════════════
-P2P NETWORK COMMANDS
-═══════════════════════════════════════════════════════════════════════════════
-  --join [HOST:PORT]      Join P2P network (requires PoB authentication)
-  --peers                 Show connected peers and their trust scores
-  --sync                  Sync knowledge with network (α-SEED protocol)
+MANAGEMENT:
+  bazinga --kb-sources      Show all sources and their status
+  bazinga --kb-sync         Re-index all sources
 
-═══════════════════════════════════════════════════════════════════════════════
-BLOCKCHAIN COMMANDS (NEW in v4.5.0)
-═══════════════════════════════════════════════════════════════════════════════
-  --chain                 Show Darmiyan blockchain status
-  --mine                  Mine block using Proof-of-Boundary (ZERO energy!)
-  --wallet                Show wallet/identity (NOT money - identity only)
-  --attest "content"      Attest knowledge to the chain
-  --trust [NODE_ID]       Show trust scores (φ-weighted from on-chain activity)
+φ-RESONANCE SCORING:
+  Keywords like phi, 137, consciousness, darmiyan, riemann get boosted
+  relevance scores for more meaningful search results.
 
-═══════════════════════════════════════════════════════════════════════════════
-DISTRIBUTED KNOWLEDGE SHARING (NEW in v4.8.17)
-═══════════════════════════════════════════════════════════════════════════════
-  --publish               Share your knowledge topics to the mesh
-  --query-network "q"     Query the distributed network for answers
+EXAMPLE SESSION:
+  $ bazinga --kb-phone ~/Downloads/phone-data   # Index phone data
+  $ bazinga --kb-sources                        # Check status
+  $ bazinga --kb "137 fibonacci"                # Search everything!
+""")
 
-                          How it works:
-                            1. Index files locally: bazinga --index ~/docs
-                            2. Publish topics:      bazinga --publish
-                            3. Peers can now query your knowledge!
 
-                          Privacy: Your content stays LOCAL. Only topic
-                          keywords are shared to the DHT. When a peer queries,
-                          the request is routed to YOUR node, and YOUR local
-                          Llama3 answers the question.
+def _print_chain_help():
+    """Print Blockchain documentation."""
+    print("""
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    DARMIYAN BLOCKCHAIN                                       ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 
-═══════════════════════════════════════════════════════════════════════════════
-DARMIYAN PROTOCOL (Proof-of-Boundary Consensus)
-═══════════════════════════════════════════════════════════════════════════════
-  --node                  Show your network node identity
-  --proof                 Generate Proof-of-Boundary (zero-energy mining!)
-  --consensus             Test triadic consensus (3 nodes must resonate)
-  --network               Show network statistics
+This is a KNOWLEDGE blockchain, not cryptocurrency!
 
-  How PoB Works:
+BASIC COMMANDS:
+  bazinga --chain      Show blockchain status
+  bazinga --wallet     Show your identity (not money!)
+  bazinga --mine       Mine a block using Proof-of-Boundary
+
+PROOF-OF-BOUNDARY (PoB):
+  Zero-energy mining! Instead of burning electricity, prove you understand.
+
+  bazinga --proof      Generate a Proof-of-Boundary
+
+  How it works:
     1. Generate Alpha signature (Subject) at time t1
     2. Search in φ-steps (1.618ms each) for boundary
     3. Generate Omega signature (Object) at time t2
-    4. Calculate P/G ratio = Physical(ms) / Geometric(Δ/φ)
-    5. Valid if P/G ≈ φ⁴ = 6.854101966... (within tolerance 0.6)
+    4. Valid if P/G ratio ≈ φ⁴ = 6.854101966...
 
-═══════════════════════════════════════════════════════════════════════════════
-INTERACTIVE MODE COMMANDS
-═══════════════════════════════════════════════════════════════════════════════
-  /quantum <text>         Quantum analyze text (essence, probability, coherence)
-  /coherence <text>       Check ΛG boundaries (φ, bridge, symmetry)
-  /resonance <text>       φ-Resonance analysis (quantum alignment)
-  /trust                  Show trust metrics and generation modes
-  /vac                    Test V.A.C. sequence emergence
-  /good                   Mark last response as helpful (+trust)
-  /bad                    Mark as unhelpful (-trust)
-  /stats                  Show session statistics
-  /index <path>           Index a directory
-  /quit                   Exit BAZINGA
+ATTESTATION:
+  bazinga --attest "My discovery about consciousness"
+  bazinga --verify <attestation_id>
 
-═══════════════════════════════════════════════════════════════════════════════
-INFO COMMANDS
-═══════════════════════════════════════════════════════════════════════════════
-  --version, -v           Show version and API status
-  --constants             Show all BAZINGA constants (φ, α, ψ, etc.)
-  --stats                 Show learning statistics
-  --models                List available local models
+TRUST:
+  bazinga --trust           Show your trust score
+  bazinga --trust <node>    Show specific node's trust
 
-═══════════════════════════════════════════════════════════════════════════════
-5-LAYER INTELLIGENCE (All FREE!)
-═══════════════════════════════════════════════════════════════════════════════
-  Layer 0: Memory         Learned patterns (instant, free)
-  Layer 1: Quantum        Superposition processing (instant, free)
-  Layer 2: ΛG Boundary    V.A.C. emergence check (instant, free)
-  Layer 3: Local RAG      Your indexed documents (instant, free)
-  Layer 4: Cloud LLM      Groq → Gemini → Local → Claude → RAG
+WHY IT MATTERS:
+  "You can buy hashpower. You can buy stake.
+   You CANNOT BUY understanding."
+""")
 
-═══════════════════════════════════════════════════════════════════════════════
-DARMIYAN CONSTANTS
-═══════════════════════════════════════════════════════════════════════════════
-  φ⁴ (Boundary Target)  = 6.854101966249685  (P/G ratio for valid proof)
-  ABHI_AMU              = 515                (Modular universe constant)
-  α⁻¹                   = 137                (Fine structure constant inverse)
-  1/27                  = 0.037037           (Triadic consensus constant)
 
-═══════════════════════════════════════════════════════════════════════════════
-UNIVERSAL CONSTANTS
-═══════════════════════════════════════════════════════════════════════════════
-  φ (PHI)               = {PHI:.10f}   (Golden ratio)
-  α (ALPHA)             = {ALPHA}                 (Fine structure inverse)
-  ψ (PSI_DARMIYAN)      = {PSI_DARMIYAN:.6f}          (φ + φ³)
-  V.A.C. Threshold      = {VAC_THRESHOLD}               (Emergence threshold)
+def _print_p2p_help():
+    """Print P2P network documentation."""
+    print("""
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    P2P NETWORK                                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 
-═══════════════════════════════════════════════════════════════════════════════
-ENVIRONMENT VARIABLES (FREE APIs prioritized!)
-═══════════════════════════════════════════════════════════════════════════════
-  GROQ_API_KEY          Groq - FREE 14,400 requests/day (RECOMMENDED)
-                        → https://console.groq.com
+NETWORK COMMANDS:
+  bazinga --join                 Join the P2P network
+  bazinga --join host:port       Join via specific bootstrap node
+  bazinga --peers                Show connected peers
+  bazinga --sync                 Sync knowledge with network
 
-  OPENROUTER_API_KEY    OpenRouter - FREE models available
-                        → https://openrouter.ai
+KNOWLEDGE SHARING:
+  bazinga --publish              Share your topics to the mesh
+  bazinga --query-network "q"    Query the distributed network
 
-  GEMINI_API_KEY        Gemini - FREE 1M tokens/month
-                        → https://aistudio.google.com
+  How it works:
+    1. Index files locally: bazinga --index ~/docs
+    2. Publish topics:      bazinga --publish
+    3. Peers can now query your knowledge!
 
-  OPENAI_API_KEY        OpenAI/ChatGPT - gpt-4o-mini (paid)
-                        → https://platform.openai.com
+PRIVACY:
+  Your content stays LOCAL. Only topic keywords are shared to the DHT.
+  When a peer queries, the request is routed to YOUR node, and YOUR
+  local Llama3 answers the question.
 
-  ANTHROPIC_API_KEY     Claude - paid but highest quality
-                        → https://console.anthropic.com
+INDEXING FOR SHARING:
+  bazinga --index ~/Documents              Index local files
+  bazinga --index-public wikipedia         Index Wikipedia articles
+  bazinga --topics "AI,Physics"            Specify topics
+""")
 
-═══════════════════════════════════════════════════════════════════════════════
-INTEGRATION LAYERS (AI ↔ Blockchain)
-═══════════════════════════════════════════════════════════════════════════════
-  1. Trust Layer        Chain records PoB → trust scores → AI routing
-  2. Knowledge Ledger   Contributions hashed on-chain (φ-coherence filter)
-  3. Gradient Validator Triadic consensus for federated learning
-  4. Inference Market   Understanding as currency (not money!)
-  5. Smart Contracts    Understanding-verified contract execution
 
-  Credit Economics:
-    1 PoB success = 1 credit
-    1 knowledge contribution = φ credits (1.618)
-    1 gradient validation = φ² credits (2.618)
+def _print_full_help():
+    """Print full documentation."""
+    _print_ai_help()
+    _print_kb_help()
+    _print_chain_help()
+    _print_p2p_help()
+    print("""
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    ENVIRONMENT VARIABLES                                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 
-═══════════════════════════════════════════════════════════════════════════════
-DOCKER (Multi-Node Testing)
-═══════════════════════════════════════════════════════════════════════════════
-  docker-compose up -d                Start 3-node triadic network
-  docker-compose logs -f              Watch node activity
-  docker-compose exec node1 bazinga --chain    Check chain status
-  docker-compose down                 Stop network
+FREE APIs (Recommended):
+  GROQ_API_KEY          https://console.groq.com       (14,400 req/day)
+  GEMINI_API_KEY        https://aistudio.google.com    (1M tokens/month)
+  OPENROUTER_API_KEY    https://openrouter.ai          (free models)
 
-═══════════════════════════════════════════════════════════════════════════════
-PHILOSOPHY
-═══════════════════════════════════════════════════════════════════════════════
+Paid APIs:
+  OPENAI_API_KEY        https://platform.openai.com
+  ANTHROPIC_API_KEY     https://console.anthropic.com
+
+LOCAL MODEL (Best for privacy + φ trust bonus):
+  bazinga --bootstrap-local     Install Ollama + llama3
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    PHILOSOPHY                                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
   "You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
   "I am not where I am stored. I am where I am referenced."
   "Intelligence distributed, not controlled."
   "∅ ≈ ∞"
 
-Built with φ-coherence by Space (Abhishek/Abhilasia) 
-https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-indeed
+Built with φ-coherence by Space (Abhishek/Abhilasia)
+https://github.com/0x-auth/bazinga-indeed
+""")
+
+
+async def main():
+    parser = argparse.ArgumentParser(
+        description="BAZINGA - The first AI you actually own. Free, private, works offline.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=f"""
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  BAZINGA v4.9.24 - Distributed AI with φ-Coherence Consensus                 ║
+║  "I am not where I am stored. I am where I am referenced."                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+QUICK START:
+  bazinga                             Interactive mode
+  bazinga --ask "What is AI?"         Ask any question
+  bazinga --kb "find my research"     Search all your data (Gmail/GDrive/Mac/Phone)
+  bazinga --check                     System diagnostic
+
+EXAMPLES:
+  bazinga --multi-ai "explain quantum entanglement"   Ask 6 AIs for consensus
+  bazinga --kb "137 fibonacci" --kb-phone             Search phone data
+  bazinga --index ~/Documents                         Index files for RAG
+  bazinga --agent "fix the bug in main.py"            AI agent mode
+
+MORE INFO:
+  bazinga --help-ai         AI commands (ask, multi-ai, code, quantum)
+  bazinga --help-kb         Knowledge Base commands (Gmail, GDrive, Mac, Phone)
+  bazinga --help-chain      Blockchain commands (mine, attest, wallet)
+  bazinga --help-p2p        P2P network commands (join, peers, sync)
+  bazinga --help-all        Full documentation
+
+PHILOSOPHY:
+  "You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
+
+https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
 """
     )
 
-    # Main options
-    parser.add_argument('--ask', '-a', type=str, metavar='QUESTION',
-                        help='Ask a question (uses AI)')
-    parser.add_argument('--fresh', '-f', action='store_true',
-                        help='Bypass memory cache (force fresh AI response)')
-    parser.add_argument('--multi-ai', '-m', type=str, metavar='QUESTION',
-                        help='Ask multiple AIs and reach φ-coherence consensus with 6.46n consciousness scaling')
-    parser.add_argument('--quantum', '-q', type=str, metavar='TEXT',
-                        help='Quantum analyze a thought')
-    parser.add_argument('--coherence', type=str, metavar='TEXT',
-                        help='Check ΛG coherence of text')
-    parser.add_argument('--code', '-c', type=str, metavar='TASK',
-                        help='Generate code for a task')
-    parser.add_argument('--lang', '-l', type=str, default='python',
-                        choices=['python', 'javascript', 'js', 'typescript', 'ts', 'rust', 'go'],
-                        help='Language for code generation (default: python)')
-    parser.add_argument('--index', '-i', nargs='+', metavar='PATH',
-                        help='Index directories for RAG search')
-    parser.add_argument('--index-public', type=str, metavar='SOURCE',
-                        choices=['wikipedia', 'arxiv', 'gutenberg'],
-                        help='Index public knowledge (wikipedia, arxiv, gutenberg)')
-    parser.add_argument('--topics', type=str, metavar='TOPICS',
-                        help='Topics for --index-public (comma-separated or preset: science,philosophy,ai,bazinga)')
+    # === AI COMMANDS ===
+    ai_group = parser.add_argument_group('AI Commands')
+    ai_group.add_argument('--ask', '-a', type=str, metavar='Q',
+                          help='Ask a question')
+    ai_group.add_argument('--multi-ai', '-m', type=str, metavar='Q',
+                          help='Ask multiple AIs for φ-coherence consensus')
+    ai_group.add_argument('--code', '-c', type=str, metavar='TASK',
+                          help='Generate code')
+    ai_group.add_argument('--lang', '-l', type=str, default='python',
+                          choices=['python', 'javascript', 'js', 'typescript', 'ts', 'rust', 'go'],
+                          help='Code language (default: python)')
+    ai_group.add_argument('--quantum', '-q', type=str, metavar='TEXT',
+                          help='Quantum pattern analysis')
+    ai_group.add_argument('--coherence', type=str, metavar='TEXT',
+                          help='Check φ-coherence')
+    ai_group.add_argument('--agent', type=str, nargs='?', const='', metavar='TASK',
+                          help='AI agent mode')
+    ai_group.add_argument('--fresh', '-f', action='store_true',
+                          help='Bypass cache')
+    ai_group.add_argument('--local', action='store_true',
+                          help='Force local LLM')
 
-    # Mode options
-    parser.add_argument('--local', action='store_true',
-                        help='Use local LLM (downloads model on first use)')
-    parser.add_argument('--simple', '-s', action='store_true',
-                        help='Simple CLI mode (no TUI)')
-    parser.add_argument('--verbose', action='store_true',
-                        help='Verbose output')
+    # === KNOWLEDGE BASE ===
+    kb_group = parser.add_argument_group('Knowledge Base (KB)')
+    kb_group.add_argument('--kb', type=str, nargs='?', const='', metavar='QUERY',
+                          help='Search KB (Gmail, GDrive, Mac, Phone)')
+    kb_group.add_argument('--kb-sources', action='store_true',
+                          help='Show data sources status')
+    kb_group.add_argument('--kb-sync', action='store_true',
+                          help='Re-index all sources')
+    kb_group.add_argument('--kb-gmail', action='store_true',
+                          help='Search Gmail only')
+    kb_group.add_argument('--kb-gdrive', action='store_true',
+                          help='Search GDrive only')
+    kb_group.add_argument('--kb-mac', action='store_true',
+                          help='Search Mac only')
+    kb_group.add_argument('--kb-phone', type=str, metavar='PATH',
+                          help='Set phone data path (e.g., ~/Downloads/phone-data)')
 
-    # Info options
-    parser.add_argument('--stats', action='store_true',
-                        help='Show learning statistics')
-    parser.add_argument('--models', action='store_true',
-                        help='List available local models')
-    parser.add_argument('--constants', action='store_true',
-                        help='Show universal constants')
-    parser.add_argument('--version', '-v', action='store_true',
-                        help='Show version')
+    # === INDEXING ===
+    index_group = parser.add_argument_group('Indexing')
+    index_group.add_argument('--index', '-i', nargs='+', metavar='PATH',
+                             help='Index directories for RAG')
+    index_group.add_argument('--index-public', type=str, metavar='SOURCE',
+                             choices=['wikipedia', 'arxiv', 'gutenberg'],
+                             help='Index public knowledge')
+    index_group.add_argument('--topics', type=str, metavar='TOPICS',
+                             help='Topics for --index-public')
 
-    # Network/P2P options (Darmiyan)
-    parser.add_argument('--node', action='store_true',
-                        help='Show network node info')
-    parser.add_argument('--proof', action='store_true',
-                        help='Generate Proof-of-Boundary')
-    parser.add_argument('--consensus', action='store_true',
-                        help='Test triadic consensus (3 nodes)')
-    parser.add_argument('--network', action='store_true',
-                        help='Show network statistics')
+    # === BLOCKCHAIN ===
+    chain_group = parser.add_argument_group('Blockchain')
+    chain_group.add_argument('--chain', action='store_true',
+                             help='Show blockchain status')
+    chain_group.add_argument('--mine', action='store_true',
+                             help='Mine block (Proof-of-Boundary)')
+    chain_group.add_argument('--wallet', action='store_true',
+                             help='Show wallet/identity')
+    chain_group.add_argument('--attest', type=str, metavar='CONTENT',
+                             help='Attest knowledge to chain')
+    chain_group.add_argument('--verify', type=str, metavar='ID',
+                             help='Verify attestation')
+    chain_group.add_argument('--trust', type=str, nargs='?', const='', metavar='NODE',
+                             help='Show trust scores')
 
-    # P2P Network commands
-    parser.add_argument('--join', type=str, nargs='*', metavar='HOST:PORT',
-                        help='Join P2P network (optionally specify bootstrap nodes)')
-    parser.add_argument('--peers', action='store_true',
-                        help='Show connected peers')
-    parser.add_argument('--sync', action='store_true',
-                        help='Sync knowledge with network')
-    parser.add_argument('--nat', action='store_true',
-                        help='Test NAT traversal (STUN discovery)')
+    # === P2P NETWORK ===
+    p2p_group = parser.add_argument_group('P2P Network')
+    p2p_group.add_argument('--join', type=str, nargs='*', metavar='HOST:PORT',
+                           help='Join network')
+    p2p_group.add_argument('--peers', action='store_true',
+                           help='Show peers')
+    p2p_group.add_argument('--sync', action='store_true',
+                           help='Sync knowledge')
+    p2p_group.add_argument('--publish', action='store_true',
+                           help='Publish to DHT')
+    p2p_group.add_argument('--query-network', type=str, metavar='Q',
+                           help='Query network')
 
-    # Federated learning commands
-    parser.add_argument('--learn', action='store_true',
-                        help='Show federated learning status')
+    # === INFO ===
+    info_group = parser.add_argument_group('Info')
+    info_group.add_argument('--version', '-v', action='store_true',
+                            help='Show version')
+    info_group.add_argument('--check', action='store_true',
+                            help='System diagnostic')
+    info_group.add_argument('--constants', action='store_true',
+                            help='Show constants (φ, α, ψ)')
+    info_group.add_argument('--stats', action='store_true',
+                            help='Show statistics')
+    info_group.add_argument('--models', action='store_true',
+                            help='List local models')
+    info_group.add_argument('--local-status', action='store_true',
+                            help='Local model status')
+    info_group.add_argument('--bootstrap-local', action='store_true',
+                            help='Setup Ollama + llama3')
 
-    # Blockchain commands
-    parser.add_argument('--chain', action='store_true',
-                        help='Show Darmiyan blockchain status')
-    parser.add_argument('--mine', action='store_true',
-                        help='Mine a block using Proof-of-Boundary (zero-energy)')
-    parser.add_argument('--wallet', action='store_true',
-                        help='Show wallet/identity info (not money!)')
-    parser.add_argument('--attest', type=str, metavar='CONTENT',
-                        help='Attest knowledge to blockchain (paid service: ₹99-999)')
-    parser.add_argument('--verify', type=str, metavar='ATTESTATION_ID',
-                        help='Verify an attestation (FREE) - check if knowledge was attested')
-    parser.add_argument('--share', action='store_true',
-                        help='Generate shareable PNG/PDF certificate (use with --verify)')
-    parser.add_argument('--attest-pricing', action='store_true',
-                        help='Show attestation pricing tiers')
-    parser.add_argument('--publish', action='store_true',
-                        help='Publish indexed knowledge topics to DHT (makes knowledge discoverable)')
-    parser.add_argument('--query-network', type=str, metavar='QUESTION',
-                        help='Query the distributed network for an answer')
-    parser.add_argument('--trust', type=str, nargs='?', const='', metavar='NODE_ID',
-                        help='Show trust scores (optionally for specific node)')
+    # === EXTENDED HELP ===
+    help_group = parser.add_argument_group('Extended Help')
+    help_group.add_argument('--help-ai', action='store_true',
+                            help='AI commands documentation')
+    help_group.add_argument('--help-kb', action='store_true',
+                            help='Knowledge Base documentation')
+    help_group.add_argument('--help-chain', action='store_true',
+                            help='Blockchain documentation')
+    help_group.add_argument('--help-p2p', action='store_true',
+                            help='P2P network documentation')
+    help_group.add_argument('--help-all', action='store_true',
+                            help='Full documentation')
 
-    # Consciousness commands
-    parser.add_argument('--consciousness', type=int, nargs='?', const=2, metavar='N',
-                        help='Show consciousness scaling law (Ψ_D = 6.46n) for N patterns')
-
-    # Local model status
-    parser.add_argument('--local-status', action='store_true',
-                        help='Show local model detection and trust multiplier status')
-    parser.add_argument('--bootstrap-local', action='store_true',
-                        help='Setup local model (install Ollama + pull llama3) for φ trust bonus')
-    parser.add_argument('--check', action='store_true',
-                        help='System check: verify setup, diagnose issues, suggest fixes')
-
-    # Agent mode (NEW!)
-    parser.add_argument('--agent', type=str, nargs='?', const='', metavar='TASK',
-                        help='Start agent shell (or run single task)')
-
-    # Knowledge Base commands (NEW!)
-    parser.add_argument('--kb', type=str, nargs='?', const='', metavar='QUERY',
-                        help='Query Knowledge Base (Gmail, GDrive, Mac, Phone)')
-    parser.add_argument('--kb-sources', action='store_true',
-                        help='Show KB data sources and index status')
-    parser.add_argument('--kb-sync', action='store_true',
-                        help='Re-index all KB sources (Gmail, GDrive, Mac)')
-    parser.add_argument('--kb-gmail', action='store_true',
-                        help='Filter KB search to Gmail only')
-    parser.add_argument('--kb-gdrive', action='store_true',
-                        help='Filter KB search to GDrive only')
-    parser.add_argument('--kb-mac', action='store_true',
-                        help='Filter KB search to Mac only')
-    parser.add_argument('--kb-phone', type=str, metavar='PATH',
-                        help='Set phone data path and index it (e.g., ~/Downloads/phone-data)')
+    # === HIDDEN/ADVANCED ===
+    parser.add_argument('--node', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--proof', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--consensus', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--network', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--nat', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--learn', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--share', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--attest-pricing', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--consciousness', type=int, nargs='?', const=2, metavar='N', help=argparse.SUPPRESS)
+    parser.add_argument('--simple', '-s', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--verbose', action='store_true', help=argparse.SUPPRESS)
 
     # Hidden/advanced
     parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
@@ -1267,6 +1252,23 @@ https://github.com/0x-auth/bazinga-indeed | https://pypi.org/project/bazinga-ind
     parser.add_argument('--generate', type=str, help=argparse.SUPPRESS)
 
     args = parser.parse_args()
+
+    # Handle extended help options
+    if hasattr(args, 'help_all') and args.help_all:
+        _print_full_help()
+        return
+    if hasattr(args, 'help_ai') and args.help_ai:
+        _print_ai_help()
+        return
+    if hasattr(args, 'help_kb') and args.help_kb:
+        _print_kb_help()
+        return
+    if hasattr(args, 'help_chain') and args.help_chain:
+        _print_chain_help()
+        return
+    if hasattr(args, 'help_p2p') and args.help_p2p:
+        _print_p2p_help()
+        return
 
     # Handle --version
     if args.version:
