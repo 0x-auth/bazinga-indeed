@@ -1,4 +1,4 @@
-# BAZINGA Usage Guide v4.9.8
+# BAZINGA Usage Guide v4.9.22
 
 **Complete guide to BAZINGA - The first AI you actually own**
 
