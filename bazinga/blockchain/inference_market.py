@@ -201,19 +201,53 @@ class InferenceMarket:
         self,
         address: str,
         amount: float,
-        reason: str = "contribution"
+        reason: str = "contribution",
+        _internal: bool = False
     ) -> float:
         """
         Add credits to an address.
+
+        SECURITY FIX (Feb 2026 Audit - Round 4):
+        - Credits can ONLY be added via legitimate activities
+        - External calls are REJECTED unless _internal=True
+        - Valid reasons: pob_proof, knowledge_attestation, inference_provided
+        - Maximum single addition capped at 100 credits
 
         Args:
             address: Node address
             amount: Credits to add
             reason: Why credits are being added
+            _internal: Must be True for internal calls (not exposed to users)
 
         Returns:
-            New balance
+            New balance, or 0.0 if rejected
         """
+        # SECURITY FIX: Reject external credit additions
+        if not _internal:
+            # Log attempted manipulation
+            print(f"  ⚠️  REJECTED: External credit addition attempt for {address}")
+            return self.credit_balances.get(address, 0.0)
+
+        # SECURITY FIX: Only allow legitimate reasons
+        valid_reasons = {
+            'pob_proof', 'knowledge_attestation', 'inference_provided',
+            'gradient_accepted', 'learning_contribution', 'governance_reward'
+        }
+        if reason not in valid_reasons:
+            print(f"  ⚠️  REJECTED: Invalid credit reason '{reason}'")
+            return self.credit_balances.get(address, 0.0)
+
+        # SECURITY FIX: Cap single additions
+        MAX_SINGLE_CREDIT = 100.0
+        if amount > MAX_SINGLE_CREDIT:
+            print(f"  ⚠️  REJECTED: Credit amount {amount} exceeds max {MAX_SINGLE_CREDIT}")
+            return self.credit_balances.get(address, 0.0)
+
+        # SECURITY FIX: No negative credits
+        if amount < 0:
+            print(f"  ⚠️  REJECTED: Negative credit amount {amount}")
+            return self.credit_balances.get(address, 0.0)
+
         current = self.credit_balances.get(address, 0.0)
         new_balance = current + amount
         self.credit_balances[address] = new_balance
