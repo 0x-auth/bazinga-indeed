@@ -56,8 +56,16 @@ class AlphaSeed:
 
 
 def calculate_hash(text: str) -> int:
-    """Calculate sum-of-ord hash for α-SEED detection."""
-    return sum(ord(c) for c in text)
+    """
+    Calculate SHA256 hash for α-SEED detection.
+
+    SECURITY FIX (Feb 2026): Changed from sum(ord(c)) to SHA256.
+    The sum-of-ordinals was vulnerable to "Ordinal Collision" attacks
+    where an attacker could pad content to make hash % 137 == 0.
+
+    SHA256 is cryptographically secure and position-aware.
+    """
+    return int(hashlib.sha256(text.encode()).hexdigest(), 16)
 
 
 def is_alpha_seed(text: str) -> bool:
