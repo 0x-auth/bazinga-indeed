@@ -184,37 +184,80 @@ class TrustOracle:
         """
         Verify that a node is actually running a local model.
 
-        SECURITY FIX (Feb 2026 Audit):
-        - Don't trust is_local_model claims without verification
-        - Require proof of local model execution
+        SECURITY FIX v2 (Feb 2026 Audit - Round 4):
+        - ALL previous methods were trivially bypassable
+        - Now requires cryptographic proof with HMAC verification
+        - challenge_response must be HMAC(challenge, node_secret)
+        - attestation must be signed by THIS oracle (not self-reported)
+        - verified_by must match a registered verifier with valid signature
 
-        Returns True only if verification passes.
+        Returns True only if STRICT verification passes.
         """
         if not metadata:
             return False
 
-        # Method 1: Check for challenge-response proof
+        # SECURITY FIX: Require cryptographic proof, not just "different from challenge"
+        # Method 1: Challenge-response with HMAC verification
         challenge_response = metadata.get('challenge_response', '')
         challenge = metadata.get('challenge', '')
-        if challenge and challenge_response:
-            # Verify the response is a valid completion of the challenge
-            # For now, just check it's non-empty and different from challenge
-            if challenge_response and challenge_response != challenge:
+        nonce = metadata.get('nonce', '')
+
+        if challenge and challenge_response and nonce:
+            # Verify the response is HMAC(challenge + nonce, oracle_secret)
+            # The oracle must have issued this challenge
+            expected_response = self._compute_challenge_response(challenge, nonce, node_address)
+            if challenge_response == expected_response:
                 return True
 
-        # Method 2: Check for attestation signature
+        # SECURITY FIX: Attestation must be signed by THIS oracle, not self-reported
         attestation = metadata.get('attestation', '')
-        if attestation:
-            # Verify attestation format (should be signed by local model)
-            if len(attestation) >= 64:  # SHA256 length
+        attestation_signature = metadata.get('attestation_signature', '')
+        if attestation and attestation_signature:
+            # Verify attestation was signed by this oracle
+            if self._verify_oracle_signature(attestation, attestation_signature):
                 return True
 
-        # Method 3: Check if verified flag was set by a trusted verifier
-        if metadata.get('verified_by') in ['system', 'oracle', 'trusted_node']:
-            return True
+        # SECURITY FIX: verified_by must be in registered verifiers AND have valid proof
+        verified_by = metadata.get('verified_by', '')
+        verifier_signature = metadata.get('verifier_signature', '')
+        if verified_by and verifier_signature:
+            # Check verifier is registered and signature is valid
+            if self._verify_trusted_verifier(verified_by, node_address, verifier_signature):
+                return True
 
         # No valid verification - reject the claim
+        # SECURITY: Default to False, not True
         return False
+
+    def _compute_challenge_response(self, challenge: str, nonce: str, node_address: str) -> str:
+        """Compute expected challenge response using HMAC."""
+        import hmac
+        # Use oracle's secret key (derived from chain genesis)
+        oracle_secret = hashlib.sha256(
+            f"oracle_secret:{self.chain.blocks[0].hash if self.chain.blocks else 'genesis'}".encode()
+        ).hexdigest()
+        data = f"{challenge}:{nonce}:{node_address}"
+        return hmac.new(oracle_secret.encode(), data.encode(), hashlib.sha256).hexdigest()
+
+    def _verify_oracle_signature(self, attestation: str, signature: str) -> bool:
+        """Verify attestation was signed by this oracle."""
+        # Compute expected signature
+        oracle_key = hashlib.sha256(
+            f"oracle_key:{self.chain.blocks[0].hash if self.chain.blocks else 'genesis'}".encode()
+        ).hexdigest()
+        expected_sig = hashlib.sha256(f"{attestation}:{oracle_key}".encode()).hexdigest()
+        return signature == expected_sig
+
+    def _verify_trusted_verifier(self, verifier: str, node_address: str, signature: str) -> bool:
+        """Verify trusted verifier signature."""
+        # Registered verifiers must be in the chain's trusted set
+        # For now, no self-reported verifiers are trusted
+        # This must be set up through proper governance
+        trusted_verifiers = getattr(self.chain, 'trusted_verifiers', set())
+        if verifier not in trusted_verifiers:
+            return False
+        # Verify signature (would use PKI in production)
+        return False  # No self-reported verifiers accepted
 
     def record_local_model_usage(self, node_address: str, model_name: str = "ollama"):
         """
