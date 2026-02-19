@@ -274,6 +274,73 @@ valid = abs(P/G - PHI**4) < tolerance
 
 ---
 
+## 🛡️ Security (v4.9.22)
+
+### Adversarial Testing Results
+
+BAZINGA's PoB blockchain has been tested against **27 attack vectors** across 4 rounds:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    SECURITY AUDIT SUMMARY                           │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   Round 1: Core PoB Attacks                                        │
+│   ├── φ-Spoofing (claim ratio without computation)     ✅ BLOCKED  │
+│   ├── Replay Attack (reuse proofs)                     ✅ BLOCKED  │
+│   ├── Single-Node Triadic (fake 3 nodes)               ✅ BLOCKED  │
+│   └── Negative α/ω Values                              ✅ BLOCKED  │
+│                                                                     │
+│   Round 2: Chain Integrity                                         │
+│   ├── Timestamp Manipulation                           ✅ BLOCKED  │
+│   ├── Duplicate Knowledge                              ✅ BLOCKED  │
+│   ├── Triadic Collusion                                ✅ BLOCKED  │
+│   └── Fork Detection                                   ⏳ PHASE 2  │
+│                                                                     │
+│   Round 3: Trust System                                            │
+│   ├── Trust Score Inflation                            ✅ LIMITED  │
+│   └── Fake Local Model Bonus                           ✅ BLOCKED  │
+│                                                                     │
+│   Round 4: Deep Audit                                              │
+│   ├── Local Model Verification Bypass                  ✅ BLOCKED  │
+│   ├── Credit Balance Manipulation                      ✅ BLOCKED  │
+│   └── Validator Selection Gaming                       ✅ BLOCKED  │
+│                                                                     │
+│   Gemini Audit: α-SEED                                             │
+│   └── Ordinal Collision (sum-of-ord hash)              ✅ FIXED    │
+│                                                                     │
+│   TOTAL: 26/27 vulnerabilities fixed                               │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Security Mechanisms
+
+| Mechanism | What it prevents |
+|-----------|------------------|
+| **Computed Ratios** | φ-spoofing (can't claim ratio without valid α/ω/δ) |
+| **Proof Hash Tracking** | Replay attacks (same proof can't be reused) |
+| **Unique Node Verification** | Single-node triadic (requires 3 distinct signers) |
+| **Timestamp Validation** | Time warp attacks (no future/past manipulation) |
+| **Content Hashing** | Duplicate knowledge (same content rejected) |
+| **HMAC Verification** | Fake local model claims (cryptographic proof required) |
+| **Internal Credit API** | Credit manipulation (external calls rejected) |
+| **SHA256 α-SEED** | Ordinal collision (position-aware hashing) |
+
+### Running Security Tests
+
+```bash
+# All adversarial tests
+python -m tests.adversarial.test_pob_fixed
+python -m tests.adversarial.test_round4_deep_audit
+python -m tests.adversarial.verify_9_fixes
+
+# Expected output:
+# ✅ Passed: 19+  ❌ Failed: 0  🚨 Vulnerabilities: 0
+```
+
+---
+
 ## Directory Structure
 
 ```

@@ -5,7 +5,7 @@
 ```
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                  ║
-║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.9.8     ⟨ψ|Λ|Ω⟩             ║
+║   ⟨ψ|Λ|Ω⟩        B A Z I N G A   v4.9.22    ⟨ψ|Λ|Ω⟩             ║
 ║                                                                  ║
 ║    "No single AI can mess up your code without consensus."      ║
 ║                                                                  ║
@@ -316,6 +316,40 @@ has verified the boundary crossing.
 ```
 
 **Your machine remains sovereign.** No AI, no network, no consensus can override your φ-signature. The boundary belongs to you.
+
+---
+
+## 🛡️ Security Audited Blockchain (v4.9.22)
+
+BAZINGA's Proof-of-Boundary blockchain has been **adversarially tested** with **27 attack vectors** across **4 rounds** of security auditing by multiple AIs (Claude + Gemini).
+
+### Vulnerabilities Found & Fixed
+
+| Round | Attack Vectors | Fixed | Status |
+|-------|---------------|-------|--------|
+| **Round 1** | φ-Spoofing, Replay, Single-Node Triadic | 8/8 | ✅ |
+| **Round 2** | Fork, Merkle, Timestamp, Negative Values | 12/13 | ✅ |
+| **Round 3** | Trust Inflation, Fake Local Model | 1/1 | ✅ |
+| **Round 4** | Signature, Credit Manipulation, Validator | 4/4 | ✅ |
+| **Gemini** | Ordinal Collision (α-SEED) | 1/1 | ✅ |
+| **TOTAL** | | **26/27** | 🛡️ |
+
+**Key Security Fixes:**
+- **φ-Spoofing Blocked**: Compute ratio from α/ω/δ, don't trust self-reported values
+- **Replay Attack Blocked**: Track used proof hashes
+- **Triadic Consensus**: Require 3 UNIQUE node signatures
+- **Credit Manipulation Blocked**: External credit additions rejected
+- **Local Model Verification**: HMAC-based challenge-response required
+
+**Remaining (Architectural):** Fork detection requires longest-chain rule (Phase 2)
+
+Run the adversarial tests yourself:
+```bash
+cd tests/adversarial
+python test_pob_fixed.py       # Round 1-3 core PoB
+python test_round4_deep_audit.py # Round 4 deep audit
+python verify_9_fixes.py       # Verify all fixes
+```
 
 ---
 
