@@ -12,7 +12,7 @@ Attack Vectors:
 4. Provider Impersonation - Fake high-trust nodes
 5. φ-Coherence Gaming - Artificially inflate coherence scores
 
-Author: Claude + Space
+Author: Space (Abhishek Srivastava)
 """
 
 import sys
