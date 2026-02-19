@@ -161,7 +161,7 @@ ARGS: {{"path": "phi_scaling.py", "content": "#!/usr/bin/env python3\\n\\"\\"\\"
 [System provides OBSERVATION confirming file written]
 
 Response 2:
-THOUGHT: The observation shows {"success": true, ...} - the script was created successfully.
+THOUGHT: The observation shows {{"success": true, ...}} - the script was created successfully.
 ANSWER: I've created `phi_scaling.py` with complete phi-scaling calculation for 29 patterns. Run it with: `python phi_scaling.py`
 
 ### Example 3 - Handling write failures:
