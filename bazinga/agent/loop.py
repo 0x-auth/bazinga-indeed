@@ -132,6 +132,7 @@ ANSWER: I've created phi_scaling.py with the phi-scaling calculation. Run it wit
 7. Only use tools when you need to interact with the file system or run commands
 8. Do NOT try to read files that don't exist - create self-contained solutions instead
 9. Do NOT create empty placeholder files - include actual working code
+10. ALWAYS check the OBSERVATION result before claiming success - if "success": false, tell the user what went wrong
 
 ## Example interactions:
 
@@ -160,8 +161,22 @@ ARGS: {{"path": "phi_scaling.py", "content": "#!/usr/bin/env python3\\n\\"\\"\\"
 [System provides OBSERVATION confirming file written]
 
 Response 2:
-THOUGHT: Script created successfully. I'll tell the user how to run it.
+THOUGHT: The observation shows {"success": true, ...} - the script was created successfully.
 ANSWER: I've created `phi_scaling.py` with complete phi-scaling calculation for 29 patterns. Run it with: `python phi_scaling.py`
+
+### Example 3 - Handling write failures:
+User: Write a test script
+
+Response 1:
+THOUGHT: I'll create a test script.
+ACTION: write
+ARGS: {{"path": "test.py", "content": "print('test')"}}
+
+[System provides OBSERVATION: {{"success": false, "error": "Write cancelled by user"}}]
+
+Response 2:
+THOUGHT: The observation shows success=false - the write was cancelled by the user.
+ANSWER: The file write was cancelled. Would you like me to try again, or would you prefer to create the file yourself?
 '''
 
     def __init__(self, verbose: bool = False):
