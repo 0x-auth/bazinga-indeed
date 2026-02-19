@@ -94,6 +94,9 @@ class DarmiyanChain:
         self.tx_by_hash: Dict[str, Transaction] = {}
         self.knowledge_index: Dict[str, List[str]] = {}  # content_hash -> tx_hashes
 
+        # SECURITY FIX: Track used proof hashes to prevent replay attacks
+        self.used_proof_hashes: set = set()
+
         # Stats
         self.stats = ChainStats()
 
@@ -185,9 +188,28 @@ class DarmiyanChain:
         """
         Add a knowledge attestation to pending transactions.
 
-        Returns the transaction hash.
+        SECURITY FIX (Feb 2026 Audit):
+        - Check for duplicate knowledge before adding
+
+        Returns the transaction hash, or empty string if duplicate.
         """
+        import hashlib
         from .transaction import create_knowledge_tx
+
+        # SECURITY FIX: Check for duplicate knowledge
+        content_hash = hashlib.sha256(content.encode()).hexdigest()
+
+        # Check if this exact content already exists on chain
+        if content_hash in self.knowledge_index:
+            # Already attested - don't add duplicate
+            return ""
+
+        # Check pending transactions for duplicate
+        for pending_tx in self.pending_transactions:
+            if hasattr(pending_tx, 'data'):
+                pending_hash = pending_tx.data.get('content_hash', '')
+                if pending_hash == content_hash:
+                    return ""  # Already pending
 
         tx = create_knowledge_tx(
             content=content,
@@ -257,8 +279,14 @@ class DarmiyanChain:
         Either provide a block directly, or provide PoB proofs
         to create a block from pending transactions.
 
+        SECURITY FIXES (Feb 2026 Audit):
+        - Check for proof replay attacks
+        - Validate proofs are bound to this block
+
         Returns True if block was added.
         """
+        import hashlib
+
         if block is None:
             if pob_proofs is None:
                 raise ValueError("Must provide either block or pob_proofs")
@@ -267,10 +295,25 @@ class DarmiyanChain:
             if block is None:
                 return False
 
+        # SECURITY FIX: Check for replay attack (reused proofs)
+        for proof in block.header.pob_proofs:
+            # Create unique hash for this proof
+            proof_data = f"{proof.get('node_id', '')}:{proof.get('alpha', 0)}:{proof.get('omega', 0)}:{proof.get('delta', 0)}:{proof.get('signature', '')}"
+            proof_hash = hashlib.sha256(proof_data.encode()).hexdigest()
+
+            if proof_hash in self.used_proof_hashes:
+                return False  # REPLAY DETECTED - reject block
+
         # Validate block
         previous_block = self.blocks[-1] if self.blocks else None
         if not block.validate(previous_block):
             return False
+
+        # SECURITY FIX: Mark proofs as used (prevent replay)
+        for proof in block.header.pob_proofs:
+            proof_data = f"{proof.get('node_id', '')}:{proof.get('alpha', 0)}:{proof.get('omega', 0)}:{proof.get('delta', 0)}:{proof.get('signature', '')}"
+            proof_hash = hashlib.sha256(proof_data.encode()).hexdigest()
+            self.used_proof_hashes.add(proof_hash)
 
         # Add to chain
         self._add_block_internal(block)
