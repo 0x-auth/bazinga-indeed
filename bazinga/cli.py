@@ -279,7 +279,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.9.25"
+    VERSION = "4.9.26"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1162,8 +1162,10 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                           help='Search GDrive only')
     kb_group.add_argument('--kb-mac', action='store_true',
                           help='Search Mac only')
-    kb_group.add_argument('--kb-phone', type=str, metavar='PATH',
-                          help='Set phone data path (e.g., ~/Downloads/phone-data)')
+    kb_group.add_argument('--kb-phone', type=str, nargs='?', const='', metavar='PATH',
+                          help='Search Phone only (or set path: --kb-phone ~/path)')
+    kb_group.add_argument('--kb-phone-path', type=str, metavar='PATH',
+                          help='Set phone data path and index it')
 
     # === INDEXING ===
     index_group = parser.add_argument_group('Indexing')
@@ -1476,15 +1478,24 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
             print(result)
         return
 
-    # Handle --kb-phone (set phone data path)
-    if hasattr(args, 'kb_phone') and args.kb_phone:
+    # Handle --kb-phone-path (set phone data path)
+    if hasattr(args, 'kb_phone_path') and args.kb_phone_path:
+        from .kb import BazingaKB
+        kb = BazingaKB()
+        kb.set_phone_data_path(os.path.expanduser(args.kb_phone_path))
+        kb.show_sources()
+        return
+
+    # Handle --kb (Knowledge Base queries)
+    # Check if --kb-phone has a path (not empty string) - means setting path
+    kb_phone_is_path = hasattr(args, 'kb_phone') and args.kb_phone and args.kb_phone != '' and '/' in args.kb_phone
+    if kb_phone_is_path:
         from .kb import BazingaKB
         kb = BazingaKB()
         kb.set_phone_data_path(os.path.expanduser(args.kb_phone))
         kb.show_sources()
         return
 
-    # Handle --kb (Knowledge Base queries)
     if args.kb is not None or args.kb_sources or args.kb_sync:
         from .kb import BazingaKB
         kb = BazingaKB()
@@ -1505,6 +1516,9 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                 sources.append('gdrive')
             if args.kb_mac:
                 sources.append('mac')
+            # --kb-phone as filter (empty string or just flag)
+            if hasattr(args, 'kb_phone') and args.kb_phone is not None and not kb_phone_is_path:
+                sources.append('phone')
 
             if not sources:
                 sources = None  # Search all
