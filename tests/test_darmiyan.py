@@ -709,10 +709,12 @@ def test_chain_validation():
         )
 
         # Create mock PoB proofs (valid format)
+        # Must satisfy: (alpha + omega + delta) / delta ≈ PHI_4 (6.854)
+        # And: alpha < 515, omega < 515
         mock_proofs = [
-            {'alpha': 200, 'omega': 300, 'delta': 100, 'ratio': PHI_4, 'valid': True, 'node_id': 'a'},
-            {'alpha': 150, 'omega': 350, 'delta': 200, 'ratio': PHI_4, 'valid': True, 'node_id': 'b'},
-            {'alpha': 180, 'omega': 320, 'delta': 140, 'ratio': PHI_4, 'valid': True, 'node_id': 'c'},
+            {'alpha': 248, 'omega': 249, 'delta': 85, 'ratio': PHI_4, 'valid': True, 'node_id': 'a'},
+            {'alpha': 263, 'omega': 263, 'delta': 90, 'ratio': PHI_4, 'valid': True, 'node_id': 'b'},
+            {'alpha': 278, 'omega': 278, 'delta': 95, 'ratio': PHI_4, 'valid': True, 'node_id': 'c'},
         ]
 
         success = chain.add_block(pob_proofs=mock_proofs)
@@ -928,8 +930,8 @@ def test_smart_contracts():
     market = create_market()
     engine = create_engine(inference_market=market)
 
-    # Give creator credits for bounty
-    market.add_credits("creator_1", 100.0, "test")
+    # Give creator credits for bounty (must use _internal=True and valid reason)
+    market.add_credits("creator_1", 100.0, "knowledge_attestation", _internal=True)
 
     # Create a bounty contract
     contract = engine.create_bounty(
