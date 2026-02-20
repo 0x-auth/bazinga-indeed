@@ -977,7 +977,7 @@ Your refined answer:"""
 class CerebrasParticipant(ConsensusParticipant):
     """Cerebras API participant (FREE - ultra fast inference)."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "llama3.1-70b"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "llama3.1-8b"):
         self.api_key = api_key or os.environ.get('CEREBRAS_API_KEY')
         super().__init__(
             participant_id=f"cerebras_{model[:8]}",
