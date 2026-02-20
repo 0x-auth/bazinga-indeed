@@ -26,6 +26,7 @@ import json
 import hashlib
 import time
 import os
+import fcntl
 from typing import Dict, Any, List, Optional, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -412,8 +413,9 @@ class DarmiyanChain:
         return len(self.blocks)
 
     def _save(self):
-        """Save chain to disk."""
+        """Save chain to disk with file locking to prevent concurrent write conflicts."""
         chain_file = self.data_dir / "chain.json"
+        lock_file = self.data_dir / "chain.lock"
 
         data = {
             'blocks': [b.to_dict() for b in self.blocks],
@@ -421,15 +423,38 @@ class DarmiyanChain:
             'saved_at': time.time(),
         }
 
-        with open(chain_file, 'w') as f:
-            json.dump(data, f, indent=2)
+        # Use exclusive file lock to prevent race conditions between --sync and --mine
+        try:
+            with open(lock_file, 'w') as lf:
+                fcntl.flock(lf.fileno(), fcntl.LOCK_EX)  # Exclusive lock
+                try:
+                    with open(chain_file, 'w') as f:
+                        json.dump(data, f, indent=2)
+                finally:
+                    fcntl.flock(lf.fileno(), fcntl.LOCK_UN)  # Release lock
+        except (IOError, OSError):
+            # Fallback: write without lock (better than failing)
+            with open(chain_file, 'w') as f:
+                json.dump(data, f, indent=2)
 
     def _load(self):
-        """Load chain from disk."""
+        """Load chain from disk with file locking to prevent read during write."""
         chain_file = self.data_dir / "chain.json"
+        lock_file = self.data_dir / "chain.lock"
 
-        with open(chain_file, 'r') as f:
-            data = json.load(f)
+        # Use shared lock for reading (allows multiple readers, blocks writers)
+        try:
+            with open(lock_file, 'w') as lf:
+                fcntl.flock(lf.fileno(), fcntl.LOCK_SH)  # Shared lock
+                try:
+                    with open(chain_file, 'r') as f:
+                        data = json.load(f)
+                finally:
+                    fcntl.flock(lf.fileno(), fcntl.LOCK_UN)  # Release lock
+        except (IOError, OSError):
+            # Fallback: read without lock
+            with open(chain_file, 'r') as f:
+                data = json.load(f)
 
         # Restore blocks
         for block_data in data.get('blocks', []):

@@ -1779,6 +1779,7 @@ class InterAIConsensus:
         min_coherence: float = PHI_THRESHOLD,
         multi_round: bool = True,
         synthesis_method: str = "weighted",
+        file_context: Optional[str] = None,
     ) -> ConsensusResult:
         """
         Ask question to all participants and reach consensus.
@@ -1789,10 +1790,14 @@ class InterAIConsensus:
             min_coherence: Minimum φ-coherence for valid response
             multi_round: Enable multi-round consensus with revision
             synthesis_method: "weighted", "best", or "merge"
+            file_context: Optional file contents to include as context for all LLMs
 
         Returns:
             ConsensusResult with understanding and metrics
         """
+        # If file_context provided, prepend it to the question for all participants
+        if file_context:
+            question = f"CONTEXT (from file):\n```\n{file_context[:8000]}\n```\n\nQUESTION: {question}"
         available_participants = [p for p in self.participants if p.is_available()]
 
         if require_triadic and len(available_participants) < 3:
@@ -2049,21 +2054,24 @@ class InterAIConsensus:
 # CONVENIENCE FUNCTIONS
 # =============================================================================
 
-async def multi_ai_ask(question: str, verbose: bool = True) -> ConsensusResult:
+async def multi_ai_ask(question: str, verbose: bool = True, file_context: Optional[str] = None) -> ConsensusResult:
     """
     Simple interface to ask multiple AIs a question.
 
     Usage:
         result = await multi_ai_ask("What is consciousness?")
         print(result.understanding)
+
+        # With file context (--file support):
+        result = await multi_ai_ask("Explain this code", file_context=code_contents)
     """
     consensus = InterAIConsensus(verbose=verbose)
-    return await consensus.ask(question)
+    return await consensus.ask(question, file_context=file_context)
 
 
-def multi_ai_ask_sync(question: str, verbose: bool = True) -> ConsensusResult:
+def multi_ai_ask_sync(question: str, verbose: bool = True, file_context: Optional[str] = None) -> ConsensusResult:
     """Synchronous version of multi_ai_ask."""
-    return asyncio.run(multi_ai_ask(question, verbose))
+    return asyncio.run(multi_ai_ask(question, verbose, file_context))
 
 
 # =============================================================================

@@ -1156,8 +1156,8 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                           help='Show data sources status')
     kb_group.add_argument('--kb-sync', action='store_true',
                           help='Re-index all sources')
-    kb_group.add_argument('--kb-gmail', action='store_true',
-                          help='Search Gmail only')
+    kb_group.add_argument('--kb-gmail', type=str, nargs='?', const='', metavar='QUERY',
+                          help='Search Gmail only (optionally with query: --kb-gmail "search term")')
     kb_group.add_argument('--kb-gdrive', action='store_true',
                           help='Search GDrive only')
     kb_group.add_argument('--kb-mac', action='store_true',
@@ -1508,10 +1508,20 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
             kb.sync_all()
             return
 
+        # Handle --kb-gmail with optional direct query (BUG FIX: now accepts string)
+        if args.kb_gmail is not None:
+            sources = ['gmail']
+            query = args.kb_gmail if args.kb_gmail else args.kb
+            if query:
+                results = kb.search(query, sources=sources)
+                kb.display_results(results, query)
+            else:
+                kb.show_sources()
+                print("\nUsage: bazinga --kb-gmail \"your query here\"")
+            return
+
         if args.kb is not None:
             sources = []
-            if args.kb_gmail:
-                sources.append('gmail')
             if args.kb_gdrive:
                 sources.append('gdrive')
             if args.kb_mac:
@@ -2246,14 +2256,39 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
 
         # Check for pending transactions
         if not chain.pending_transactions:
-            # Add a sample knowledge attestation
-            print(f"  No pending transactions. Adding sample knowledge...")
-            chain.add_knowledge(
-                content=f"BAZINGA v4.3.0 - Distributed AI with Blockchain",
-                summary="Version attestation",
-                sender=wallet.node_id,
-                confidence=1.0,
-            )
+            # BUG FIX: Query local KB for actual knowledge instead of hardcoded sample
+            print(f"  No pending transactions. Querying local KB for knowledge...")
+
+            knowledge_added = False
+            try:
+                from .kb import BazingaKB
+                kb = BazingaKB()
+                # Get recent indexed items to attest
+                recent_items = kb.search("", limit=3)  # Get any recent items
+
+                for item in recent_items[:3]:  # Add up to 3 KB items
+                    content = f"{item.get('title', '')} - {item.get('content', '')[:200]}"
+                    if content.strip():
+                        chain.add_knowledge(
+                            content=content,
+                            summary=f"KB: {item.get('source', 'local')} - {item.get('title', 'untitled')[:50]}",
+                            sender=wallet.node_id,
+                            confidence=0.8,
+                        )
+                        knowledge_added = True
+            except Exception as e:
+                print(f"  (KB query failed: {e})")
+
+            # Fallback: If no KB items, add session attestation (not hardcoded version)
+            if not knowledge_added:
+                from datetime import datetime
+                session_content = f"Mining session by {wallet.node_id[:12]} at {datetime.now().isoformat()}"
+                chain.add_knowledge(
+                    content=session_content,
+                    summary="Mining session attestation",
+                    sender=wallet.node_id,
+                    confidence=1.0,
+                )
 
         print(f"  Pending transactions: {len(chain.pending_transactions)}")
         print(f"  Mining with triadic PoB consensus...")

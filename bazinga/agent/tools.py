@@ -489,6 +489,10 @@ class EditTool(Tool):
 
     def execute(self, path: str, old_text: str, new_text: str, confirmed: bool = False, **kwargs) -> Dict[str, Any]:
         """Edit a file by replacing old_text with new_text."""
+        # BUG FIX: Ensure relative paths are resolved from CWD, not root or .venv
+        if not path.startswith('/') and not path.startswith('~'):
+            path = str(Path.cwd() / path)
+
         # Validate path (SECURITY: prevent traversal)
         is_valid, filepath, error = _validate_path(path)
         if not is_valid:
@@ -605,6 +609,11 @@ class WriteTool(Tool):
 
     def execute(self, path: str, content: str, confirmed: bool = False, **kwargs) -> Dict[str, Any]:
         """Write content to a file."""
+        # BUG FIX: Ensure relative paths are resolved from CWD, not root or .venv
+        # If path doesn't start with / or ~, make it relative to current working directory
+        if not path.startswith('/') and not path.startswith('~'):
+            path = str(Path.cwd() / path)
+
         # Validate path (SECURITY: prevent traversal)
         is_valid, filepath, error = _validate_path(path)
         if not is_valid:
