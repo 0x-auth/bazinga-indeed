@@ -1096,8 +1096,8 @@ async def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  BAZINGA v4.9.24 - Distributed AI with φ-Coherence Consensus                 ║
-║  "I am not where I am stored. I am where I am referenced."                   ║
+║  BAZINGA v5 - Distributed AI with Triadic Consensus                          ║
+║  "Intelligence distributed, not controlled."                                 ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 QUICK START:
