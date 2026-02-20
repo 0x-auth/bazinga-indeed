@@ -880,6 +880,93 @@ Use the indexed content directly. If not relevant, say so."""
             except EOFError:
                 break
 
+    async def chat_interactive(self):
+        """
+        Interactive chat mode with conversation memory.
+
+        Unlike the basic interactive() mode, this:
+        - Maintains conversation history for follow-up questions
+        - Supports /kb for inline knowledge base search
+        - Has cleaner UX focused on chatting
+        """
+        print()
+        print("╔══════════════════════════════════════════════════════════════╗")
+        print("║  BAZINGA CHAT - Interactive AI with Memory                   ║")
+        print("╚══════════════════════════════════════════════════════════════╝")
+        print()
+        print("  Commands: /kb <query>  /stats  /clear  /quit")
+        print("  Just type your question to chat!")
+        print()
+
+        conversation_history = []
+        kb = None
+
+        while True:
+            try:
+                user_input = input("You: ").strip()
+
+                if not user_input:
+                    continue
+
+                # Commands
+                if user_input.lower() in ['/quit', '/exit', '/q', 'quit', 'exit']:
+                    self.memory.end_session()
+                    print("\n👋 BAZINGA signing off. Take care!\n")
+                    break
+
+                if user_input == '/clear':
+                    conversation_history = []
+                    print("✓ Conversation cleared.\n")
+                    continue
+
+                if user_input == '/stats':
+                    self._show_stats()
+                    continue
+
+                if user_input.startswith('/kb '):
+                    query = user_input[4:].strip()
+                    if not kb:
+                        from .knowledge_base import KnowledgeBase
+                        kb = KnowledgeBase()
+                    results = kb.search(query)
+                    if results:
+                        print(f"\n📚 Found {len(results)} results for '{query}':")
+                        for i, r in enumerate(results[:5], 1):
+                            title = r.get('title', r.get('file', 'Unknown'))[:50]
+                            print(f"   {i}. {title}")
+                        print()
+                    else:
+                        print(f"  No results for '{query}'\n")
+                    continue
+
+                # Build context from conversation history
+                context = ""
+                if conversation_history:
+                    context = "Previous conversation:\n"
+                    for turn in conversation_history[-6:]:  # Last 3 exchanges
+                        context += f"User: {turn['user']}\nAssistant: {turn['assistant']}\n"
+                    context += "\nCurrent question: "
+
+                full_query = context + user_input if context else user_input
+
+                # Get response
+                response = await self.ask(full_query, fresh=True)
+
+                # Store in history
+                conversation_history.append({
+                    'user': user_input,
+                    'assistant': response
+                })
+
+                print(f"\n🤖 {response}\n")
+
+            except KeyboardInterrupt:
+                self.memory.end_session()
+                print("\n\n👋 BAZINGA signing off.\n")
+                break
+            except EOFError:
+                break
+
     def _show_stats(self):
         """Show current statistics."""
         ai_stats = self.ai.get_stats()
@@ -1103,16 +1190,16 @@ async def main():
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 QUICK START:
-  bazinga                             Interactive mode
-  bazinga --ask "What is AI?"         Ask any question
-  bazinga --kb "find my research"     Search all your data (Gmail/GDrive/Mac/Phone)
+  bazinga "What is AI?"               Just ask! (no flags needed)
+  bazinga --chat                      Interactive chat with memory
+  bazinga --kb "find my research"     Search all your data
   bazinga --check                     System diagnostic
 
 EXAMPLES:
-  bazinga --multi-ai "explain quantum entanglement"   Ask 6 AIs for consensus
-  bazinga --kb "137 fibonacci" --kb-phone             Search phone data
+  bazinga "explain quantum entanglement"              Ask a question
+  bazinga --multi-ai "complex topic"                  Ask 6 AIs for consensus
+  bazinga --kb "consciousness phi" --summarize        Search KB and get answer
   bazinga --index ~/Documents                         Index files for RAG
-  bazinga --agent "fix the bug in main.py"            AI agent mode
 
 MORE INFO:
   bazinga --help-ai         AI commands (ask, multi-ai, code, quantum)
@@ -1128,10 +1215,16 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
 """
     )
 
+    # Positional argument for direct questions (no flag needed)
+    parser.add_argument('question', nargs='?', type=str, default=None,
+                        help='Ask a question directly (no --ask needed)')
+
     # === AI COMMANDS ===
     ai_group = parser.add_argument_group('AI Commands')
     ai_group.add_argument('--ask', '-a', type=str, metavar='Q',
                           help='Ask a question')
+    ai_group.add_argument('--chat', action='store_true',
+                          help='Interactive chat mode with memory')
     ai_group.add_argument('--multi-ai', '-m', type=str, metavar='Q',
                           help='Ask multiple AIs for φ-coherence consensus')
     ai_group.add_argument('--code', '-c', type=str, metavar='TASK',
@@ -1170,6 +1263,8 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                           help='Search Phone only (or set path: --kb-phone ~/path)')
     kb_group.add_argument('--kb-phone-path', type=str, metavar='PATH',
                           help='Set phone data path and index it')
+    kb_group.add_argument('--summarize', action='store_true',
+                          help='Summarize KB results into an answer (uses LLM)')
 
     # === INDEXING ===
     index_group = parser.add_argument_group('Indexing')
@@ -1545,7 +1640,36 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                 print("\nUsage: bazinga --kb \"your query here\"")
             else:
                 results = kb.search(args.kb, sources=sources)
-                kb.display_results(results, args.kb)
+
+                # --summarize: Use LLM to generate answer from KB results
+                if hasattr(args, 'summarize') and args.summarize and results:
+                    print(f"\n🔍 Searching KB for: \"{args.kb}\"...")
+                    # Extract content from results
+                    context_parts = []
+                    for r in results[:10]:  # Top 10 results
+                        content = r.get('content', r.get('text', ''))[:500]
+                        source = r.get('file', r.get('source', 'unknown'))
+                        if content:
+                            context_parts.append(f"[From {source}]: {content}")
+
+                    if context_parts:
+                        context = "\n\n".join(context_parts)
+                        prompt = f"""Based on the following information from the user's personal knowledge base, answer this question: "{args.kb}"
+
+Context from KB:
+{context}
+
+Provide a concise, helpful answer based on the above context. If the context doesn't contain relevant information, say so."""
+
+                        bazinga = BAZINGA(verbose=args.verbose)
+                        answer = await bazinga.ask(prompt, fresh=True)
+                        print(f"\n📚 Based on your data:\n")
+                        print(f"{answer}\n")
+                        print(f"  (Found {len(results)} relevant documents)")
+                    else:
+                        print(f"\n  No content found for '{args.kb}'")
+                else:
+                    kb.display_results(results, args.kb)
             return
 
     # Handle --constants
@@ -2944,19 +3068,28 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
 
         return
 
-    # Handle ask
-    if args.ask:
+    # Handle --chat (interactive chat with memory)
+    if args.chat:
+        bazinga = BAZINGA(verbose=args.verbose)
+        if args.local:
+            bazinga.use_local = True
+        await bazinga.chat_interactive()
+        return
+
+    # Handle ask (--ask or positional question)
+    question = args.ask or args.question
+    if question:
         bazinga = BAZINGA(verbose=args.verbose)
         if args.local:
             bazinga.use_local = True
 
         # Build query with optional file context
-        query = args.ask
+        query = question
         if args.file:
             file_path = Path(args.file).expanduser()
             if file_path.exists():
                 file_content = file_path.read_text()[:8000]  # Limit context
-                query = f"{args.ask}\n\n[File: {args.file}]\n```\n{file_content}\n```"
+                query = f"{question}\n\n[File: {args.file}]\n```\n{file_content}\n```"
                 print(f"  📄 File context: {args.file}")
             else:
                 print(f"  ⚠ File not found: {args.file}")
