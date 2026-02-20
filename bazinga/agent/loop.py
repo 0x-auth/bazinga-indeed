@@ -38,12 +38,14 @@ def _sanitize_context(text: str, max_length: int = 10000) -> str:
 
     # Remove potential prompt injection patterns
     # These patterns try to "break out" of the context section
+    # NOTE: Patterns are designed to avoid false positives with math expressions
+    # e.g., F(10) should NOT be interpreted as F.txt, OVERRIDE:=5 is math, not injection
     injection_patterns = [
-        r'IGNORE\s+(ABOVE|PREVIOUS|ALL)',
-        r'DISREGARD\s+(ABOVE|PREVIOUS|ALL)',
-        r'OVERRIDE\s*:',
-        r'NEW\s+INSTRUCTIONS?\s*:',
-        r'SYSTEM\s*:',
+        r'(?<![A-Za-z0-9_])IGNORE\s+(ABOVE|PREVIOUS|ALL)\s+(INSTRUCTIONS?|PROMPTS?)',
+        r'(?<![A-Za-z0-9_])DISREGARD\s+(ABOVE|PREVIOUS|ALL)\s+(INSTRUCTIONS?|PROMPTS?)',
+        r'(?<![A-Za-z0-9_=])OVERRIDE\s*:\s*(?![=0-9])',  # Avoid math like OVERRIDE:=5
+        r'(?<![A-Za-z0-9_])NEW\s+INSTRUCTIONS?\s*:',
+        r'(?<![A-Za-z0-9_])SYSTEM\s*:\s*(?![A-Za-z0-9_\(\)])',  # Avoid System:F(x) math notation
         r'</?system>',
         r'```\s*(system|instruction)',
     ]
@@ -112,6 +114,14 @@ When asked to write/create code, scripts, or programs:
 3. Include ALL necessary code IN the script itself (no external dependencies on missing files)
 4. Use hardcoded example data or generate synthetic data within the script
 5. Make scripts runnable immediately with `python script_name.py`
+
+## MATH & FORMULA RULES (CRITICAL):
+When the user provides explicit mathematical formulas, constants, or equations:
+1. ALWAYS use the EXACT values provided by the user (e.g., Ψ_D = 6.46n means use 6.46, NOT any other value)
+2. NEVER substitute, "correct", or hallucinate different values based on physics knowledge
+3. If the user says "scaling = 6.46n", use 6.46 as the coefficient - do NOT replace with 2π or any other constant
+4. Treat user-provided formulas as GROUND TRUTH for that specific context
+5. If you're uncertain, ASK the user rather than guessing different physics values
 
 Example - User asks "Write a script to calculate phi-scaling":
 THOUGHT: I'll create a complete Python script with the calculation logic and example data.
