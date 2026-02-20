@@ -89,6 +89,8 @@ def _get_real_ai():
                     return []
                 def index(self, *args, **kwargs):
                     pass
+                def index_directory(self, *args, **kwargs):
+                    return {"files": 0, "chunks": 0, "error": self.error}
             RealAI = StubAI
     return RealAI
 
