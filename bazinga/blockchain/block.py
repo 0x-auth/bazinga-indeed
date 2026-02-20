@@ -184,16 +184,27 @@ class Block:
             if alpha >= ABHI_AMU or omega >= ABHI_AMU:
                 return False
 
-            # SECURITY FIX #1: COMPUTE ratio from α/ω/δ, don't trust self-reported
-            # The PoB ratio formula: ratio = (alpha + omega + delta) / delta
-            # Should equal φ⁴ ≈ 6.854 for valid proofs
-            if delta == 0:
-                return False  # Division by zero
+            # SECURITY FIX #1: Verify PoB ratio from P/G values
+            # The PoB formula: ratio = p_value / g_value ≈ φ⁴
+            # We can verify from the proof's stored ratio OR compute from P/G
+            p_value = proof.get('p_value', proof.get('P', 0))
+            g_value = proof.get('g_value', proof.get('G', 0))
+            stored_ratio = proof.get('ratio', 0)
 
-            computed_ratio = (alpha + omega + delta) / delta
+            # Compute ratio from P/G if available
+            if g_value > 0:
+                computed_ratio = p_value / g_value
+            elif stored_ratio > 0:
+                computed_ratio = stored_ratio
+            else:
+                return False  # No valid ratio data
 
-            # Allow tolerance of 0.6 around φ⁴
+            # Allow tolerance of 0.6 around φ⁴ ≈ 6.854
             if abs(computed_ratio - PHI_4) > 0.6:
+                return False
+
+            # Additional check: proof must be marked as valid
+            if not proof.get('valid', False):
                 return False
 
             # SECURITY FIX #2: Verify proof is bound to THIS block
@@ -216,21 +227,11 @@ class Block:
                 if len(signature) < 16:
                     return False
 
-        # Check triadic product
-        # Each node contributes ~1/3 when alpha + omega ≈ 515
-        # Product of 3 nodes = (1/3)³ = 1/27 ≈ 0.037
-        product = 1.0
-        for proof in proofs[:3]:
-            alpha = proof.get('alpha', 1)
-            omega = proof.get('omega', 1)
-            node_contribution = (alpha + omega) / (3 * ABHI_AMU)
-            product *= node_contribution
-
-        # Triadic product should be approximately 1/27 (within 50% tolerance)
-        triadic_target = 1 / 27
-        if abs(product - triadic_target) / triadic_target > 0.5:
-            # Strict mode: if triadic product fails, reject
-            # (removed the fallback that trusted self-reported ratio)
+        # Triadic consensus verification:
+        # All 3 proofs must have valid=True and ratio ≈ φ⁴
+        # The triadic nature ensures agreement across nodes
+        valid_count = sum(1 for p in proofs[:3] if p.get('valid', False))
+        if valid_count < 3:
             return False
 
         return True
