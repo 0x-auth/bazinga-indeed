@@ -1147,6 +1147,8 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                           help='Bypass cache')
     ai_group.add_argument('--local', action='store_true',
                           help='Force local LLM')
+    ai_group.add_argument('--file', type=str, metavar='PATH',
+                          help='File path for context (works with --ask, --multi-ai, --code)')
 
     # === KNOWLEDGE BASE ===
     kb_group = parser.add_argument_group('Knowledge Base (KB)')
@@ -2438,11 +2440,46 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
         print()
         return
 
-    # Handle --verify (verify attestation - FREE)
+    # Handle --verify (verify attestation or block - FREE)
     if args.verify:
-        print(f"\n  ATTESTATION VERIFICATION")
+        print(f"\n  VERIFICATION")
         print(f"=" * 55)
 
+        # Clean input (remove # prefix if present)
+        verify_input = args.verify.replace('#', '').strip()
+
+        # Dual-path: Check if it's a block number or attestation ID
+        if verify_input.isdigit():
+            # It's a block number
+            print(f"\n  🔍 Searching by Block Number: #{verify_input}")
+            from .blockchain import create_chain
+            chain = create_chain()
+            block_num = int(verify_input)
+
+            if block_num < len(chain.blocks):
+                block = chain.blocks[block_num]
+                print(f"\n  ✓ BLOCK FOUND!")
+                print(f"=" * 55)
+                print(f"  Block:        #{block.header.index}")
+                print(f"  Hash:         {block.hash[:32]}...")
+                print(f"  Timestamp:    {block.header.timestamp}")
+                print(f"  Transactions: {len(block.transactions)}")
+                print(f"  PoB Proofs:   {len(block.header.pob_proofs)}")
+                if block.transactions:
+                    print(f"\n  Transactions in block:")
+                    for i, tx in enumerate(block.transactions[:5]):
+                        summary = tx.get('data', {}).get('summary', 'N/A')[:50]
+                        print(f"    {i+1}. {summary}")
+                print()
+                return
+            else:
+                print(f"\n  ✗ Block #{verify_input} not found.")
+                print(f"    Chain height: {len(chain.blocks)} blocks")
+                print()
+                return
+
+        # It's an attestation ID
+        print(f"\n  🔍 Searching by Attestation ID: {args.verify}")
         from .attestation_service import get_attestation_service
 
         service = get_attestation_service()
@@ -2850,8 +2887,19 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
         try:
             from .inter_ai import InterAIConsensus
 
+            # Build query with optional file context
+            query = args.multi_ai
+            if args.file:
+                file_path = Path(args.file).expanduser()
+                if file_path.exists():
+                    file_content = file_path.read_text()[:8000]  # Limit context
+                    query = f"{args.multi_ai}\n\n[File: {args.file}]\n```\n{file_content}\n```"
+                    print(f"  📄 File context: {args.file}")
+                else:
+                    print(f"  ⚠ File not found: {args.file}")
+
             consensus = InterAIConsensus(verbose=True)
-            result = await consensus.ask(args.multi_ai)
+            result = await consensus.ask(query)
 
             # Export log for reference
             consensus.export_log("bazinga_consensus.json")
@@ -2867,7 +2915,19 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
         bazinga = BAZINGA(verbose=args.verbose)
         if args.local:
             bazinga.use_local = True
-        response = await bazinga.ask(args.ask, fresh=args.fresh)
+
+        # Build query with optional file context
+        query = args.ask
+        if args.file:
+            file_path = Path(args.file).expanduser()
+            if file_path.exists():
+                file_content = file_path.read_text()[:8000]  # Limit context
+                query = f"{args.ask}\n\n[File: {args.file}]\n```\n{file_content}\n```"
+                print(f"  📄 File context: {args.file}")
+            else:
+                print(f"  ⚠ File not found: {args.file}")
+
+        response = await bazinga.ask(query, fresh=args.fresh)
         print(f"\n{response}\n")
         return
 
