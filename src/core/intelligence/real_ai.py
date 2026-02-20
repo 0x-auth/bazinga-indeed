@@ -418,8 +418,8 @@ class RealAI:
                 if max_files and stats['files_indexed'] >= max_files:
                     break
 
-                # Skip hidden and excluded
-                if any(part.startswith('.') for part in entry.parts):
+                # Skip hidden files/dirs (but allow .bazinga which is our data dir)
+                if any(part.startswith('.') and part != '.bazinga' for part in entry.parts):
                     continue
                 if any(skip in str(entry) for skip in self.SKIP_DIRS):
                     continue
