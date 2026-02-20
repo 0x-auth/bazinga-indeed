@@ -2699,16 +2699,53 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
             print(f"  Approval rate: {stats['approval_rate']*100:.1f}%")
         return
 
-    # Handle --quantum
+    # Handle --quantum (with optional --kb piping)
     if args.quantum:
         bazinga = BAZINGA(verbose=args.verbose)
-        result = bazinga.quantum_analyze(args.quantum)
+
+        # CLI PIPING FIX: If --kb is also provided, feed KB results into quantum analyzer
+        quantum_input = args.quantum
+        kb_context = ""
+
+        if args.kb and args.kb != '':
+            from .kb import BazingaKB
+            kb = BazingaKB()
+            kb_results = kb.search(args.kb, limit=5)
+            if kb_results:
+                # Build context from KB results
+                kb_texts = [f"{r.get('title', '')}: {r.get('content', '')[:200]}" for r in kb_results[:3]]
+                kb_context = " | ".join(kb_texts)
+                # Combine KB context with quantum input
+                quantum_input = f"{args.quantum} [KB Context: {kb_context[:500]}]"
+                print(f"\n📚 KB Search: \"{args.kb}\" → {len(kb_results)} results piped to quantum analyzer")
+
+        result = bazinga.quantum_analyze(quantum_input)
         print(f"\nQuantum Analysis:")
-        print(f"  Input: {result['input']}")
+        print(f"  Input: {result['input'][:100]}{'...' if len(result['input']) > 100 else ''}")
         print(f"  Essence: {result['essence']}")
         print(f"  Probability: {result['probability']:.2%}")
         print(f"  Coherence: {result['coherence']:.4f}")
         print(f"  Entangled: {', '.join(result['entangled'][:5])}")
+
+        # AUTO-ATTEST if coherence > 0.5 (Mining Trigger)
+        if result['coherence'] > 0.5:
+            try:
+                from .blockchain import create_chain, create_wallet
+                from .blockchain.miner import auto_attest_if_coherent
+                chain = create_chain()
+                wallet = create_wallet()
+                attested = auto_attest_if_coherent(
+                    chain=chain,
+                    content=quantum_input,
+                    summary=f"Quantum essence: {result['essence']}",
+                    sender=wallet.node_id,
+                    coherence=result['coherence'],
+                )
+                if attested:
+                    print(f"\n  ⛓️  Auto-attested to chain (coherence {result['coherence']:.3f} > 0.5)")
+            except Exception:
+                pass  # Mining trigger is optional enhancement
+
         return
 
     # Handle --coherence

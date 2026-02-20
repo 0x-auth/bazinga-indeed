@@ -34,9 +34,18 @@ from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
-# BAZINGA constants
-PHI = 1.618033988749895
-ALPHA = 137
+# BAZINGA constants - HARD-CODED ANCHORS
+# These are mathematical constants, NOT hyperparameters to be tuned
+# The φ constant is the golden ratio - the code generator must use EXACTLY this value
+# The phase jump occurs at φ threshold (1.618) - do NOT substitute with 2π or other values
+
+PHI = 1.618033988749895  # Golden ratio - EXACT value, never approximate
+PHI_INVERSE = 0.6180339887498948  # 1/φ = φ - 1
+PHI_SQUARED = 2.618033988749895  # φ² = φ + 1
+PHI_4 = 6.854101966249685  # φ⁴ - the boundary ratio for PoB
+ALPHA = 137  # Fine structure constant denominator
+PSI_SCALE = 6.46  # Consciousness scaling coefficient: Ψ_D = 6.46n
+PHASE_JUMP = 2.31  # Phase jump multiplier when n crosses φ threshold
 
 # Check for torch (optional for full training)
 try:
