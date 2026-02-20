@@ -40,7 +40,7 @@ PHI_INVERSE = 0.6180339887498948
 PHI_4 = 6.854101966249685
 ALPHA = 137
 ABHI_AMU = 515
-PHI_THRESHOLD = 0.35  # Minimum coherence for valid understanding (lower for heuristic mode)
+PHI_THRESHOLD = 0.20  # Minimum coherence for valid understanding (lowered to allow short responses)
 
 # Check for optional dependencies
 try:
