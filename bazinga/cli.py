@@ -1189,6 +1189,8 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                              help='Show wallet/identity')
     chain_group.add_argument('--attest', type=str, metavar='CONTENT',
                              help='Attest knowledge to chain')
+    chain_group.add_argument('--email', type=str, metavar='EMAIL',
+                             help='Email for attestation receipt (use with --attest)')
     chain_group.add_argument('--verify', type=str, metavar='ID',
                              help='Verify attestation')
     chain_group.add_argument('--trust', type=str, nargs='?', const='', metavar='NODE',
@@ -2366,23 +2368,41 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
             print(f"  🎁 FREE MODE: {FREE_ATTESTATIONS_PER_MONTH} attestations/month")
             print(f"     (Building the mesh - payments coming later)")
 
-        # Get email
+        # Get email (from --email arg or interactive)
         print()
-        email = input("  Your email (for receipt): ").strip()
+        if args.email:
+            email = args.email.strip()
+            print(f"  Email: {email}")
+        else:
+            try:
+                email = input("  Your email (for receipt): ").strip()
+            except EOFError:
+                # Non-interactive mode, use default
+                email = "bazinga@local.node"
+                print(f"  Using default email: {email}")
+
         if not email or '@' not in email:
             print("  Invalid email. Attestation cancelled.")
             return
 
-        # Choose tier (still track tier for when payments enabled)
+        # Choose tier (default to standard in non-interactive mode)
         print()
-        print("  Feature tiers:")
-        print("    1. Basic    - Timestamp + Hash")
-        print("    2. Standard - + φ-Coherence + Certificate")
-        print("    3. Premium  - + Multi-AI Consensus")
-        print()
-        tier_choice = input("  Choose tier [1/2/3] (default: 2): ").strip() or "2"
-        tier_map = {"1": "basic", "2": "standard", "3": "premium"}
-        tier = tier_map.get(tier_choice, "standard")
+        if args.email:
+            # Non-interactive: use standard tier
+            tier = "standard"
+            print(f"  Tier: Standard (default)")
+        else:
+            print("  Feature tiers:")
+            print("    1. Basic    - Timestamp + Hash")
+            print("    2. Standard - + φ-Coherence + Certificate")
+            print("    3. Premium  - + Multi-AI Consensus")
+            print()
+            try:
+                tier_choice = input("  Choose tier [1/2/3] (default: 2): ").strip() or "2"
+            except EOFError:
+                tier_choice = "2"
+            tier_map = {"1": "basic", "2": "standard", "3": "premium"}
+            tier = tier_map.get(tier_choice, "standard")
 
         # Create attestation
         try:
@@ -2730,6 +2750,13 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
         stats = memory.get_stats()
         tensor = _get_tensor().TensorIntersectionEngine()
         trust = tensor.get_trust_stats()
+
+        # Also get blockchain stats
+        from .blockchain import create_chain
+        chain = create_chain()
+        chain_blocks = len(chain.blocks)
+        chain_txs = sum(len(b.transactions) for b in chain.blocks)
+
         print(f"\nBAZINGA Learning Stats:")
         print(f"  Sessions: {stats['total_sessions']}")
         print(f"  Patterns learned: {stats['patterns_learned']}")
@@ -2737,6 +2764,11 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
         print(f"  Trust: {trust['current']:.3f} ({trust['trend']})")
         if stats['total_feedback'] > 0:
             print(f"  Approval rate: {stats['approval_rate']*100:.1f}%")
+
+        print(f"\nBlockchain Stats:")
+        print(f"  Blocks mined: {chain_blocks}")
+        print(f"  Total attestations: {chain_txs}")
+        print(f"  Pending transactions: {len(chain.pending_transactions)}")
         return
 
     # Handle --quantum (with optional --kb piping)
