@@ -83,6 +83,7 @@ class ParticipantType(Enum):
     TOGETHER = "together"
     OPENROUTER = "openrouter"
     OLLAMA = "ollama"
+    CEREBRAS = "cerebras"
     BAZINGA_NODE = "bazinga"
     SIMULATION = "simulation"
 
@@ -973,6 +974,121 @@ Your refined answer:"""
         )
 
 
+class CerebrasParticipant(ConsensusParticipant):
+    """Cerebras API participant (FREE - ultra fast inference)."""
+
+    def __init__(self, api_key: Optional[str] = None, model: str = "llama3.1-70b"):
+        self.api_key = api_key or os.environ.get('CEREBRAS_API_KEY')
+        super().__init__(
+            participant_id=f"cerebras_{model[:8]}",
+            participant_type=ParticipantType.CEREBRAS,
+            model=model,
+        )
+        self.available = bool(self.api_key) and HTTPX_AVAILABLE
+        self.coherence_calc = CoherenceCalculator()
+        self.pob_gen = PoBGenerator()
+
+    async def query(
+        self,
+        prompt: str,
+        context: Optional[Dict] = None,
+        round: ConsensusRound = ConsensusRound.INITIAL,
+    ) -> AIResponse:
+        start_time = time.time()
+
+        if not self.available:
+            return self._error_response("Cerebras API not available", round, start_time)
+
+        try:
+            full_prompt = self._build_prompt(prompt, context, round)
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    "https://api.cerebras.ai/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": self.model,
+                        "messages": [
+                            {"role": "system", "content": "You are a thoughtful AI participating in multi-AI consensus. Provide clear, well-reasoned responses."},
+                            {"role": "user", "content": full_prompt}
+                        ],
+                        "temperature": 0.7,
+                        "max_tokens": 500,
+                    }
+                )
+
+                latency_ms = (time.time() - start_time) * 1000
+
+                if response.status_code == 200:
+                    data = response.json()
+                    content = data["choices"][0]["message"]["content"]
+
+                    coherence, embedding = self.coherence_calc.calculate_coherence(content, prompt)
+                    understanding = self.coherence_calc.calculate_understanding(content)
+                    pob_proof = await self.pob_gen.generate_proof(content)
+
+                    ai_response = AIResponse(
+                        participant_id=self.participant_id,
+                        participant_type=self.participant_type,
+                        model=self.model,
+                        response=content,
+                        coherence=coherence,
+                        understanding_score=understanding,
+                        latency_ms=latency_ms,
+                        timestamp=time.time(),
+                        round=round,
+                        pob_proof=pob_proof,
+                        embedding=embedding,
+                    )
+                    self.response_history.append(ai_response)
+                    return ai_response
+
+                elif response.status_code == 429:
+                    self.record_error("Rate limited")
+                    return self._error_response("Rate limited", round, start_time)
+                else:
+                    self.record_error(f"HTTP {response.status_code}")
+                    return self._error_response(f"HTTP {response.status_code}", round, start_time)
+
+        except Exception as e:
+            self.record_error(str(e))
+            return self._error_response(str(e), round, start_time)
+
+    def _build_prompt(self, prompt: str, context: Optional[Dict], round: ConsensusRound) -> str:
+        if round == ConsensusRound.INITIAL:
+            return prompt
+
+        if round == ConsensusRound.REVISION and context:
+            other_responses = context.get('other_responses', [])
+            if other_responses:
+                others_text = "\n\n".join([f"AI {i+1}: {r[:300]}..." for i, r in enumerate(other_responses)])
+                return f"""Original question: {prompt}
+
+Other AIs have provided these perspectives:
+{others_text}
+
+Considering these perspectives, provide your refined answer. If you agree with points made, acknowledge them. If you disagree, explain why."""
+
+        return prompt
+
+    def _error_response(self, error: str, round: ConsensusRound, start_time: float) -> AIResponse:
+        return AIResponse(
+            participant_id=self.participant_id,
+            participant_type=self.participant_type,
+            model=self.model,
+            response="",
+            coherence=0.0,
+            understanding_score=0.0,
+            latency_ms=(time.time() - start_time) * 1000,
+            timestamp=time.time(),
+            round=round,
+            error=error,
+        )
+
+
 class OpenAIParticipant(ConsensusParticipant):
     """OpenAI/ChatGPT participant."""
 
@@ -1706,6 +1822,12 @@ class InterAIConsensus:
         if groq.is_available():
             self.participants.append(groq)
             added.append("Groq")
+
+        # 1.5. Cerebras (FREE - ultra fast)
+        cerebras = CerebrasParticipant()
+        if cerebras.is_available():
+            self.participants.append(cerebras)
+            added.append("Cerebras")
 
         # 2. Together (FREE tier available)
         together = TogetherParticipant()
