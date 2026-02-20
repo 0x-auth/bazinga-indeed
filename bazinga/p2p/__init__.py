@@ -21,7 +21,7 @@ from .dht_bridge import DHTBridge, create_dht_bridge, KnowledgeTopic
 from .knowledge_sync import KnowledgeGraphSync
 from .trust_router import TrustRouter
 from .alpha_seed import AlphaSeedNetwork, is_alpha_seed
-from .network import BAZINGANetwork, create_network
+from .network import BAZINGANetwork, create_network, BAZINGA_DHT
 
 # New transport layer
 from .transport import (
@@ -99,4 +99,5 @@ __all__ = [
     'TrustRouter',
     'AlphaSeedNetwork',
     'is_alpha_seed',
+    'BAZINGA_DHT',
 ]
