@@ -295,6 +295,44 @@ def mine_block(
     return miner.mine_sync()
 
 
+def auto_attest_if_coherent(
+    chain: DarmiyanChain,
+    content: str,
+    summary: str,
+    sender: str,
+    coherence: float,
+    coherence_threshold: float = 0.5,
+) -> bool:
+    """
+    Automatically create a pending transaction if coherence exceeds threshold.
+
+    This enables the "Mining Trigger" - Agent summaries with high coherence
+    automatically become attestation candidates.
+
+    Args:
+        chain: The Darmiyan chain
+        content: Content to attest
+        summary: Summary of the content
+        sender: Node ID of the sender
+        coherence: Measured coherence score (0-1)
+        coherence_threshold: Minimum coherence to trigger (default 0.5)
+
+    Returns:
+        True if transaction was created, False otherwise
+    """
+    if coherence >= coherence_threshold:
+        tx_hash = chain.add_knowledge(
+            content=content,
+            summary=f"[Auto-attested @ φ={coherence:.3f}] {summary}",
+            sender=sender,
+            confidence=coherence,
+            source_type="agent_coherent",
+            phi_coherence=coherence,
+        )
+        return bool(tx_hash)
+    return False
+
+
 # =============================================================================
 # TESTING
 # =============================================================================
