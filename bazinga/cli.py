@@ -2143,6 +2143,7 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
 
         # Import DHT bridge
         from .p2p.dht_bridge import DHTBridge
+        from .darmiyan.protocol import prove_boundary
 
         # Quick PoB for identity
         pob = prove_boundary()
@@ -2175,8 +2176,10 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
 
         stats = bridge.get_stats()
         print(f"\n  Sync complete:")
-        print(f"    Topics announced: {stats['bridge']['topics_announced']}")
-        print(f"    Routing table: {stats['dht']['routing_table_nodes']} nodes")
+        print(f"    Topics announced: {stats.get('bridge', {}).get('topics_announced', 0)}")
+        dht_stats = stats.get('dht', {})
+        routing_nodes = dht_stats.get('routing_table_nodes', dht_stats.get('routing_table_size', 0))
+        print(f"    Routing table: {routing_nodes} nodes")
 
         await bridge.stop()
         return
