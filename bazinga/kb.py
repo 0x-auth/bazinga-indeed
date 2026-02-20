@@ -42,20 +42,30 @@ SOURCES = {
 }
 
 # φ-resonance keywords (higher weight)
+# PRIORITY ORDER: Personal > Physics > Core > General
+# This ensures personal/physics data outranks noise like "Robotics" docs
 PHI_KEYWORDS = {
-    # Core concepts
-    'phi': 0.3, 'φ': 0.3, 'golden': 0.2, '1.618': 0.3, 'fibonacci': 0.2,
-    # Consciousness
-    'consciousness': 0.3, 'darmiyan': 0.3, 'awareness': 0.2, 'emergence': 0.2,
-    # BAZINGA
-    'bazinga': 0.3, 'proof': 0.2, 'boundary': 0.2, 'pob': 0.2,
-    # Math/Physics
-    '137': 0.3, 'alpha': 0.2, 'riemann': 0.3, 'hypothesis': 0.2,
-    'seed': 0.2, 'quantum': 0.2, 'entropy': 0.2,
-    # Research
-    'discovery': 0.2, 'research': 0.2, 'theorem': 0.2,
-    # Special
-    'amrita': 0.2, 'abhilasia': 0.2, '515': 0.2, 'sha3': 0.2,
+    # PERSONAL DATA - Highest priority (0.5)
+    'amrita': 0.5, 'abhilasia': 0.5, 'abhishek': 0.5, 'space': 0.4,
+    '515': 0.5, 'personal': 0.4, 'my ': 0.3, 'i ': 0.2,
+    # PHYSICS/MATH - High priority (0.4)
+    '137': 0.4, 'alpha': 0.3, 'riemann': 0.4, 'hypothesis': 0.3,
+    '6.46': 0.5, '6.46n': 0.5, 'scaling': 0.3, 'psi': 0.4, 'ψ': 0.4,
+    'quantum': 0.3, 'entropy': 0.3, 'physics': 0.3,
+    # Core concepts (0.3)
+    'phi': 0.3, 'φ': 0.3, 'golden': 0.3, '1.618': 0.3, 'fibonacci': 0.3,
+    # Consciousness (0.3)
+    'consciousness': 0.3, 'darmiyan': 0.3, 'awareness': 0.3, 'emergence': 0.3,
+    # BAZINGA (0.25)
+    'bazinga': 0.25, 'proof': 0.25, 'boundary': 0.25, 'pob': 0.25,
+    # Research (0.2)
+    'discovery': 0.2, 'research': 0.2, 'theorem': 0.2, 'seed': 0.2, 'sha3': 0.2,
+}
+
+# NEGATIVE WEIGHTS - Penalize noise sources
+NOISE_KEYWORDS = {
+    'robotics': -0.3, 'robot': -0.2, 'ros': -0.3, 'tutorial': -0.2,
+    'example': -0.1, 'sample': -0.1, 'demo': -0.1, 'test': -0.1,
 }
 
 
@@ -80,7 +90,14 @@ class BazingaKB:
             json.dump(self.config, f, indent=2)
 
     def _calculate_relevance(self, text: str, query: str) -> float:
-        """Calculate relevance score between text and query."""
+        """Calculate relevance score between text and query.
+
+        Scoring priority:
+        1. Exact query match (0.5)
+        2. Word overlap (0.2 per word)
+        3. φ-keyword bonus (personal/physics > core > general)
+        4. Noise penalty (robotics, tutorials, etc.)
+        """
         if not text or not query:
             return 0.0
 
@@ -99,12 +116,19 @@ class BazingaKB:
             if len(word) > 2 and word in text_lower:
                 score += 0.2
 
-        # φ-keyword bonus
+        # φ-keyword bonus (cumulative but capped)
+        phi_bonus = 0.0
         for keyword, weight in PHI_KEYWORDS.items():
             if keyword in text_lower and keyword in query_lower:
-                score += weight
+                phi_bonus += weight
+        score += min(phi_bonus, 0.8)  # Cap φ bonus at 0.8
 
-        return min(score, 1.0)
+        # NOISE PENALTY - Downrank irrelevant sources
+        for noise_word, penalty in NOISE_KEYWORDS.items():
+            if noise_word in text_lower and noise_word not in query_lower:
+                score += penalty  # penalty is negative
+
+        return max(0.0, min(score, 1.0))  # Clamp to [0, 1]
 
     def _load_gmail_index(self) -> List[Dict]:
         """Load Gmail index."""
@@ -450,7 +474,7 @@ class BazingaKB:
         print(f"\n📅 Last sync: {self.config.get('last_sync', 'Never')}")
 
     def sync_all(self):
-        """Re-sync all sources."""
+        """Re-sync all sources and update stats."""
         print("\n🔄 Syncing all KB sources...")
 
         # Try to run bazinga-index
@@ -464,8 +488,60 @@ class BazingaKB:
             print("⚠️  bazinga-index not found at ~/bin/bazinga-index")
             print("   Creating minimal index from existing exports...")
 
+        # BUG FIX: Recalculate actual stats from indexed data
+        stats = self._calculate_actual_stats()
         self.config['last_sync'] = datetime.now().isoformat()
+        self.config['stats'] = stats  # Store computed stats
         self._save_config()
 
         print("\n✅ Sync complete!")
         self.show_sources()
+
+    def _calculate_actual_stats(self) -> dict:
+        """Calculate actual stats from indexed data (not hardcoded)."""
+        stats = {
+            'sessions': 0,
+            'patterns': 0,
+            'total_chunks': 0,
+            'sources': {}
+        }
+
+        # Count Gmail items
+        gmail_items = self._load_gmail_index()
+        stats['sources']['gmail'] = len(gmail_items)
+        stats['total_chunks'] += len(gmail_items)
+
+        # Count GDrive items
+        gdrive_items = self._load_gdrive_index()
+        stats['sources']['gdrive'] = len(gdrive_items)
+        stats['total_chunks'] += len(gdrive_items)
+
+        # Count Mac items
+        mac_items = self._load_mac_index()
+        stats['sources']['mac'] = len(mac_items)
+        stats['total_chunks'] += len(mac_items)
+
+        # Count Phone items
+        phone_items = self._load_phone_index()
+        stats['sources']['phone'] = len(phone_items)
+        stats['total_chunks'] += len(phone_items)
+
+        # Count ChromaDB chunks if available
+        vectordb_path = Path.home() / ".bazinga" / "vectordb" / "chroma.sqlite3"
+        if vectordb_path.exists():
+            try:
+                import sqlite3
+                conn = sqlite3.connect(str(vectordb_path))
+                cursor = conn.execute("SELECT COUNT(*) FROM embeddings")
+                chroma_count = cursor.fetchone()[0]
+                stats['total_chunks'] += chroma_count
+                stats['sources']['vectordb'] = chroma_count
+                conn.close()
+            except:
+                pass
+
+        # Estimate patterns from total chunks (unique content hash approximation)
+        stats['patterns'] = min(stats['total_chunks'], 1000)  # Cap at 1000 unique patterns
+        stats['sessions'] = 1  # At least this session
+
+        return stats
