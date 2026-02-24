@@ -50,7 +50,7 @@ PHI_KEYWORDS = {
     '515': 0.5, 'personal': 0.4, 'my ': 0.3, 'i ': 0.2,
     # PHYSICS/MATH - High priority (0.4)
     '137': 0.4, 'alpha': 0.3, 'riemann': 0.4, 'hypothesis': 0.3,
-    '6.46': 0.5, '6.46n': 0.5, 'scaling': 0.3, 'psi': 0.4, 'ψ': 0.4,
+    'φ√n': 0.5, 'darmiyan_v2': 0.5, 'scaling': 0.3, 'psi': 0.4, 'ψ': 0.4,
     'quantum': 0.3, 'entropy': 0.3, 'physics': 0.3,
     # Core concepts (0.3)
     'phi': 0.3, 'φ': 0.3, 'golden': 0.3, '1.618': 0.3, 'fibonacci': 0.3,

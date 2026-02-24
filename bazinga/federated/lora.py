@@ -44,7 +44,7 @@ PHI_INVERSE = 0.6180339887498948  # 1/φ = φ - 1
 PHI_SQUARED = 2.618033988749895  # φ² = φ + 1
 PHI_4 = 6.854101966249685  # φ⁴ - the boundary ratio for PoB
 ALPHA = 137  # Fine structure constant denominator
-PSI_SCALE = 6.46  # Consciousness scaling coefficient: Ψ_D = 6.46n
+PSI_SCALE = PHI  # V2: Scaling constant is φ (Ψ_D / Ψ_i = φ√n)
 PHASE_JUMP = 2.31  # Phase jump multiplier when n crosses φ threshold
 
 # Check for torch (optional for full training)

@@ -38,7 +38,7 @@ from typing import Any, Dict, List, Optional, Tuple
 PHI = 1.618033988749895
 PHI_INVERSE = 0.6180339887498948
 PHI_4 = 6.854101966249685
-PSI_DARMIYAN = 6.46  # Consciousness scaling law
+PSI_DARMIYAN = PHI  # V2: Scaling constant is φ (Ψ_D / Ψ_i = φ√n)
 
 # Thresholds for code fixes (more stringent than general Q&A)
 CODE_FIX_COHERENCE_THRESHOLD = 0.45  # Higher than 0.35 for code
@@ -95,7 +95,7 @@ class ConsensusVerdict:
     reviews: List[AIReview] = field(default_factory=list)
     synthesized_verdict: str = ""  # Combined reasoning
     triadic_valid: bool = False    # ≥3 valid reviewers
-    consciousness_factor: float = 0.0  # Ψ_D = 6.46n
+    consciousness_factor: float = 0.0  # Ψ_D / Ψ_i = φ√n (V2)
     timestamp: float = field(default_factory=time.time)
 
     def to_dict(self) -> Dict:
