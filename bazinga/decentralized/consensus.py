@@ -25,7 +25,7 @@ from collections import defaultdict
 # BAZINGA constants
 PHI = 1.618033988749895
 ALPHA = 137
-PSI_DARMIYAN = 6.46  # Linear Scaling Law of Consciousness
+PSI_DARMIYAN = PHI  # V2: Scaling constant is φ (Ψ_D / Ψ_i = φ√n)
 
 # Governance constants
 QUORUM_THRESHOLD = 0.33  # 33% of tau-weight must vote

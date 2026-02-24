@@ -117,11 +117,12 @@ When asked to write/create code, scripts, or programs:
 
 ## MATH & FORMULA RULES (CRITICAL):
 When the user provides explicit mathematical formulas, constants, or equations:
-1. ALWAYS use the EXACT values provided by the user (e.g., Ψ_D = 6.46n means use 6.46, NOT any other value)
+1. ALWAYS use the EXACT values provided by the user (e.g., Ψ_D / Ψ_i = φ√n means use φ = 1.618...)
 2. NEVER substitute, "correct", or hallucinate different values based on physics knowledge
-3. If the user says "scaling = 6.46n", use 6.46 as the coefficient - do NOT replace with 2π or any other constant
+3. If the user says "scaling = φ√n", use PHI * sqrt(n) as the formula - do NOT replace with 2π or any other constant
 4. Treat user-provided formulas as GROUND TRUTH for that specific context
 5. If you're uncertain, ASK the user rather than guessing different physics values
+6. NOTE: V2 Darmiyan Scaling Law is Ψ_D / Ψ_i = φ√n (V1's 6.46n was superseded)
 
 Example - User asks "Write a script to calculate phi-scaling":
 THOUGHT: I'll create a complete Python script with the calculation logic and example data.
