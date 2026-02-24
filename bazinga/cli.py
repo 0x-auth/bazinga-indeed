@@ -2131,10 +2131,11 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
             # Import DHT bridge
             from .p2p.dht_bridge import DHTBridge
+            from .darmiyan.protocol import prove_boundary as _prove_boundary
 
             # Generate Proof-of-Boundary for node identity
             print(f"\n  Generating Proof-of-Boundary...")
-            pob = prove_boundary()
+            pob = _prove_boundary()
 
             if pob.valid:
                 print(f"    PoB valid (ratio: {pob.ratio:.4f})")
