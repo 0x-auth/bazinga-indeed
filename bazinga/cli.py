@@ -281,7 +281,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.1.2"  # Add get_resonance_stats MCP tool
+    VERSION = "5.1.3"  # Auto-push RAC heartbeat to Cloudflare
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -975,6 +975,9 @@ Use the indexed content directly. If not relevant, say so."""
                             indicator = "🔴"
                         print(f"  {indicator} ΔΓ={dg:.3f} | {status.upper()}\n")
 
+                        # Auto-push RAC heartbeat to Cloudflare (non-blocking)
+                        self._push_rac_to_cloudflare(rac_summary)
+
             except KeyboardInterrupt:
                 self.memory.end_session()
                 print("\n\n👋 BAZINGA signing off.\n")
@@ -1000,6 +1003,29 @@ Use the indexed content directly. If not relevant, say so."""
             print(self.memory.format_rac_display())
         else:
             print()
+
+    def _push_rac_to_cloudflare(self, rac_summary: dict):
+        """Push RAC heartbeat to Cloudflare KB Bridge (non-blocking)."""
+        import threading
+        import urllib.request
+        import json as json_mod
+
+        def push():
+            try:
+                url = "https://kb.bitsabhi.com/rac?key=phi137"
+                data = json_mod.dumps(rac_summary).encode('utf-8')
+                req = urllib.request.Request(
+                    url,
+                    data=data,
+                    headers={'Content-Type': 'application/json'},
+                    method='POST'
+                )
+                urllib.request.urlopen(req, timeout=5)
+            except Exception:
+                pass  # Silent fail - don't interrupt chat
+
+        # Run in background thread
+        threading.Thread(target=push, daemon=True).start()
 
 
 def _print_ai_help():
