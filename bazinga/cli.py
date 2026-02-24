@@ -281,7 +281,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "4.9.30"
+    VERSION = "5.1.0"  # RAC (Resonance-Augmented Continuity) integration
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -301,8 +301,9 @@ class BAZINGA:
         self.session_start = datetime.now()
         self.queries = []
 
-        # Learning memory
-        self.memory = learning_mod.get_memory()
+        # Learning memory with RAC (Resonance-Augmented Continuity)
+        from .rac import get_resonance_memory
+        self.memory = get_resonance_memory()
         self.memory.start_session()
 
         # Stats
@@ -960,6 +961,20 @@ Use the indexed content directly. If not relevant, say so."""
 
                 print(f"\n🤖 {response}\n")
 
+                # RAC heartbeat - show mini status after each response
+                if hasattr(self.memory, 'get_trajectory_summary'):
+                    rac_summary = self.memory.get_trajectory_summary()
+                    if rac_summary:
+                        dg = rac_summary['current_delta_gamma']
+                        status = rac_summary['status']
+                        if status == 'locked':
+                            indicator = "🟢"
+                        elif status == 'converging':
+                            indicator = "🟡"
+                        else:
+                            indicator = "🔴"
+                        print(f"  {indicator} ΔΓ={dg:.3f} | {status.upper()}\n")
+
             except KeyboardInterrupt:
                 self.memory.end_session()
                 print("\n\n👋 BAZINGA signing off.\n")
@@ -979,7 +994,12 @@ Use the indexed content directly. If not relevant, say so."""
         print(f"  Patterns learned: {memory_stats['patterns_learned']}")
         print(f"  Trust: {trust_stats['current']:.3f} ({trust_stats['trend']})")
         print(f"  Feedback: {memory_stats['positive_feedback']} good, {memory_stats['negative_feedback']} bad")
-        print()
+
+        # RAC (Resonance-Augmented Continuity) display
+        if hasattr(self.memory, 'format_rac_display'):
+            print(self.memory.format_rac_display())
+        else:
+            print()
 
 
 def _print_ai_help():
@@ -1316,6 +1336,8 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                             help='Show constants (φ, α, ψ)')
     info_group.add_argument('--stats', action='store_true',
                             help='Show statistics')
+    info_group.add_argument('--rac', action='store_true',
+                            help='Show RAC (Resonance-Augmented Continuity) status')
     info_group.add_argument('--models', action='store_true',
                             help='List local models')
     info_group.add_argument('--local-status', action='store_true',
@@ -2896,6 +2918,32 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print(f"  Blocks mined: {chain_blocks}")
         print(f"  Total attestations: {chain_txs}")
         print(f"  Pending transactions: {len(chain.pending_transactions)}")
+        return
+
+    # Handle --rac
+    if args.rac:
+        from .rac import get_resonance_memory
+        memory = get_resonance_memory()
+        session = memory.start_session()
+
+        # Get trajectory summary
+        summary = memory.get_trajectory_summary()
+        if summary:
+            print(memory.format_rac_display())
+        else:
+            print("\nRAC Status: No active session data")
+            print(f"  Session started: {session.session_id}")
+            print(f"  Initial ΔΓ will be computed after first interaction")
+
+        # Show historical trajectories
+        history = memory.get_historical_trajectories(5)
+        if history:
+            print(f"\nRecent Sessions ({len(history)}):")
+            for h in history[-5:]:
+                locked = "🟢" if h.get('locked') else "🟡" if h.get('converging') else "🔴"
+                print(f"  {locked} {h['session_id'][:8]} | ΔΓ={h['mean_delta_gamma']:.3f} | {len(h.get('points', []))} pts")
+
+        memory.end_session()
         return
 
     # Handle --quantum (with optional --kb piping)
