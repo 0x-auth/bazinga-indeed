@@ -742,8 +742,22 @@ def run_server():
     print()
 
     if args.http:
-        mcp.run(transport="streamable-http", host=args.host, port=args.port)
+        # For HTTP mode, use uvicorn directly with the MCP Starlette app
+        try:
+            import uvicorn
+        except ImportError:
+            print("ERROR: uvicorn not installed. Run: pip install uvicorn")
+            print("       Or use stdio mode (default) for local Claude Code integration.")
+            sys.exit(1)
+
+        # Get the Starlette ASGI app from FastMCP
+        app = mcp.streamable_http_app()
+        print(f"  Starting HTTP server on http://{args.host}:{args.port}/")
+        print(f"  MCP endpoint: http://{args.host}:{args.port}/mcp/")
+        print()
+        uvicorn.run(app, host=args.host, port=args.port, log_level="info")
     else:
+        # stdio mode for local Claude Code / Claude Desktop
         mcp.run(transport="stdio")
 
 
