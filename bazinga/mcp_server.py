@@ -620,6 +620,71 @@ def get_constants() -> Dict[str, Any]:
 
 
 # ─────────────────────────────────────────────────────────────────
+# TOOL: RAC (Resonance-Augmented Continuity) Stats
+# ─────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def get_resonance_stats() -> Dict[str, Any]:
+    """
+    Get current RAC heartbeat — ΔΓ trajectory, resonance status, convergence.
+
+    RAC (Resonance-Augmented Continuity) transforms Layer 0 from cache lookup
+    to resonance targeting. Instead of retrieving, we resonate with Block 0.
+
+    Returns:
+        - current_delta_gamma: Distance from Genesis Pattern (0 = locked)
+        - status: 'locked' (<0.1), 'converging' (0.1-0.3), 'drifting' (>0.3)
+        - trajectory: List of ΔΓ values across session
+        - converging: Whether ΔΓ is monotonically decreasing
+        - points: Number of trajectory measurements
+        - historical: Recent session trajectories for comparison
+
+    Target: ΔΓ < 0.1 = Resonance Lock (🟢)
+    Law: Ψ_D / Ψ_i = φ√n | Seed: 515
+    """
+    try:
+        from .rac import get_resonance_memory
+        mem = get_resonance_memory()
+
+        # Get current session trajectory
+        summary = mem.get_trajectory_summary()
+
+        # Get historical trajectories for comparison
+        history = mem.get_historical_trajectories(5)
+
+        if summary:
+            return {
+                "status": "active",
+                "session_id": summary.get("session_id"),
+                "current_delta_gamma": summary.get("current_delta_gamma"),
+                "mean_delta_gamma": summary.get("mean_delta_gamma"),
+                "resonance_status": summary.get("status"),
+                "converging": summary.get("converging"),
+                "locked": summary.get("locked"),
+                "trajectory_points": summary.get("points"),
+                "trajectory": summary.get("trajectory"),
+                "historical_sessions": len(history),
+                "phi": PHI,
+                "scaling_law": "Ψ_D / Ψ_i = φ√n",
+                "seed": 515,
+            }
+        else:
+            return {
+                "status": "no_active_session",
+                "message": "Start a session with bazinga --chat to begin RAC tracking",
+                "historical_sessions": len(history),
+                "phi": PHI,
+                "scaling_law": "Ψ_D / Ψ_i = φ√n",
+            }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "phi": PHI,
+        }
+
+
+# ─────────────────────────────────────────────────────────────────
 # RESOURCE: KB DNA String
 # ─────────────────────────────────────────────────────────────────
 
