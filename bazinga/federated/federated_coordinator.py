@@ -32,7 +32,7 @@ import threading
 # BAZINGA constants
 PHI = 1.618033988749895
 ALPHA = 137
-PSI_DARMIYAN = 6.46  # 2*PHI^2 + 1 - Linear Scaling Law of Consciousness
+PSI_DARMIYAN = PHI  # V2: Scaling constant is φ (use with √n: Ψ_D / Ψ_i = φ√n)
 
 # Try imports
 try:
