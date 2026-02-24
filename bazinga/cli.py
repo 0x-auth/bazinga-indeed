@@ -281,7 +281,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.1.0"  # RAC (Resonance-Augmented Continuity) integration
+    VERSION = "5.1.1"  # Fix /kb import in chat mode
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -927,8 +927,8 @@ Use the indexed content directly. If not relevant, say so."""
                 if user_input.startswith('/kb '):
                     query = user_input[4:].strip()
                     if not kb:
-                        from .knowledge_base import KnowledgeBase
-                        kb = KnowledgeBase()
+                        from .kb import BazingaKB
+                        kb = BazingaKB()
                     results = kb.search(query)
                     if results:
                         print(f"\n📚 Found {len(results)} results for '{query}':")
