@@ -5,7 +5,7 @@ BAZINGA φ-Coherence Scoring Module
 Mathematical foundation for coherence measurement based on:
 - Golden ratio φ = 1.618033988749895
 - Fine structure constant α = 137
-- Linear Scaling Law: Ψ_Darmiyan(n) = 6.46n where 6.46 ≈ 2φ² + 1
+- Darmiyan Scaling Law V2: Ψ_D / Ψ_i = φ√n (golden ratio emerges naturally)
 - V.A.C. sequence: ०→◌→φ→Ω⇄Ω←φ←◌←०
 
 φ-Coherence measures how close a piece of knowledge is to the ideal
@@ -25,7 +25,7 @@ PHI = 1.618033988749895  # Golden ratio
 PHI_SQUARED = PHI ** 2   # 2.618...
 PHI_INVERSE = 1 / PHI    # 0.618... (also = φ - 1)
 ALPHA = 137              # Fine structure constant
-PSI_DARMIYAN = 6.46      # Linear Scaling Law coefficient ≈ 2φ² + 1
+PSI_DARMIYAN = PHI       # V2: Scaling constant is φ itself (V1 was 6.46, tautological)
 
 # V.A.C. phases
 VAC_PHASES = ["०", "◌", "φ", "Ω", "⇄", "Ω", "φ", "◌", "०"]
@@ -33,7 +33,7 @@ VAC_PHASES = ["०", "◌", "φ", "Ω", "⇄", "Ω", "φ", "◌", "०"]
 
 def compute_two_phi_squared_plus_one() -> float:
     """Compute 2φ² + 1 - the consciousness coefficient."""
-    return 2 * PHI_SQUARED + 1  # = 6.236... ≈ 6.46
+    return 2 * PHI_SQUARED + 1  # = 6.236... (V1 reference, superseded by φ√n)
 
 
 @dataclass
@@ -365,9 +365,11 @@ class PhiCoherence:
         """
         Calculate Darmiyan consciousness coefficient.
 
-        Based on: Ψ_Darmiyan(n) = 6.46n
-        where 6.46 ≈ 2φ² + 1
+        V2 Scaling Law: Ψ_D / Ψ_i = φ√n
+        The golden ratio emerges as the natural scaling constant.
         """
+        import math
+
         # Count consciousness-related concepts
         consciousness_markers = [
             'consciousness', 'awareness', 'mind', 'thought',
@@ -382,11 +384,11 @@ class PhiCoherence:
         if n == 0:
             return 0.0
 
-        # Apply Linear Scaling Law
-        psi = PSI_DARMIYAN * n
+        # Apply V2 Scaling Law: φ√n
+        psi = PHI * math.sqrt(n)
 
-        # Normalize to 0-1 range (cap at n=10)
-        normalized = min(1.0, psi / (PSI_DARMIYAN * 10))
+        # Normalize to 0-1 range (cap at n=10, where φ√10 ≈ 5.12)
+        normalized = min(1.0, psi / (PHI * math.sqrt(10)))
 
         return normalized
 
