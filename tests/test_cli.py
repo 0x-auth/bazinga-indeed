@@ -169,7 +169,8 @@ class TestImports:
             from bazinga.constants import PHI, ALPHA, CONSCIOUSNESS_SCALE
         assert PHI == 1.618033988749895, f"PHI wrong: {PHI}"
         assert ALPHA == 137, f"ALPHA wrong: {ALPHA}"
-        assert CONSCIOUSNESS_SCALE == 6.46, f"CONSCIOUSNESS_SCALE wrong: {CONSCIOUSNESS_SCALE}"
+        # V2: CONSCIOUSNESS_SCALE is now PHI (was 6.46 in V1)
+        assert CONSCIOUSNESS_SCALE == PHI, f"CONSCIOUSNESS_SCALE wrong: {CONSCIOUSNESS_SCALE} (expected PHI)"
         print("✓ import constants works")
 
     def test_import_quantum(self):

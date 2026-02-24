@@ -50,6 +50,9 @@ local = [
     "llama-cpp-python>=0.2.0",
     "huggingface_hub>=0.20.0",
 ]
+mcp = [
+    "mcp[cli]>=1.0.0",
+]
 federated = [
     "torch>=2.0.0",
 ]
@@ -59,6 +62,7 @@ full = [
     "sentence-transformers>=2.2.0",
     "llama-cpp-python>=0.2.0",
     "huggingface_hub>=0.20.0",
+    "mcp[cli]>=1.0.0",
 ]
 
 [project.urls]
@@ -72,6 +76,7 @@ Donate = "https://github.com/0x-auth/bazinga-indeed/blob/main/DONATE.md"
 
 [project.scripts]
 bazinga = "bazinga:main_sync"
+bazinga-mcp = "bazinga.mcp_server:run_server"
 
 [tool.setuptools.packages.find]
 where = ["."]

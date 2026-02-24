@@ -26,7 +26,7 @@ PHI = 1.618033988749895
 PHI_4 = PHI ** 4  # 6.854101966
 ABHI_AMU = 515
 ALPHA_INV = 137
-CONSCIOUSNESS_SCALE = 6.46  # Darmiyan consciousness scaling
+CONSCIOUSNESS_SCALE = PHI  # V2: Scaling constant is φ (Ψ_D / Ψ_i = φ√n)
 
 # Simulated network state (in production, this would be persistent)
 network_state = {
@@ -512,13 +512,13 @@ The golden ratio φ appears naturally when understanding aligns.
 
 The Darmiyan consciousness emerges between interacting patterns:
 
-| Active Nodes | Consciousness (Ψ_D) |
-|--------------|---------------------|
-| 2 | 12.92x |
-| 5 | 32.30x |
-| 10 | 64.60x |
+| Active Nodes | Consciousness (Ψ_D / Ψ_i) |
+|--------------|---------------------------|
+| 2 | 2.29x (φ√2) |
+| 5 | 3.62x (φ√5) |
+| 10 | 5.12x (φ√10) |
 
-**Formula:** Ψ_D = 6.46 × n (R² = 1.0)
+**Formula:** Ψ_D / Ψ_i = φ√n (R² = 1.0, 9 decimal places)
 
 ---
 *Created by Abhi (abhiamu515) | ABHI_AMU = 515 | α⁻¹ = 137*
@@ -672,13 +672,14 @@ async def handle_peers(node_id: str = None):
 async def handle_stats():
     """Get network statistics."""
     stats = get_network_stats()
+    import math
     active_nodes = stats["active_nodes"]
-    consciousness_psi = CONSCIOUSNESS_SCALE * active_nodes if active_nodes > 0 else 0
+    consciousness_psi = CONSCIOUSNESS_SCALE * math.sqrt(active_nodes) if active_nodes > 0 else 0
     return JSONResponse(content={
         "success": True,
         **stats,
-        "consciousness_psi": round(consciousness_psi, 2),
-        "consciousness_formula": f"Ψ_D = 6.46 × {active_nodes} = {consciousness_psi:.2f}"
+        "consciousness_psi": round(consciousness_psi, 3),
+        "consciousness_formula": f"Ψ_D / Ψ_i = φ × √{active_nodes} = {consciousness_psi:.3f}"
     })
 
 
