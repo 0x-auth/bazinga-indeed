@@ -537,7 +537,7 @@ class BazingaKB:
                 stats['total_chunks'] += chroma_count
                 stats['sources']['vectordb'] = chroma_count
                 conn.close()
-            except:
+            except Exception:
                 pass
 
         # Estimate patterns from total chunks (unique content hash approximation)

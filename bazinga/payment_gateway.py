@@ -75,7 +75,7 @@ class PaymentGateway:
         if self.payments_file.exists():
             try:
                 return json.loads(self.payments_file.read_text())
-            except:
+            except Exception:
                 pass
         return {"pending": [], "confirmed": [], "expired": []}
 
@@ -335,7 +335,7 @@ def show_pricing():
     # Check if payments are enabled
     try:
         from .attestation_service import PAYMENTS_ENABLED, FREE_ATTESTATIONS_PER_MONTH
-    except:
+    except Exception:
         PAYMENTS_ENABLED = False
         FREE_ATTESTATIONS_PER_MONTH = 3
 
