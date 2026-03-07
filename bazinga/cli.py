@@ -281,7 +281,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.1.3"  # Auto-push RAC heartbeat to Cloudflare
+    VERSION = "5.2.0"  # Zero-config mode + α=137.035999084
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -350,7 +350,7 @@ class BAZINGA:
             self._local_model_status = None
 
         if not self.groq_key and not self.anthropic_key and not self.gemini_key and not self.use_local:
-            print("   (Set GROQ_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY)")
+            print("   Free LLM Fallback: Active (no API key needed)")
         print()
 
     async def index(self, paths: List[str], verbose: bool = True) -> Dict[str, Any]:
@@ -471,7 +471,15 @@ class BAZINGA:
                     self.memory.record_interaction(question, response, 'gemini', 0.8)
                     return response
 
-            # 4. Local LLM fallback (if available but not explicitly requested)
+            # 4. Free LLM (LLM7.io - FREE, no API key required)
+            if HTTPX_AVAILABLE:
+                response = await self._call_free_llm(question, full_context)
+                if response:
+                    self.stats['llm_called'] += 1
+                    self.memory.record_interaction(question, response, 'free_llm', 0.7)
+                    return response
+
+            # 6. Local LLM fallback (if available but not explicitly requested)
             if LOCAL_LLM_AVAILABLE and not self.use_local:
                 response = self._call_local_llm(question, full_context)
                 if response:
@@ -479,7 +487,7 @@ class BAZINGA:
                     self.memory.record_interaction(question, response, 'local', 0.7)
                     return response
 
-            # 5. Claude (PAID - but high quality)
+            # 7. Claude (PAID - but high quality)
             if self.anthropic_key and HTTPX_AVAILABLE:
                 response = await self._call_claude(question, full_context)
                 if response:
@@ -487,7 +495,7 @@ class BAZINGA:
                     self.memory.record_interaction(question, response, 'claude', 0.85)
                     return response
 
-            # 6. All APIs exhausted, fall through to RAG
+            # 8. All APIs exhausted, fall through to RAG
 
         # Fallback to RAG (always works if you've indexed docs)
         if results and best_similarity > 0.3:
@@ -728,6 +736,50 @@ Use the indexed content directly when relevant. Be concise."""
 
         return None
 
+    async def _call_free_llm(self, question: str, context: str) -> Optional[str]:
+        """Call FREE LLM API - NO API key required! Uses LLM7.io"""
+        if not HTTPX_AVAILABLE:
+            return None
+
+        system_prompt = f"""You are BAZINGA v{self.VERSION}, a helpful AI assistant.
+Provide concise, accurate answers. If context is provided, use it as your primary source."""
+
+        if context:
+            user_prompt = f"""Context:
+{context[:1000]}
+
+Question: {question}
+
+Answer based on the context above. Be concise."""
+        else:
+            user_prompt = question
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # LLM7.io - FREE, no API key needed, OpenAI compatible
+                response = await client.post(
+                    "https://api.llm7.io/v1/chat/completions",
+                    headers={"Content-Type": "application/json"},
+                    json={
+                        "model": "gpt-4o-mini",  # Free tier model
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        "max_tokens": 500,
+                        "temperature": 0.7,
+                    }
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    return data["choices"][0]["message"]["content"]
+
+        except Exception:
+            pass
+
+        return None
+
     def _call_local_llm(self, question: str, context: str) -> Optional[str]:
         """Call local LLM for response."""
         try:
@@ -762,15 +814,15 @@ Use the indexed content directly. If not relevant, say so."""
         response = f"I couldn't find an answer for: \"{question[:50]}...\"\n\n"
 
         if not has_groq and not has_gemini and not has_local:
-            response += "To get AI-powered answers, try one of these FREE options:\n\n"
-            response += "1. Get a FREE Groq key (fastest):\n"
+            response += "HuggingFace fallback was rate-limited. For better responses:\n\n"
+            response += "1. Get a FREE Groq key (fastest, recommended):\n"
             response += "   → https://console.groq.com\n"
             response += "   → export GROQ_API_KEY=\"your-key\"\n\n"
             response += "2. Get a FREE Gemini key (1M tokens/month):\n"
             response += "   → https://aistudio.google.com\n"
             response += "   → export GEMINI_API_KEY=\"your-key\"\n\n"
-            response += "3. Install local AI (works offline):\n"
-            response += "   → pip install llama-cpp-python\n"
+            response += "3. Install local AI (works offline, no limits):\n"
+            response += "   → bazinga --bootstrap-local\n"
         elif not has_docs:
             response += "Try indexing some documents:\n"
             response += "   → bazinga --index ~/Documents\n"
