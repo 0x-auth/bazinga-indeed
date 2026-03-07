@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bazinga-indeed"
-version = "5.1.4"
+version = "5.2.0"
 description = "BAZINGA - The first AI you actually own. Free, private, works offline. Multi-AI consensus through φ-coherence."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Space (Abhishek Srivastava)", email = "abhishek@example.com"}
+    {name = "Abhishek Srivastava", email = "bits.abhi@gmail.com"}
 ]
 keywords = [
     "ai", "distributed", "consciousness", "phi", "golden-ratio",
