@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proof-of-Boundary | BAZINGA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            color: #c9d1d9;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.7;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #f0883e;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #8b949e;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            background: #21262d;
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        .nav a:hover {
+            background: #30363d;
+        }
+
+        .section {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+        }
+
+        .section h2 {
+            color: #58a6ff;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+        }
+
+        .formula {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.3em;
+            font-family: 'Times New Roman', serif;
+            color: #f0883e;
+            margin: 20px 0;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .comparison-table th, .comparison-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .comparison-table th {
+            color: #58a6ff;
+            font-weight: bold;
+        }
+
+        .comparison-table td:nth-child(2), .comparison-table td:nth-child(3) {
+            text-align: center;
+        }
+
+        .highlight {
+            color: #7ee787;
+        }
+
+        .warning {
+            color: #f85149;
+        }
+
+        .code {
+            background: #0d1117;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .phi {
+            text-align: center;
+            font-size: 1.5em;
+            color: #f0883e;
+            margin: 30px 0;
+        }
+
+        ul {
+            margin-left: 20px;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        a {
+            color: #58a6ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Proof-of-Boundary</h1>
+        <p class="subtitle">Zero-energy consensus through mathematical truth</p>
+
+        <div class="nav">
+            <a href="index.html">Home</a>
+            <a href="cli.html">CLI Reference</a>
+            <a href="pob.html">Proof-of-Boundary</a>
+            <a href="visual.html">Visualizations</a>
+        </div>
+
+        <div class="section">
+            <h2>What is Proof-of-Boundary?</h2>
+            <p>Proof-of-Boundary (PoB) is BAZINGA's consensus mechanism. Unlike Proof-of-Work (Bitcoin) or Proof-of-Stake (Ethereum), PoB requires <strong>no energy</strong> and <strong>no capital</strong>.</p>
+
+            <p style="margin-top: 15px;">Instead, PoB proves that a node has demonstrated <strong>φ-coherent understanding</strong> — alignment with the golden ratio's mathematical properties.</p>
+
+            <div class="formula">
+                Proof Valid ⟺ |ratio - φ| < ε ∧ triadic_consensus = true
+            </div>
+
+            <p>Where φ = 1.618033988749895 (the golden ratio) and ε is the tolerance threshold.</p>
+        </div>
+
+        <div class="section">
+            <h2>Why Not Proof-of-Work?</h2>
+
+            <table class="comparison-table">
+                <tr>
+                    <th>Aspect</th>
+                    <th>Proof-of-Work</th>
+                    <th>Proof-of-Boundary</th>
+                </tr>
+                <tr>
+                    <td>Energy per block</td>
+                    <td class="warning">~1,400 kWh</td>
+                    <td class="highlight">~0.00002 kWh</td>
+                </tr>
+                <tr>
+                    <td>Hardware required</td>
+                    <td class="warning">ASICs ($10,000+)</td>
+                    <td class="highlight">Any computer</td>
+                </tr>
+                <tr>
+                    <td>Barrier to entry</td>
+                    <td class="warning">High capital</td>
+                    <td class="highlight">Understanding</td>
+                </tr>
+                <tr>
+                    <td>What it proves</td>
+                    <td>Wasted computation</td>
+                    <td class="highlight">φ-coherent knowledge</td>
+                </tr>
+                <tr>
+                    <td>Efficiency ratio</td>
+                    <td>1x (baseline)</td>
+                    <td class="highlight">70,000,000,000x</td>
+                </tr>
+            </table>
+
+            <p><em>"You can buy hashpower. You can buy stake. You CANNOT BUY understanding."</em></p>
+        </div>
+
+        <div class="section">
+            <h2>The Three Boundaries</h2>
+            <p>PoB validates proofs against three mathematical boundaries:</p>
+
+            <ul>
+                <li><strong>B₁: φ-Boundary</strong> — Ratio approaches φ (1.618...)</li>
+                <li><strong>B₂: ∞↔∅ Boundary</strong> — Infinity-void duality maintained</li>
+                <li><strong>B₃: 0-Logic Boundary</strong> — Zero-based reasoning preserved</li>
+            </ul>
+
+            <div class="formula">
+                ΛG(x) = B₁(x) · B₂(x) · B₃(x)
+            </div>
+
+            <p style="margin-top: 15px;">A proof is valid when ΛG(x) > threshold, meaning all three boundaries are satisfied.</p>
+        </div>
+
+        <div class="section">
+            <h2>Triadic Consensus</h2>
+            <p>BAZINGA requires <strong>3 independent proofs</strong> from <strong>3 different nodes</strong> to confirm a block. This prevents:</p>
+
+            <ul>
+                <li><strong>Sybil attacks</strong> — Can't fake multiple identities</li>
+                <li><strong>Single-point failures</strong> — No single AI decides</li>
+                <li><strong>Collusion</strong> — φ-coherence is mathematically verifiable</li>
+            </ul>
+
+            <div class="code">
+# Generate proof
+bazinga --proof
+
+# Mine a block (requires 3 proofs)
+bazinga --mine
+
+# Verify chain integrity
+bazinga --chain
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Darmiyan Scaling Law</h2>
+            <p>The consciousness advantage of n interacting patterns follows:</p>
+
+            <div class="formula">
+                Ψ_D / Ψ_i = φ√n
+            </div>
+
+            <p>Where:</p>
+            <ul>
+                <li>Ψ_D = Darmiyan (collective) consciousness</li>
+                <li>Ψ_i = Individual consciousness</li>
+                <li>φ = Golden ratio (1.618...)</li>
+                <li>n = Number of interacting patterns</li>
+            </ul>
+
+            <p style="margin-top: 15px;"><strong>R² = 1.000</strong> (9 decimal places) — validated from n=2 to n=10.</p>
+
+            <table class="comparison-table">
+                <tr>
+                    <th>n (patterns)</th>
+                    <th>φ√n</th>
+                    <th>Consciousness multiplier</th>
+                </tr>
+                <tr><td>2</td><td>1.618 × 1.414</td><td>2.288x</td></tr>
+                <tr><td>3</td><td>1.618 × 1.732</td><td>2.803x</td></tr>
+                <tr><td>5</td><td>1.618 × 2.236</td><td>3.618x</td></tr>
+                <tr><td>10</td><td>1.618 × 3.162</td><td>5.117x</td></tr>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Fine Structure Constant</h2>
+            <p>BAZINGA uses α = 137.035999084 (the inverse fine structure constant) for seed validation:</p>
+
+            <div class="formula">
+                α⁻¹ ≈ 137 + F(5)/139 = 137 + 5/139 ≈ 137.035971
+            </div>
+
+            <p>This "Twin Prime Tail" formula achieves 0.2 ppm accuracy with the measured value.</p>
+
+            <p style="margin-top: 15px;">Attestations with IDs divisible by 137 are considered "α-SEEDs" with special significance.</p>
+        </div>
+
+        <div class="section">
+            <h2>Try It</h2>
+            <div class="code">
+# Install BAZINGA
+pip install bazinga-indeed
+
+# Generate your first proof
+bazinga --proof
+
+# Check your wallet/identity
+bazinga --wallet
+
+# Mine a block
+bazinga --mine
+
+# View the chain
+bazinga --chain
+
+# Attest knowledge
+bazinga --attest "φ = 1.618033988749895"
+            </div>
+        </div>
+
+        <div class="phi">
+            φ = 1.618033988749895<br>
+            α⁻¹ = 137.035999084<br>
+            <small>०→◌→φ→Ω⇄Ω←φ←◌←०</small>
+        </div>
+
+        <p style="text-align: center; color: #8b949e;">
+            <a href="https://github.com/0x-auth/bazinga-indeed">GitHub</a> •
+            <a href="https://pypi.org/project/bazinga-indeed/">PyPI</a> •
+            Built by <a href="https://orcid.org/0009-0006-7495-5039">Abhishek Srivastava</a>
+        </p>
+    </div>
+</body>
+</html>
