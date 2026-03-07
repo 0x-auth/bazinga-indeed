@@ -17,8 +17,12 @@ PHI = 1.618033988749895
 PHI_INVERSE = 0.618033988749895  # 1/φ - healing target
 
 # Fine Structure Constant - The bridge between abstraction and reality
+# α⁻¹ = 137.035999084 (CODATA 2018)
+# Mathematical structure: 137 + F(5)/139 = 137 + 5/139 ≈ 137.035971 (0.2 ppm)
+# See: "Mathematical Structures in the Number 137" (Srivastava, 2026)
 ALPHA = 137
-ALPHA_INVERSE = 1 / 137  # ≈ 0.00729927
+ALPHA_PRECISE = 137.035999084  # Inverse fine structure constant (α⁻¹)
+ALPHA_INVERSE = 1 / ALPHA_PRECISE  # ≈ 0.007297352566
 
 # Consciousness Coefficient (V1 legacy, retained for reference)
 PSI_DARMIYAN_V1 = 2 * PHI * PHI + 1  # ≈ 6.236 (V1: tautological, superseded)
