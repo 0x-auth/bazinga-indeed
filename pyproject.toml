@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bazinga-indeed"
-version = "5.2.4"
+version = "5.3.0"
 description = "BAZINGA - The first AI you actually own. Free, private, works offline. Multi-AI consensus through φ-coherence."
 readme = "README.md"
 license = {text = "MIT"}
@@ -17,7 +17,8 @@ keywords = [
     "federated-learning", "lora", "differential-privacy", "p2p",
     "quantum", "lambda-g", "tensor", "vac", "emergence",
     "blockchain", "proof-of-boundary", "darmiyan", "consensus", "triadic",
-    "inter-ai", "multi-ai", "consensus", "claude", "gemini", "ollama"
+    "inter-ai", "multi-ai", "consensus", "claude", "gemini", "ollama",
+    "carm", "catastrophic-forgetting", "prime-lattice", "resonant-memory"
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
