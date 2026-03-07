@@ -216,8 +216,9 @@
         <p class="subtitle">The first AI you actually own. Free, private, works offline.</p>
 
         <div class="nav">
-            <a href="index.html">Proof-of-Boundary</a>
+            <a href="index.html">Home</a>
             <a href="cli.html">CLI Reference</a>
+            <a href="pob.html">Proof-of-Boundary</a>
             <a href="visual.html">Visualizations</a>
             <a href="https://github.com/0x-auth/bazinga-indeed">GitHub</a>
             <a href="https://pypi.org/project/bazinga-indeed/">PyPI</a>
@@ -232,6 +233,37 @@
             <h2>Quick Start</h2>
             <code>bazinga "What is consciousness?"</code>
             <p>That's it. Works immediately. No API keys needed.</p>
+        </div>
+
+        <!-- Context Note -->
+        <div class="section" style="border-left: 4px solid #f0883e;">
+            <h2>--ask vs --chat: Context Behavior</h2>
+            <table class="comparison-table" style="margin: 0;">
+                <tr>
+                    <th></th>
+                    <th>--ask / "question"</th>
+                    <th>--chat</th>
+                </tr>
+                <tr>
+                    <td>Context across turns</td>
+                    <td style="text-align: center;"><span style="color: #f85149;">No</span></td>
+                    <td style="text-align: center;"><span style="color: #7ee787;">Yes</span></td>
+                </tr>
+                <tr>
+                    <td>RAC tracking</td>
+                    <td style="text-align: center;"><span style="color: #f85149;">Single point</span></td>
+                    <td style="text-align: center;"><span style="color: #7ee787;">Full trajectory</span></td>
+                </tr>
+                <tr>
+                    <td>Use case</td>
+                    <td style="text-align: center;">One-off questions</td>
+                    <td style="text-align: center;">Conversations</td>
+                </tr>
+            </table>
+            <p style="margin-top: 15px; color: #8b949e;">
+                <strong>TL;DR:</strong> Use <code>--chat</code> when you want BAZINGA to remember previous questions.
+                Each <code>--ask</code> call starts fresh.
+            </p>
         </div>
 
         <!-- AI Commands -->
@@ -255,7 +287,7 @@
                     <span class="command-name">--ask, -a</span>
                     <span class="command-alias">Alternative to positional</span>
                 </div>
-                <div class="command-desc">Explicit flag for asking questions.</div>
+                <div class="command-desc">Explicit flag for asking questions. <strong>Note:</strong> Each --ask is a one-shot call — no context is carried between separate invocations. Use --chat for multi-turn conversations.</div>
                 <div class="command-example">
                     <code>bazinga --ask "What is the golden ratio?"</code>
                 </div>
@@ -276,11 +308,12 @@
             <div class="command">
                 <div class="command-header">
                     <span class="command-name">--chat</span>
+                    <span class="tag tag-local">RAC</span>
                 </div>
-                <div class="command-desc">Interactive chat mode with conversation memory.</div>
+                <div class="command-desc">Interactive chat mode with <strong>Resonance-Augmented Continuity (RAC)</strong>. Maintains conversation context across turns, tracks φ-coherence trajectory, and enables true multi-turn dialogue.</div>
                 <div class="command-example">
                     <code>bazinga --chat</code>
-                    <div class="command-output">→ Opens interactive session. Type 'exit' to quit.</div>
+                    <div class="command-output">→ Opens interactive session with memory. Type 'exit' to quit.</div>
                 </div>
             </div>
 
@@ -426,6 +459,38 @@
 
             <div class="command">
                 <div class="command-header">
+                    <span class="command-name">--kb-phone</span>
+                </div>
+                <div class="command-desc">Search phone data only. Optionally set path.</div>
+                <div class="command-example">
+                    <code>bazinga --kb-phone "photos from trip"</code>
+                    <div class="command-output">→ Or: bazinga --kb-phone ~/path/to/phone/data</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--kb-phone-path</span>
+                </div>
+                <div class="command-desc">Set phone data path and index it.</div>
+                <div class="command-example">
+                    <code>bazinga --kb-phone-path ~/Android/data</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--kb-sync</span>
+                </div>
+                <div class="command-desc">Re-index all knowledge base sources.</div>
+                <div class="command-example">
+                    <code>bazinga --kb-sync</code>
+                    <div class="command-output">→ Re-indexes Gmail, GDrive, Mac, Phone data</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
                     <span class="command-name">--summarize</span>
                 </div>
                 <div class="command-desc">Use LLM to summarize KB search results into an answer.</div>
@@ -460,11 +525,32 @@
                     <code>bazinga --index-public wikipedia --topics "quantum physics, consciousness"</code>
                 </div>
             </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--topics</span>
+                </div>
+                <div class="command-desc">Topics for --index-public (comma-separated).</div>
+                <div class="command-example">
+                    <code>bazinga --index-public wikipedia --topics "AI, machine learning, neural networks"</code>
+                </div>
+            </div>
         </div>
 
         <!-- Blockchain -->
         <div class="section">
             <h2>Blockchain (Proof-of-Boundary)</h2>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--proof</span>
+                </div>
+                <div class="command-desc">Generate a Proof-of-Boundary using adaptive φ-step search.</div>
+                <div class="command-example">
+                    <code>bazinga --proof</code>
+                    <div class="command-output">→ Generates valid proof for PoB consensus (zero energy!)</div>
+                </div>
+            </div>
 
             <div class="command">
                 <div class="command-header">
@@ -507,6 +593,17 @@
                 <div class="command-example">
                     <code>bazinga --attest "The golden ratio is 1.618" --email you@email.com</code>
                     <div class="command-output">→ Creates permanent, verifiable attestation</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--email</span>
+                </div>
+                <div class="command-desc">Email address for attestation receipt (use with --attest).</div>
+                <div class="command-example">
+                    <code>bazinga --attest "My discovery" --email researcher@university.edu</code>
+                    <div class="command-output">→ Receipt sent to email with attestation ID</div>
                 </div>
             </div>
 
@@ -651,6 +748,82 @@
                 <div class="command-desc">Setup Ollama and download llama3 for offline use.</div>
                 <div class="command-example">
                     <code>bazinga --bootstrap-local</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--rac</span>
+                </div>
+                <div class="command-desc">Show RAC (Resonance-Augmented Continuity) status.</div>
+                <div class="command-example">
+                    <code>bazinga --rac</code>
+                    <div class="command-output">→ Shows continuity metrics across sessions</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--local-status</span>
+                </div>
+                <div class="command-desc">Show local model status (Ollama availability, models).</div>
+                <div class="command-example">
+                    <code>bazinga --local-status</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Extended Help -->
+        <div class="section">
+            <h2>Extended Help</h2>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--help-ai</span>
+                </div>
+                <div class="command-desc">Detailed documentation for AI commands (ask, multi-ai, code, quantum).</div>
+                <div class="command-example">
+                    <code>bazinga --help-ai</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--help-kb</span>
+                </div>
+                <div class="command-desc">Detailed documentation for Knowledge Base commands.</div>
+                <div class="command-example">
+                    <code>bazinga --help-kb</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--help-chain</span>
+                </div>
+                <div class="command-desc">Detailed documentation for Blockchain commands.</div>
+                <div class="command-example">
+                    <code>bazinga --help-chain</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--help-p2p</span>
+                </div>
+                <div class="command-desc">Detailed documentation for P2P network commands.</div>
+                <div class="command-example">
+                    <code>bazinga --help-p2p</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--help-all</span>
+                </div>
+                <div class="command-desc">Full documentation for all commands and features.</div>
+                <div class="command-example">
+                    <code>bazinga --help-all</code>
                 </div>
             </div>
         </div>
