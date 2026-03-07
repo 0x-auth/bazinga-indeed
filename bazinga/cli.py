@@ -281,7 +281,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.2.1"  # Cleaner banner UX
+    VERSION = "5.2.2"  # FreeLLM in multi-AI consensus
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
