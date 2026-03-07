@@ -1418,6 +1418,8 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                             help='Show statistics')
     info_group.add_argument('--rac', action='store_true',
                             help='Show RAC (Resonance-Augmented Continuity) status')
+    info_group.add_argument('--carm', action='store_true',
+                            help='Show CARM (Context-Addressed Resonant Memory) status')
     info_group.add_argument('--models', action='store_true',
                             help='List local models')
     info_group.add_argument('--local-status', action='store_true',
@@ -3025,6 +3027,13 @@ Provide a concise, helpful answer based on the above context. If the context doe
                 print(f"  {locked} {h['session_id'][:8]} | ΔΓ={h['mean_delta_gamma']:.3f} | {len(h.get('points', []))} pts")
 
         memory.end_session()
+        return
+
+    # Handle --carm
+    if args.carm:
+        from .carm import CARMMemory
+        carm = CARMMemory()
+        print(carm.format_status())
         return
 
     # Handle --quantum (with optional --kb piping)
