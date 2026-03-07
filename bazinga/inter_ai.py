@@ -84,6 +84,7 @@ class ParticipantType(Enum):
     OPENROUTER = "openrouter"
     OLLAMA = "ollama"
     CEREBRAS = "cerebras"
+    FREELLM = "freellm"  # LLM7.io - FREE, no API key needed!
     BAZINGA_NODE = "bazinga"
     SIMULATION = "simulation"
 
@@ -1426,6 +1427,119 @@ Your refined perspective:"""
         )
 
 
+class FreeLLMParticipant(ConsensusParticipant):
+    """
+    FREE LLM participant using LLM7.io - NO API KEY REQUIRED!
+
+    This is the zero-config fallback that makes BAZINGA work out of the box.
+    Uses OpenAI-compatible API at api.llm7.io
+    """
+
+    def __init__(self, model: str = "gpt-4o-mini"):
+        super().__init__(
+            participant_id=f"freellm_{model.replace('-', '')}",
+            participant_type=ParticipantType.FREELLM,
+            model=model,
+        )
+        self.available = HTTPX_AVAILABLE  # Always available if httpx is installed!
+        self.coherence_calc = CoherenceCalculator()
+        self.pob_gen = PoBGenerator()
+
+    async def query(
+        self,
+        prompt: str,
+        context: Optional[Dict] = None,
+        round: ConsensusRound = ConsensusRound.INITIAL,
+    ) -> AIResponse:
+        start_time = time.time()
+
+        if not self.available:
+            return self._error_response("httpx not available", round, start_time)
+
+        try:
+            full_prompt = self._build_prompt(prompt, context, round)
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    "https://api.llm7.io/v1/chat/completions",
+                    headers={"Content-Type": "application/json"},
+                    json={
+                        "model": self.model,
+                        "messages": [
+                            {"role": "system", "content": "You are a helpful AI participating in multi-AI consensus. Provide clear, substantive responses with brief reasoning. Aim for 2-4 sentences."},
+                            {"role": "user", "content": full_prompt}
+                        ],
+                        "temperature": 0.7,
+                        "max_tokens": 500,
+                    }
+                )
+
+                latency_ms = (time.time() - start_time) * 1000
+
+                if response.status_code == 200:
+                    data = response.json()
+                    content = data["choices"][0]["message"]["content"]
+
+                    coherence, embedding = self.coherence_calc.calculate_coherence(content, prompt)
+                    understanding = self.coherence_calc.calculate_understanding(content)
+                    pob_proof = await self.pob_gen.generate_proof(content)
+
+                    ai_response = AIResponse(
+                        participant_id=self.participant_id,
+                        participant_type=self.participant_type,
+                        model=self.model,
+                        response=content,
+                        coherence=coherence,
+                        understanding_score=understanding,
+                        latency_ms=latency_ms,
+                        timestamp=time.time(),
+                        round=round,
+                        pob_proof=pob_proof,
+                        embedding=embedding,
+                    )
+                    self.response_history.append(ai_response)
+                    return ai_response
+
+                else:
+                    self.record_error(f"HTTP {response.status_code}")
+                    return self._error_response(f"HTTP {response.status_code}", round, start_time)
+
+        except Exception as e:
+            self.record_error(str(e))
+            return self._error_response(str(e), round, start_time)
+
+    def _build_prompt(self, prompt: str, context: Optional[Dict], round: ConsensusRound) -> str:
+        if round == ConsensusRound.INITIAL:
+            return prompt
+
+        if round == ConsensusRound.REVISION and context:
+            other_responses = context.get('other_responses', [])
+            if other_responses:
+                others_text = "\n\n".join([f"Response {i+1}: {r[:300]}..." for i, r in enumerate(other_responses)])
+                return f"""{prompt}
+
+Other responses:
+{others_text}
+
+Your refined perspective:"""
+
+        return prompt
+
+    def _error_response(self, error: str, round: ConsensusRound, start_time: float) -> AIResponse:
+        return AIResponse(
+            participant_id=self.participant_id,
+            participant_type=self.participant_type,
+            model=self.model,
+            response="",
+            coherence=0.0,
+            understanding_score=0.0,
+            latency_ms=(time.time() - start_time) * 1000,
+            timestamp=time.time(),
+            round=round,
+            error=error,
+        )
+
+
 class BlockchainParticipant(ConsensusParticipant):
     """
     Blockchain/DHT participant - queries Darmiyan chain and DHT for knowledge.
@@ -1841,6 +1955,12 @@ class InterAIConsensus:
         if openrouter.is_available():
             self.participants.append(openrouter)
             added.append("OpenRouter")
+
+        # 3.5. FreeLLM via LLM7.io (FREE - NO API KEY NEEDED!)
+        freellm = FreeLLMParticipant()
+        if freellm.is_available():
+            self.participants.append(freellm)
+            added.append("FreeLLM")
 
         # 4. Gemini (FREE - generous limits)
         gemini = GeminiParticipant()
