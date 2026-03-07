@@ -281,7 +281,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.2.0"  # Zero-config mode + α=137.035999084
+    VERSION = "5.2.1"  # Cleaner banner UX
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
