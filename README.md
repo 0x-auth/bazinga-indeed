@@ -5,6 +5,8 @@
 [![PyPI](https://img.shields.io/pypi/v/bazinga-indeed)](https://pypi.org/project/bazinga-indeed/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+![BAZINGA Demo](assets/demo.gif)
+
 ## Install
 
 ```bash
@@ -21,12 +23,25 @@ That's it. Works immediately.
 
 ---
 
+## Why BAZINGA?
+
+| | ChatGPT | BAZINGA |
+|--|:--:|:--:|
+| **Free forever** | Limited | Yes |
+| **Works offline** | No | Yes |
+| **Your data stays local** | No | Yes |
+| **Multi-AI consensus** | No | Yes |
+| **No account needed** | No | Yes |
+| **Open source** | No | Yes |
+
+---
+
 ## Features
 
 | Command | What it does |
 |---------|--------------|
 | `bazinga "question"` | Ask anything |
-| `bazinga --multi-ai "question"` | 6 AIs reach consensus |
+| `bazinga --multi-ai "question"` | Multiple AIs reach consensus |
 | `bazinga --agent` | AI writes code with consensus |
 | `bazinga --index ~/Documents` | Index your files for search |
 | `bazinga --check` | System diagnostic |
