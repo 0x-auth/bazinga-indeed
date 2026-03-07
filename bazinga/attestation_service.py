@@ -107,7 +107,7 @@ class DarmiyanAttestationService:
         # Initialize φ-coherence calculator
         try:
             self.phi_calc = PhiCoherence()
-        except:
+        except Exception:
             self.phi_calc = None
 
         # Attestation registry
@@ -119,7 +119,7 @@ class DarmiyanAttestationService:
         if self.registry_file.exists():
             try:
                 return json.loads(self.registry_file.read_text())
-            except:
+            except Exception:
                 pass
         return {"attestations": [], "stats": {"total": 0, "verified": 0}}
 
@@ -142,7 +142,7 @@ class DarmiyanAttestationService:
         if self.phi_calc:
             try:
                 return self.phi_calc.calculate(content)
-            except:
+            except Exception:
                 pass
         # Fallback: simple length-based coherence
         words = len(content.split())
@@ -289,7 +289,7 @@ class DarmiyanAttestationService:
         try:
             import asyncio
             result = asyncio.get_event_loop().run_until_complete(miner.mine())
-        except:
+        except Exception:
             # Fallback: create block directly
             pob = prove_boundary()
             pob_proofs = [
@@ -420,7 +420,7 @@ class DarmiyanAttestationService:
             dt = datetime.fromisoformat(proof.timestamp)
             date_str = dt.strftime("%B %d, %Y")
             time_str = dt.strftime("%H:%M:%S UTC")
-        except:
+        except Exception:
             date_str = proof.timestamp[:10]
             time_str = proof.timestamp[11:19]
 
@@ -632,11 +632,11 @@ class DarmiyanAttestationService:
                 try:
                     font = ImageFont.truetype("/System/Library/Fonts/Menlo.ttc", 14)
                     title_font = ImageFont.truetype("/System/Library/Fonts/Menlo.ttc", 18)
-                except:
+                except Exception:
                     try:
                         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 14)
                         title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 18)
-                    except:
+                    except Exception:
                         font = ImageFont.load_default()
                         title_font = font
 
