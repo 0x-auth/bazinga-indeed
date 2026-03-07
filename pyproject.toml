@@ -33,11 +33,12 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "chromadb>=0.4.0",
-    "sentence-transformers>=2.2.0",
-    "httpx>=0.24.0",
-    "rich>=13.0.0",
-    "pyzmq>=25.0.0",
+    "chromadb>=0.4.0,<1.0.0",
+    "sentence-transformers>=2.2.0,<4.0.0",
+    "httpx>=0.24.0,<1.0.0",
+    "rich>=13.0.0,<14.0.0",
+    "pyzmq>=25.0.0,<27.0.0",
+    "nest-asyncio>=1.5.0,<2.0.0",
 ]
 
 [project.optional-dependencies]
