@@ -51,6 +51,28 @@ from .resonance import (
     RESONANCE_ACHIEVED, RESONANCE_DRIFTING,
 )
 
+# CARM integration for context-addressed memory
+try:
+    from .carm import CARMMemory
+    CARM_AVAILABLE = True
+except ImportError:
+    CARM_AVAILABLE = False
+
+# Source → CARM channel mapping
+# Each source gets its own prime channel for structural isolation
+SOURCE_TO_CHANNEL = {
+    'rag': 0,      # Prime 137 (genesis)
+    'llm': 1,      # Prime 139
+    'vac': 2,      # Prime 149
+    'groq': 3,     # Prime 151
+    'gemini': 4,   # Prime 157
+    'local': 5,    # Prime 163
+    'cerebras': 6, # Prime 167
+    'claude': 7,   # Prime 173
+    'free': 8,     # Prime 179
+    'multi': 9,    # Prime 181 (consensus)
+}
+
 logger = logging.getLogger("bazinga.rac")
 
 
@@ -171,6 +193,16 @@ class ResonanceTargetWrapper:
         self.memory = memory or get_memory()
         self.genesis = genesis or DEFAULT_GENESIS
 
+        # CARM: Context-Addressed Resonant Memory
+        # Provides structural immunity to forgetting via prime-lattice channels
+        self.carm: Optional[CARMMemory] = None
+        if CARM_AVAILABLE:
+            try:
+                self.carm = CARMMemory()
+                logger.info("CARM initialized | Channels: prime lattice | Immunity: structural")
+            except Exception as e:
+                logger.warning("CARM init failed: %s", e)
+
         # RAC state
         self.current_state: Optional[PatternState] = None
         self.trajectory: Optional[SessionTrajectory] = None
@@ -181,8 +213,10 @@ class ResonanceTargetWrapper:
         self.trajectory_dir.mkdir(parents=True, exist_ok=True)
         self.trajectory_file = self.trajectory_dir / "trajectories.json"
 
-        logger.info("RAC wrapper initialized | Genesis: %s | Law: %s",
-                     "Block 0" if genesis else "default", self.genesis.scaling_law)
+        logger.info("RAC wrapper initialized | Genesis: %s | Law: %s | CARM: %s",
+                     "Block 0" if genesis else "default",
+                     self.genesis.scaling_law,
+                     "active" if self.carm else "disabled")
 
     # ── Pass-through methods (preserve full LearningMemory interface) ──
 
@@ -203,6 +237,9 @@ class ResonanceTargetWrapper:
                 'mean_delta_gamma': self.trajectory.mean_delta_gamma,
                 'trajectory_length': len(self.trajectory.points),
             }
+        # Augment with CARM metrics
+        if self.carm:
+            stats['carm'] = self.carm.get_channel_stats()
         return stats
 
     # ── Augmented methods ──────────────────────────────────────────
@@ -248,16 +285,33 @@ class ResonanceTargetWrapper:
 
         return session
 
-    def find_similar_question(self, question: str) -> Optional[Dict]:
+    def find_similar_question(self, question: str, source: str = 'rag') -> Optional[Dict]:
         """
-        Find similar question with ΛG coherence bias.
+        Find similar question with CARM context-addressing + ΛG coherence bias.
 
-        Instead of just returning the cached answer, we:
-        1. Get the cached result (original behavior)
-        2. Compute coherence of the cached answer with genesis state
-        3. If coherence is high enough, boost the result
-        4. If coherence is low, reduce confidence to trigger fresh inference
+        Priority:
+        1. CARM lookup (context-addressed, structurally isolated)
+        2. Base memory lookup (hash-based)
+        3. Apply ΛG coherence bias based on session state
         """
+        # === CARM: Context-Addressed Lookup ===
+        # Check if we have a crystallized answer in the source's channel
+        if self.carm:
+            channel = SOURCE_TO_CHANNEL.get(source, 0)
+            carm_result = self.carm.auto_retrieve(question)
+
+            if carm_result.snapped and carm_result.confidence > 0.7:
+                # CARM has a crystallized, high-confidence answer
+                logger.debug("CARM hit: ch%d (p=%d) conf=%.2f",
+                             carm_result.channel_id, carm_result.prime, carm_result.confidence)
+                return {
+                    'answer': f"[CARM] Crystallized pattern (confidence: {carm_result.confidence:.2f})",
+                    'coherence': carm_result.confidence,
+                    'source': 'carm',
+                    'carm_prediction': carm_result.prediction,
+                }
+
+        # === Base Memory Lookup ===
         cached = self.memory.find_similar_question(question)
 
         if cached is None:
@@ -266,6 +320,7 @@ class ResonanceTargetWrapper:
         # Get original coherence
         original_coherence = cached.get('coherence', 0)
 
+        # === ΛG Coherence Bias ===
         # Apply resonance bias: if session is far from genesis,
         # reduce cache confidence to force fresh reasoning
         if self.trajectory and self.trajectory.points:
@@ -294,12 +349,32 @@ class ResonanceTargetWrapper:
         1. Update current session state from the interaction
         2. Recompute ΔΓ against genesis
         3. Log trajectory point for Mirror-Universe Debugger
+        4. CARM: Crystallize high-coherence patterns in source channel
         """
         # Record in underlying memory
         self.memory.record_interaction(question, answer, source, coherence)
 
         # Track coherence
         self.session_coherence_scores.append(coherence)
+
+        # === CARM: Crystallize high-coherence patterns ===
+        # Only crystallize if coherence > 0.7 (high-quality interaction)
+        if self.carm and coherence > 0.7:
+            channel = SOURCE_TO_CHANNEL.get(source, 0)
+            try:
+                # Map coherence to binary label for crystallization
+                # High coherence (>0.7) → 1.0 (positive pattern)
+                label = 1.0 if coherence > 0.5 else 0.0
+                self.carm.encode(
+                    question=question,
+                    label=label,
+                    context_key=channel,
+                    epochs=200,
+                    snap=True,  # Crystallize immediately
+                )
+                logger.debug("CARM: Crystallized to ch%d | coherence=%.2f", channel, coherence)
+            except Exception as e:
+                logger.debug("CARM encode failed: %s", e)
 
         # Update current state based on accumulated interactions
         self._update_current_state(question, answer, coherence)
