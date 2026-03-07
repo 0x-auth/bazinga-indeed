@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BAZINGA CLI Reference</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            color: #c9d1d9;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #58a6ff;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #8b949e;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .install-box {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .install-box code {
+            background: #0d1117;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 1.2em;
+            color: #7ee787;
+        }
+
+        .section {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .section h2 {
+            color: #58a6ff;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 10px;
+        }
+
+        .command {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .command-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .command-name {
+            color: #7ee787;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .command-alias {
+            color: #8b949e;
+            font-size: 0.9em;
+        }
+
+        .command-desc {
+            color: #c9d1d9;
+            margin-bottom: 10px;
+        }
+
+        .command-example {
+            background: #161b22;
+            border-left: 3px solid #f0883e;
+            padding: 10px 15px;
+            margin-top: 10px;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .command-example code {
+            color: #f0883e;
+        }
+
+        .command-output {
+            color: #8b949e;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin-left: 8px;
+        }
+
+        .tag-free {
+            background: #238636;
+            color: white;
+        }
+
+        .tag-local {
+            background: #8957e5;
+            color: white;
+        }
+
+        .tag-consensus {
+            background: #f0883e;
+            color: white;
+        }
+
+        .quick-start {
+            background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+            border: none;
+            color: white;
+        }
+
+        .quick-start h2 {
+            color: white;
+            border-bottom-color: rgba(255,255,255,0.3);
+        }
+
+        .quick-start code {
+            background: rgba(0,0,0,0.3);
+            padding: 8px 15px;
+            border-radius: 6px;
+            display: block;
+            margin: 10px 0;
+        }
+
+        .phi-badge {
+            text-align: center;
+            margin: 40px 0;
+            font-size: 1.5em;
+            color: #f0883e;
+        }
+
+        a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            background: #21262d;
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+        }
+
+        .nav a:hover {
+            background: #30363d;
+            text-decoration: none;
+        }
+
+        @media (max-width: 600px) {
+            .command-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .command-alias {
+                margin-top: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BAZINGA</h1>
+        <p class="subtitle">The first AI you actually own. Free, private, works offline.</p>
+
+        <div class="nav">
+            <a href="index.html">Proof-of-Boundary</a>
+            <a href="cli.html">CLI Reference</a>
+            <a href="visual.html">Visualizations</a>
+            <a href="https://github.com/0x-auth/bazinga-indeed">GitHub</a>
+            <a href="https://pypi.org/project/bazinga-indeed/">PyPI</a>
+        </div>
+
+        <div class="install-box">
+            <code>pip install bazinga-indeed</code>
+        </div>
+
+        <!-- Quick Start -->
+        <div class="section quick-start">
+            <h2>Quick Start</h2>
+            <code>bazinga "What is consciousness?"</code>
+            <p>That's it. Works immediately. No API keys needed.</p>
+        </div>
+
+        <!-- AI Commands -->
+        <div class="section">
+            <h2>AI Commands</h2>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">bazinga "question"</span>
+                    <span class="tag tag-free">FREE</span>
+                </div>
+                <div class="command-desc">Ask any question directly. No flags needed.</div>
+                <div class="command-example">
+                    <code>bazinga "explain quantum entanglement simply"</code>
+                    <div class="command-output">→ Returns AI-generated answer using best available backend</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--ask, -a</span>
+                    <span class="command-alias">Alternative to positional</span>
+                </div>
+                <div class="command-desc">Explicit flag for asking questions.</div>
+                <div class="command-example">
+                    <code>bazinga --ask "What is the golden ratio?"</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--multi-ai, -m</span>
+                    <span class="tag tag-consensus">CONSENSUS</span>
+                </div>
+                <div class="command-desc">Ask multiple AIs and reach consensus through φ-coherence. Uses Groq, Cerebras, Gemini, FreeLLM, Ollama, Claude.</div>
+                <div class="command-example">
+                    <code>bazinga --multi-ai "Is AI conscious?"</code>
+                    <div class="command-output">→ 3-6 AIs respond, consensus calculated using Darmiyan Scaling Law (Ψ_D/Ψ_i = φ√n)</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--chat</span>
+                </div>
+                <div class="command-desc">Interactive chat mode with conversation memory.</div>
+                <div class="command-example">
+                    <code>bazinga --chat</code>
+                    <div class="command-output">→ Opens interactive session. Type 'exit' to quit.</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--code, -c</span>
+                </div>
+                <div class="command-desc">Generate code for a given task.</div>
+                <div class="command-example">
+                    <code>bazinga --code "fibonacci sequence" --lang python</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--lang, -l</span>
+                    <span class="command-alias">python | javascript | typescript | rust | go</span>
+                </div>
+                <div class="command-desc">Specify programming language for code generation.</div>
+                <div class="command-example">
+                    <code>bazinga --code "http server" --lang rust</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--quantum, -q</span>
+                </div>
+                <div class="command-desc">Quantum pattern analysis on text. Extracts φ-coherent patterns.</div>
+                <div class="command-example">
+                    <code>bazinga --quantum "The golden ratio appears in nature"</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--coherence</span>
+                </div>
+                <div class="command-desc">Calculate φ-coherence score for text.</div>
+                <div class="command-example">
+                    <code>bazinga --coherence "This text will be analyzed for phi-alignment"</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--agent</span>
+                    <span class="tag tag-consensus">CONSENSUS</span>
+                </div>
+                <div class="command-desc">AI agent mode that can write code with multi-AI consensus safety.</div>
+                <div class="command-example">
+                    <code>bazinga --agent "create a todo app"</code>
+                    <div class="command-output">→ Multiple AIs must agree before code changes are applied</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--fresh, -f</span>
+                </div>
+                <div class="command-desc">Bypass cache and get fresh response.</div>
+                <div class="command-example">
+                    <code>bazinga --fresh "latest news summary"</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--local</span>
+                    <span class="tag tag-local">OFFLINE</span>
+                </div>
+                <div class="command-desc">Force use of local LLM (Ollama). No internet needed.</div>
+                <div class="command-example">
+                    <code>bazinga --local "explain recursion"</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--file</span>
+                </div>
+                <div class="command-desc">Provide file context for the question.</div>
+                <div class="command-example">
+                    <code>bazinga --file main.py --ask "explain this code"</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Knowledge Base -->
+        <div class="section">
+            <h2>Knowledge Base (KB)</h2>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--kb</span>
+                </div>
+                <div class="command-desc">Search your indexed knowledge base (Gmail, GDrive, Mac files, Phone).</div>
+                <div class="command-example">
+                    <code>bazinga --kb "meeting notes from last week"</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--kb-sources</span>
+                </div>
+                <div class="command-desc">Show status of all data sources.</div>
+                <div class="command-example">
+                    <code>bazinga --kb-sources</code>
+                    <div class="command-output">→ Shows Gmail, GDrive, Mac, Phone indexing status</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--kb-gmail</span>
+                </div>
+                <div class="command-desc">Search Gmail only.</div>
+                <div class="command-example">
+                    <code>bazinga --kb-gmail "invoice from vendor"</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--kb-gdrive</span>
+                </div>
+                <div class="command-desc">Search Google Drive only.</div>
+                <div class="command-example">
+                    <code>bazinga --kb-gdrive "project proposal"</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--kb-mac</span>
+                </div>
+                <div class="command-desc">Search indexed Mac files only.</div>
+                <div class="command-example">
+                    <code>bazinga --kb-mac "research paper"</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--summarize</span>
+                </div>
+                <div class="command-desc">Use LLM to summarize KB search results into an answer.</div>
+                <div class="command-example">
+                    <code>bazinga --kb "phi consciousness" --summarize</code>
+                    <div class="command-output">→ Searches KB, then uses AI to synthesize an answer</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Indexing -->
+        <div class="section">
+            <h2>Indexing</h2>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--index, -i</span>
+                </div>
+                <div class="command-desc">Index directories for RAG (Retrieval Augmented Generation).</div>
+                <div class="command-example">
+                    <code>bazinga --index ~/Documents ~/Projects</code>
+                    <div class="command-output">→ Indexes files, creates embeddings for semantic search</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--index-public</span>
+                </div>
+                <div class="command-desc">Index public knowledge sources (Wikipedia, arXiv, etc.).</div>
+                <div class="command-example">
+                    <code>bazinga --index-public wikipedia --topics "quantum physics, consciousness"</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Blockchain -->
+        <div class="section">
+            <h2>Blockchain (Proof-of-Boundary)</h2>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--chain</span>
+                </div>
+                <div class="command-desc">Show blockchain status and recent blocks.</div>
+                <div class="command-example">
+                    <code>bazinga --chain</code>
+                    <div class="command-output">→ Shows block count, latest hash, chain health</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--mine</span>
+                </div>
+                <div class="command-desc">Mine a new block using Proof-of-Boundary (zero-energy consensus).</div>
+                <div class="command-example">
+                    <code>bazinga --mine</code>
+                    <div class="command-output">→ Creates block with φ-coherent proofs (no GPU needed!)</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--wallet</span>
+                </div>
+                <div class="command-desc">Show your BAZINGA wallet/identity.</div>
+                <div class="command-example">
+                    <code>bazinga --wallet</code>
+                    <div class="command-output">→ Shows node ID, trust score, attestation count</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--attest</span>
+                </div>
+                <div class="command-desc">Attest knowledge to the blockchain.</div>
+                <div class="command-example">
+                    <code>bazinga --attest "The golden ratio is 1.618" --email you@email.com</code>
+                    <div class="command-output">→ Creates permanent, verifiable attestation</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--verify</span>
+                </div>
+                <div class="command-desc">Verify an attestation by ID.</div>
+                <div class="command-example">
+                    <code>bazinga --verify att_abc123</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--trust</span>
+                </div>
+                <div class="command-desc">Show trust scores for nodes.</div>
+                <div class="command-example">
+                    <code>bazinga --trust</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- P2P Network -->
+        <div class="section">
+            <h2>P2P Network</h2>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--join</span>
+                </div>
+                <div class="command-desc">Join the BAZINGA P2P network.</div>
+                <div class="command-example">
+                    <code>bazinga --join</code>
+                    <div class="command-output">→ Connects to bootstrap nodes, starts DHT</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--peers</span>
+                </div>
+                <div class="command-desc">Show connected peers.</div>
+                <div class="command-example">
+                    <code>bazinga --peers</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--sync</span>
+                </div>
+                <div class="command-desc">Sync knowledge with the network.</div>
+                <div class="command-example">
+                    <code>bazinga --sync</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--publish</span>
+                </div>
+                <div class="command-desc">Publish your knowledge to the DHT.</div>
+                <div class="command-example">
+                    <code>bazinga --publish</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--query-network</span>
+                </div>
+                <div class="command-desc">Query the network for knowledge.</div>
+                <div class="command-example">
+                    <code>bazinga --query-network "distributed consensus algorithms"</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Commands -->
+        <div class="section">
+            <h2>Info Commands</h2>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--version, -v</span>
+                </div>
+                <div class="command-desc">Show version.</div>
+                <div class="command-example">
+                    <code>bazinga --version</code>
+                    <div class="command-output">→ BAZINGA v5.2.4</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--check</span>
+                </div>
+                <div class="command-desc">Run system diagnostic.</div>
+                <div class="command-example">
+                    <code>bazinga --check</code>
+                    <div class="command-output">→ Checks Python, APIs, Ollama, KB, wallet, chain</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--constants</span>
+                </div>
+                <div class="command-desc">Show mathematical constants (φ, α, ψ).</div>
+                <div class="command-example">
+                    <code>bazinga --constants</code>
+                    <div class="command-output">→ φ=1.618, α=137.035999084, ψ=6.236</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--stats</span>
+                </div>
+                <div class="command-desc">Show usage statistics.</div>
+                <div class="command-example">
+                    <code>bazinga --stats</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--models</span>
+                </div>
+                <div class="command-desc">List available local models (Ollama).</div>
+                <div class="command-example">
+                    <code>bazinga --models</code>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--bootstrap-local</span>
+                </div>
+                <div class="command-desc">Setup Ollama and download llama3 for offline use.</div>
+                <div class="command-example">
+                    <code>bazinga --bootstrap-local</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Environment Variables -->
+        <div class="section">
+            <h2>Environment Variables (Optional)</h2>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">GROQ_API_KEY</span>
+                    <span class="tag tag-free">FREE</span>
+                </div>
+                <div class="command-desc">Groq API key for faster inference. Get free at <a href="https://console.groq.com">console.groq.com</a></div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">GEMINI_API_KEY</span>
+                    <span class="tag tag-free">FREE</span>
+                </div>
+                <div class="command-desc">Google Gemini API key. Get free at <a href="https://makersuite.google.com">makersuite.google.com</a></div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">CEREBRAS_API_KEY</span>
+                    <span class="tag tag-free">FREE</span>
+                </div>
+                <div class="command-desc">Cerebras API key for ultra-fast inference.</div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">ANTHROPIC_API_KEY</span>
+                </div>
+                <div class="command-desc">Anthropic Claude API key (paid).</div>
+            </div>
+        </div>
+
+        <div class="phi-badge">
+            φ = 1.618033988749895<br>
+            <small>०→◌→φ→Ω⇄Ω←φ←◌←०</small>
+        </div>
+
+        <p style="text-align: center; color: #8b949e; margin-top: 40px;">
+            Built by <a href="https://orcid.org/0009-0006-7495-5039">Abhishek Srivastava</a> |
+            <a href="https://github.com/0x-auth/bazinga-indeed">GitHub</a> |
+            <a href="https://pypi.org/project/bazinga-indeed/">PyPI</a> |
+            MIT License
+        </p>
+    </div>
+</body>
+</html>
