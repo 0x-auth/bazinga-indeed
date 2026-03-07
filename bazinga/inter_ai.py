@@ -49,6 +49,43 @@ try:
 except ImportError:
     HTTPX_AVAILABLE = False
 
+# Rate limiting - simple token bucket
+class RateLimiter:
+    """Simple rate limiter to avoid hitting API limits."""
+    def __init__(self, requests_per_minute: int = 30):
+        self.requests_per_minute = requests_per_minute
+        self.tokens = requests_per_minute
+        self.last_update = time.time()
+
+    def acquire(self) -> bool:
+        """Try to acquire a token. Returns True if allowed, False if rate limited."""
+        now = time.time()
+        elapsed = now - self.last_update
+        self.tokens = min(self.requests_per_minute, self.tokens + elapsed * (self.requests_per_minute / 60))
+        self.last_update = now
+        if self.tokens >= 1:
+            self.tokens -= 1
+            return True
+        return False
+
+    async def wait_and_acquire(self):
+        """Wait until a token is available, then acquire it."""
+        while not self.acquire():
+            await asyncio.sleep(0.1)
+
+# Global rate limiters per provider
+_rate_limiters = {}
+
+def get_rate_limiter(provider: str, requests_per_minute: int = 30) -> RateLimiter:
+    """Get or create a rate limiter for a provider."""
+    if provider not in _rate_limiters:
+        _rate_limiters[provider] = RateLimiter(requests_per_minute)
+    return _rate_limiters[provider]
+
+# Timeout constants
+API_TIMEOUT_SECONDS = 30
+BLOCKCHAIN_TIMEOUT_SECONDS = 10
+
 try:
     from sentence_transformers import SentenceTransformer
     import numpy as np
@@ -513,6 +550,7 @@ class GroqParticipant(ConsensusParticipant):
         self.available = bool(self.api_key) and HTTPX_AVAILABLE
         self.coherence_calc = CoherenceCalculator()
         self.pob_gen = PoBGenerator()
+        self.rate_limiter = get_rate_limiter("groq", requests_per_minute=30)
 
     async def query(
         self,
@@ -525,11 +563,14 @@ class GroqParticipant(ConsensusParticipant):
         if not self.available:
             return self._error_response("Groq API not available", round, start_time)
 
+        # Rate limiting
+        await self.rate_limiter.wait_and_acquire()
+
         try:
             # Build prompt with context for revision rounds
             full_prompt = self._build_prompt(prompt, context, round)
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=API_TIMEOUT_SECONDS) as client:
                 response = await client.post(
                     "https://api.groq.com/openai/v1/chat/completions",
                     headers={
@@ -629,6 +670,7 @@ class GeminiParticipant(ConsensusParticipant):
         self.available = bool(self.api_key) and HTTPX_AVAILABLE
         self.coherence_calc = CoherenceCalculator()
         self.pob_gen = PoBGenerator()
+        self.rate_limiter = get_rate_limiter("gemini", requests_per_minute=15)  # Gemini has lower limits
 
     async def query(
         self,
@@ -641,11 +683,14 @@ class GeminiParticipant(ConsensusParticipant):
         if not self.available:
             return self._error_response("Gemini API not available", round, start_time)
 
+        # Rate limiting
+        await self.rate_limiter.wait_and_acquire()
+
         try:
             full_prompt = self._build_prompt(prompt, context, round)
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=API_TIMEOUT_SECONDS) as client:
                 response = await client.post(
                     url,
                     headers={"Content-Type": "application/json"},
@@ -752,7 +797,7 @@ class ClaudeParticipant(ConsensusParticipant):
         try:
             full_prompt = self._build_prompt(prompt, context, round)
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=API_TIMEOUT_SECONDS) as client:
                 response = await client.post(
                     "https://api.anthropic.com/v1/messages",
                     headers={
@@ -989,6 +1034,7 @@ class CerebrasParticipant(ConsensusParticipant):
         self.available = bool(self.api_key) and HTTPX_AVAILABLE
         self.coherence_calc = CoherenceCalculator()
         self.pob_gen = PoBGenerator()
+        self.rate_limiter = get_rate_limiter("cerebras", requests_per_minute=30)
 
     async def query(
         self,
@@ -1001,10 +1047,13 @@ class CerebrasParticipant(ConsensusParticipant):
         if not self.available:
             return self._error_response("Cerebras API not available", round, start_time)
 
+        # Rate limiting
+        await self.rate_limiter.wait_and_acquire()
+
         try:
             full_prompt = self._build_prompt(prompt, context, round)
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=API_TIMEOUT_SECONDS) as client:
                 response = await client.post(
                     "https://api.cerebras.ai/v1/chat/completions",
                     headers={
@@ -1119,7 +1168,7 @@ class OpenAIParticipant(ConsensusParticipant):
         try:
             full_prompt = self._build_prompt(prompt, context, round)
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=API_TIMEOUT_SECONDS) as client:
                 response = await client.post(
                     "https://api.openai.com/v1/chat/completions",
                     headers={
@@ -1231,7 +1280,7 @@ class TogetherParticipant(ConsensusParticipant):
         try:
             full_prompt = self._build_prompt(prompt, context, round)
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=API_TIMEOUT_SECONDS) as client:
                 response = await client.post(
                     "https://api.together.xyz/v1/chat/completions",
                     headers={
@@ -1342,7 +1391,7 @@ class OpenRouterParticipant(ConsensusParticipant):
         try:
             full_prompt = self._build_prompt(prompt, context, round)
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=API_TIMEOUT_SECONDS) as client:
                 response = await client.post(
                     "https://openrouter.ai/api/v1/chat/completions",
                     headers={
@@ -1444,6 +1493,7 @@ class FreeLLMParticipant(ConsensusParticipant):
         self.available = HTTPX_AVAILABLE  # Always available if httpx is installed!
         self.coherence_calc = CoherenceCalculator()
         self.pob_gen = PoBGenerator()
+        self.rate_limiter = get_rate_limiter("freellm", requests_per_minute=20)
 
     async def query(
         self,
@@ -1456,10 +1506,13 @@ class FreeLLMParticipant(ConsensusParticipant):
         if not self.available:
             return self._error_response("httpx not available", round, start_time)
 
+        # Rate limiting
+        await self.rate_limiter.wait_and_acquire()
+
         try:
             full_prompt = self._build_prompt(prompt, context, round)
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=API_TIMEOUT_SECONDS) as client:
                 response = await client.post(
                     "https://api.llm7.io/v1/chat/completions",
                     headers={"Content-Type": "application/json"},
