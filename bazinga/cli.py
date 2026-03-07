@@ -328,29 +328,31 @@ class BAZINGA:
         self._print_banner()
 
     def _print_banner(self):
-        """Minimal clean banner with local model status."""
+        """Clean, minimal banner - don't overwhelm new users."""
         print()
-        print(f"BAZINGA v{self.VERSION} | φ={PHI:.3f} | α={ALPHA}")
 
-        # Check local model status
+        # Check local model status silently
         try:
             from .inference.ollama_detector import detect_any_local_model, LocalModelType
             local_status = detect_any_local_model()
-
             if local_status.available:
-                model_name = local_status.models[0] if local_status.models else local_status.model_type.value
-                print(f"   Local Intelligence: {model_name} Detected (Trust Multiplier: {local_status.trust_multiplier:.3f}x Active)")
                 self.use_local = True
                 self._local_model_status = local_status
             else:
-                print(f"   Local Intelligence: Offline (Cloud Fallback - Standard Trust)")
                 self._local_model_status = None
         except Exception:
-            print(f"   Local Intelligence: Offline (Cloud Fallback - Standard Trust)")
             self._local_model_status = None
 
-        if not self.groq_key and not self.anthropic_key and not self.gemini_key and not self.use_local:
-            print("   Free LLM Fallback: Active (no API key needed)")
+        # Simple one-line status
+        if self._local_model_status and self._local_model_status.available:
+            model = self._local_model_status.models[0] if self._local_model_status.models else "local"
+            print(f"BAZINGA v{self.VERSION} | {model} (local)")
+        elif self.groq_key:
+            print(f"BAZINGA v{self.VERSION} | Groq")
+        elif self.gemini_key:
+            print(f"BAZINGA v{self.VERSION} | Gemini")
+        else:
+            print(f"BAZINGA v{self.VERSION} | Free mode")
         print()
 
     async def index(self, paths: List[str], verbose: bool = True) -> Dict[str, Any]:
