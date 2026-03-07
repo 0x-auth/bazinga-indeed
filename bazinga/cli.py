@@ -1577,7 +1577,7 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                         data = json.load(f)
                         if isinstance(data, list):
                             total_chunks += len(data)
-                except:
+                except Exception:
                     pass
 
         # Check ChromaDB if available
@@ -1590,7 +1590,7 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                 chroma_count = cursor.fetchone()[0]
                 total_chunks += chroma_count
                 conn.close()
-            except:
+            except Exception:
                 pass
 
         if total_chunks > 0:
@@ -1608,7 +1608,7 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                     wallet = json.load(f)
                     node_id = wallet.get('node_id', '')[:12]
                     print(f"  ✓ Identity: bzn_{node_id}...")
-            except:
+            except Exception:
                 print(f"  ✓ Wallet exists")
         else:
             print(f"  ⚠ No wallet yet (will be created on first use)")
@@ -1623,7 +1623,7 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                     pob_count = len(chain.get('blocks', []))
                     if pob_count > 0:
                         print(f"  ✓ Proof-of-Boundary: {pob_count} blocks mined")
-            except:
+            except Exception:
                 pass
 
         if pob_count == 0:

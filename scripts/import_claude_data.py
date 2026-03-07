@@ -144,7 +144,8 @@ def main():
     # Optionally index
     if args.index:
         print("\n◊ Indexing into BAZINGA KB...")
-        os.system(f'python3.13 -m bazinga --index "{output_dir}"')
+        import subprocess
+        subprocess.run([sys.executable, '-m', 'bazinga', '--index', output_dir], check=False)
     else:
         print(f"\n  To index: bazinga --index \"{output_dir}\"")
 
