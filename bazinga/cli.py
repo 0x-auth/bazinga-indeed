@@ -281,7 +281,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.2.4"  # Security & stability fixes
+    VERSION = "5.3.0"  # CARM: Context-Addressed Resonant Memory
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose

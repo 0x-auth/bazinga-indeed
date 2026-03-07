@@ -3,26 +3,26 @@
     "total_queries": 1,
     "consensus_reached": 1,
     "consensus_rate": 1.0,
-    "avg_phi_coherence": 0.4702293078104655,
-    "avg_semantic_similarity": 0.9540222684542338,
+    "avg_phi_coherence": 0.7262195547421774,
+    "avg_semantic_similarity": 0.8519240220387777,
     "triadic_valid_rate": 1.0,
-    "participants": 6,
+    "participants": 7,
     "embeddings_available": true
   },
   "history": [
     {
-      "question": "Explain the golden ratio in 2 sentences.",
+      "question": "What is 2+2? Be brief.",
       "consensus_reached": true,
-      "understanding": "The golden ratio, also known as phi, is a mathematical constant approximately equal to 1.61803398875 that has been observed and utilized in various aspects of art, design, and nature for its unique aesthetic and harmonious properties. It is an irrational number that describes the proportion of the longer segment to the shorter segment in a golden rectangle, which is believed to possess inherent beauty and balance, making it a popular element in many creative fields.\n\nAdditional perspectives:\n- The golden ratio, often represented by the Greek letter phi (\u03c6), is an irrational number approximately equal to 1\n- The golden ratio, denoted by the Greek letter phi (\u03c6), is an irrational number approximately equal to 1\n\n(Synthesized from 3 AIs | \u03c6-coherence: 0.479)",
+      "understanding": "The sum of 2 and 2 is 4. This is a basic arithmetic operation that results in the addition of two identical numbers.\n\n(Synthesized from 3 AIs | \u03c6-coherence: 0.783)",
       "responses": [
         {
           "participant_id": "groq_llama-3.",
           "participant_type": "groq",
           "model": "llama-3.1-8b-instant",
-          "response": "The golden ratio, denoted by the Greek letter phi (\u03c6), is an irrational number approximately equal to 1.618, which represents the proportion of a line divided into two segments where the ratio of the longer segment to the shorter segment is equal to the ratio of the entire line to the longer segment. This ratio is believed to possess unique aesthetic appeal and is often observed in the proportions of natural forms, architecture, and art throughout history.",
-          "coherence": 0.45754069089889526,
+          "response": "The result of 2 + 2 is 4.",
+          "coherence": 0.6979665160179138,
           "understanding_score": 0.0,
-          "latency_ms": 753.8228034973145,
+          "latency_ms": 482.3000431060791,
           "round": "initial",
           "pob_valid": true,
           "error": null
@@ -31,10 +31,22 @@
           "participant_id": "cerebras_llama3.1",
           "participant_type": "cerebras",
           "model": "llama3.1-8b",
-          "response": "The golden ratio, often represented by the Greek letter phi (\u03c6), is an irrational number approximately equal to 1.61803398875 that has been observed in numerous natural patterns and artistic compositions, characterized by a unique proportion of approximately 1 part to 1.618 parts. This ratio is believed to possess aesthetic appeal, as it creates a sense of balance, harmony, and visual flow in designs and patterns.",
-          "coherence": 0.4743506908416748,
+          "response": "The result of 2 + 2 is 4.",
+          "coherence": 0.6979665160179138,
           "understanding_score": 0.0,
-          "latency_ms": 1663.2158756256104,
+          "latency_ms": 827.2011280059814,
+          "round": "initial",
+          "pob_valid": true,
+          "error": null
+        },
+        {
+          "participant_id": "freellm_gpt4omini",
+          "participant_type": "freellm",
+          "model": "gpt-4o-mini",
+          "response": "The sum of 2 and 2 is 4. This is a basic arithmetic operation that results in the addition of two identical numbers.",
+          "coherence": 0.7827256321907043,
+          "understanding_score": 0.0,
+          "latency_ms": 1331.920862197876,
           "round": "initial",
           "pob_valid": true,
           "error": null
@@ -46,7 +58,7 @@
           "response": "",
           "coherence": 0.0,
           "understanding_score": 0.0,
-          "latency_ms": 570.1339244842529,
+          "latency_ms": 827.5859355926514,
           "round": "initial",
           "pob_valid": false,
           "error": "HTTP 429"
@@ -55,10 +67,10 @@
           "participant_id": "ollama_llama3",
           "participant_type": "ollama",
           "model": "llama3",
-          "response": "The golden ratio, also known as phi, is a mathematical constant approximately equal to 1.61803398875 that has been observed and utilized in various aspects of art, design, and nature for its unique aesthetic and harmonious properties. It is an irrational number that describes the proportion of the longer segment to the shorter segment in a golden rectangle, which is believed to possess inherent beauty and balance, making it a popular element in many creative fields.",
-          "coherence": 0.4787965416908264,
-          "understanding_score": 0.125,
-          "latency_ms": 3713.712215423584,
+          "response": "4",
+          "coherence": 0.18031977117061615,
+          "understanding_score": 0.0,
+          "latency_ms": 1737.8711700439453,
           "round": "initial",
           "pob_valid": true,
           "error": null
@@ -70,7 +82,7 @@
           "response": "",
           "coherence": 0.0,
           "understanding_score": 0.0,
-          "latency_ms": 822.0860958099365,
+          "latency_ms": 560.9710216522217,
           "round": "initial",
           "pob_valid": false,
           "error": "HTTP 400"
@@ -79,24 +91,24 @@
           "participant_id": "darmiyan_chain:json_knowledge",
           "participant_type": "bazinga",
           "model": "darmiyan:json_knowledge",
-          "response": "[Indexed Knowledge]\n[Robotics] Robotics is the interdisciplinary study and practice of the design, construction, operation, and use of robots. A roboticist is someone who specializes in robotics. Within mechanical engineering, robotics is the design and construction of the physical structures of robots, while in computer science, robotics focuses on robotic automation algorithms. Other disciplines contributing to rob\n---\n[Robotics] saving weight and space by moving all power generation and stora...",
-          "coherence": 0.0,
+          "response": "[Indexed Knowledge]\n[Abdul Majid Bhurgri Institute of Language Engineering] Abdul Majid Bhurgri Institute of Language Engineering (Sindhi: \u0639\u0628\u062f\u0627\u0644\u0645\u0627\u062c\u062f \u0680\u0631\u06b3\u0699\u064a \u0627\u0646\u0633\u067d\u064a\u067d\u064a\u0648\u067d \u0622\u0641 \u0644\u0626\u0646\u06af\u0626\u064a\u062c \u0627\u0646\u062c\u0646\u064a\u0626\u0631\u0646\u06af) is an autonomous body under the administrative control of the Culture, Tourism and Antiquities Department, Government of Sindh established for bringing Sindhi language at par with national and international languages in all computati",
+          "coherence": 0.060745373368263245,
           "understanding_score": 0.0,
-          "latency_ms": 2.3500919342041016,
+          "latency_ms": 37.24193572998047,
           "round": "initial",
           "pob_valid": true,
           "error": null
         }
       ],
-      "phi_coherence": 0.4702293078104655,
-      "agreement_ratio": 0.75,
-      "semantic_similarity": 0.9540222684542338,
+      "phi_coherence": 0.7262195547421774,
+      "agreement_ratio": 0.6,
+      "semantic_similarity": 0.8519240220387777,
       "triadic_valid": true,
       "rounds_completed": 1,
-      "timestamp": 1771572146.677956,
-      "n_patterns": 4,
-      "consciousness_advantage": 25.84,
-      "darmiyan_psi": 25.84
+      "timestamp": 1772915526.302013,
+      "n_patterns": 5,
+      "consciousness_advantage": 3.6180339887498953,
+      "darmiyan_psi": 3.6180339887498953
     }
   ]
 }
