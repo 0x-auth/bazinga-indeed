@@ -2315,7 +2315,15 @@ async def multi_ai_ask(question: str, verbose: bool = True, file_context: Option
 
 def multi_ai_ask_sync(question: str, verbose: bool = True, file_context: Optional[str] = None) -> ConsensusResult:
     """Synchronous version of multi_ai_ask."""
-    return asyncio.run(multi_ai_ask(question, verbose, file_context))
+    try:
+        loop = asyncio.get_running_loop()
+        # Already in async context - use nest_asyncio or create task
+        import nest_asyncio
+        nest_asyncio.apply()
+        return asyncio.run(multi_ai_ask(question, verbose, file_context))
+    except RuntimeError:
+        # No running loop - safe to use asyncio.run()
+        return asyncio.run(multi_ai_ask(question, verbose, file_context))
 
 
 # =============================================================================
