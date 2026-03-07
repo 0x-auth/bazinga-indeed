@@ -11,6 +11,7 @@ import secrets
 import string
 import json
 import time
+import os
 from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass, asdict
@@ -20,9 +21,11 @@ from enum import Enum
 # Constants
 PHI = 1.618033988749895
 
-# Your wallet addresses (Polygon network)
-POLYGON_WALLET = "0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08"  # Same as ETH address
-RAZORPAY_LINK = "https://razorpay.me/@bitsabhi"
+# Payment addresses - load from environment or use defaults
+# To override: export BAZINGA_WALLET="your-wallet-address"
+# To override: export BAZINGA_RAZORPAY="https://razorpay.me/@yourhandle"
+POLYGON_WALLET = os.environ.get("BAZINGA_WALLET", "0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08")
+RAZORPAY_LINK = os.environ.get("BAZINGA_RAZORPAY", "https://razorpay.me/@bitsabhi")
 
 # Pricing in different currencies
 PRICING = {
