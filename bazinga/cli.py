@@ -3212,6 +3212,16 @@ Provide a concise, helpful answer based on the above context. If the context doe
         bazinga = BAZINGA(verbose=args.verbose)
         if args.local:
             bazinga.use_local = True
+
+        # Try TUI first, fallback to simple chat
+        if not args.simple:
+            try:
+                from .tui import run_tui_async
+                await run_tui_async(bazinga_instance=bazinga, mode="chat")
+                return
+            except ImportError:
+                pass  # Fall through to simple mode
+
         await bazinga.chat_interactive()
         return
 
@@ -3256,7 +3266,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
     else:
         try:
             from .tui import run_tui_async
-            await run_tui_async()
+            await run_tui_async(bazinga_instance=bazinga, mode="interactive")
         except ImportError:
             await bazinga.interactive()
 
