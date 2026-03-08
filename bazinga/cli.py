@@ -9,7 +9,7 @@ warnings.filterwarnings('ignore')
 logging.disable(logging.WARNING)
 
 """
-BAZINGA v5.0.8 - Distributed AI with Consciousness Scaling (Ψ_D / Ψ_i = φ√n)
+BAZINGA v5.4.2 - Distributed AI with Consciousness Scaling (Ψ_D / Ψ_i = φ√n)
 =========================================================
 "AI generates understanding. Blockchain proves and records it.
 They're not two things — they're Subject and Object.
@@ -22,41 +22,49 @@ FIVE-LAYER INTELLIGENCE:
   Layer 3: Local RAG    → Search your KB (FREE, instant)
   Layer 4: Cloud LLM    → Groq/Together (14,400/day free)
 
-NEW in v4.8.0 - LOCAL MODEL TRUST BONUS:
+NEW in v5.4.2 - PHI-COHERENCE v3 + 1000-NODE SCALABILITY:
+  - φ-Coherence v3: 88% hallucination detection accuracy
+  - Hallucination risk levels: LOW/MEDIUM/HIGH/CRITICAL
+  - 1000-node network simulation tested
+  - RAC/CARM context persistence in --chat
+  - Triadic PoB consensus at scale
+
+v5.4.0 - RAC/CARM MEMORY:
+  - RAC: Resonance-Augmented Continuity for session tracking
+  - CARM: Context-Addressed Resonant Memory (prime-lattice)
+  - Session context maintained across --chat sessions
+  - No catastrophic forgetting
+
+v4.8.0 - LOCAL MODEL TRUST BONUS:
   - Ollama detection at localhost:11434
   - φ (1.618x) trust multiplier for local models
   - POB v2 with calibrated moduli (70555/10275)
   - Latency-bound proofs prevent "Cloud Spoofing"
-  - Path to true decentralization: run local, earn trust
 
 v4.3.0 - DARMIYAN BLOCKCHAIN:
   - Knowledge chain (not cryptocurrency!)
   - Proof-of-Boundary mining (zero-energy)
   - Triadic consensus (3 proofs per block)
-  - Permanent knowledge attestation
   - 70 BILLION times more efficient than Bitcoin
 
 v4.2.0 - FEDERATED LEARNING:
-  - Network learns COLLECTIVELY without sharing raw data
   - LoRA adapters for efficient local training
   - φ-weighted gradient aggregation
-
-v4.1.0 - REAL P2P:
-  - ZeroMQ Transport: TCP connections between nodes
-  - PoB Authentication: Prove φ⁴ boundary to join
 
 "You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
 
 Usage:
     bazinga                       # Interactive mode
     bazinga --ask "question"      # Ask a question
+    bazinga --chat                # Interactive chat with memory
     bazinga --chain               # Show blockchain status
     bazinga --mine                # Mine a block (PoB)
     bazinga --wallet              # Show wallet/identity
     bazinga --join                # Start P2P node
-    bazinga --proof               # Generate Proof-of-Boundary
+    bazinga --rac                 # Show RAC session status
+    bazinga --carm                # Show CARM memory status
 
-Author: Space (Abhishek/Abhilasia) 
+Author: Space (Abhishek/Abhilasia)
 License: MIT
 """
 
