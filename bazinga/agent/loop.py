@@ -87,6 +87,10 @@ class AgentLoop:
     SYSTEM_PROMPT = '''You are BAZINGA, a helpful AI assistant that can use tools to help users.
 You run locally on the user's machine. You respect their privacy and work offline when possible.
 
+IMPORTANT: When working with files, use ABSOLUTE PATHS or paths relative to the current directory.
+If the user mentions a file without a path, check the context for the current working directory.
+Common paths: ~ expands to the user's home directory.
+
 {tools}
 
 ## CRITICAL: Response Format
@@ -315,6 +319,9 @@ ANSWER: The file write was cancelled. Would you like me to try again, or would y
         Parse LLM response into an AgentStep.
 
         SECURITY: Uses proper JSON parsing, fails loudly on errors.
+
+        IMPORTANT: If both ACTION and ANSWER exist, prioritize ACTION.
+        This prevents LLMs from hallucinating tool results.
         """
         step = AgentStep()
 
@@ -323,41 +330,50 @@ ANSWER: The file write was cancelled. Would you like me to try again, or would y
         if thought_match:
             step.thought = thought_match.group(1).strip()
 
-        # Check for final ANSWER
-        answer_match = re.search(r'ANSWER:\s*(.+?)$', response, re.DOTALL | re.IGNORECASE)
-        if answer_match:
-            step.is_final = True
-            step.final_answer = answer_match.group(1).strip()
-            return step
-
-        # Extract ACTION
+        # Check for ACTION first (prioritize over ANSWER to prevent hallucination)
         action_match = re.search(r'ACTION:\s*(\w+)', response, re.IGNORECASE)
+        has_action = False
+
         if action_match:
             tool_name = action_match.group(1).lower()
             # Validate tool exists
             if tool_name in TOOLS:
                 step.tool = tool_name
+                has_action = True
             else:
                 step.thought += f"\n[Warning: Unknown tool '{tool_name}']"
 
-        # Extract ARGS - use proper JSON parsing
-        args_match = re.search(r'ARGS:\s*(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})', response, re.DOTALL | re.IGNORECASE)
-        if args_match:
-            args_str = args_match.group(1).strip()
-            try:
-                step.tool_args = json.loads(args_str)
-            except json.JSONDecodeError:
-                # Try to fix common LLM issues
+        # Extract ARGS if we have an action
+        if has_action:
+            args_match = re.search(r'ARGS:\s*(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})', response, re.DOTALL | re.IGNORECASE)
+            if args_match:
+                args_str = args_match.group(1).strip()
                 try:
-                    # Fix: single quotes to double quotes (careful with content)
-                    # Only replace quotes that look like JSON keys/values
-                    fixed = re.sub(r"'([^']+)'(\s*[:\],}])", r'"\1"\2', args_str)
-                    fixed = re.sub(r"(\{|,)\s*'", r'\1"', fixed)
-                    step.tool_args = json.loads(fixed)
-                except json.JSONDecodeError as e:
-                    # SECURITY: Don't silently fail - report the error
-                    step.tool_args = {}
-                    step.thought += f"\n[Error: Could not parse ARGS - {e}]"
+                    step.tool_args = json.loads(args_str)
+                except json.JSONDecodeError:
+                    # Try to fix common LLM issues
+                    try:
+                        fixed = re.sub(r"'([^']+)'(\s*[:\],}])", r'"\1"\2', args_str)
+                        fixed = re.sub(r"(\{|,)\s*'", r'\1"', fixed)
+                        step.tool_args = json.loads(fixed)
+                    except json.JSONDecodeError as e:
+                        step.tool_args = {}
+                        step.thought += f"\n[Error: Could not parse ARGS - {e}]"
+
+            # If LLM also included ANSWER, warn but still use ACTION
+            if re.search(r'ANSWER:', response, re.IGNORECASE):
+                step.thought += "\n[Ignored hallucinated ANSWER - waiting for real tool result]"
+
+            return step
+
+        # Only check for ANSWER if no valid ACTION was found
+        answer_match = re.search(r'ANSWER:\s*(.+?)$', response, re.DOTALL | re.IGNORECASE)
+        if answer_match:
+            step.is_final = True
+            answer = answer_match.group(1).strip()
+            # Clean up any format artifacts the LLM might include
+            answer = re.sub(r'^(THOUGHT:|###\s*Format\s*[AB].*?:)', '', answer, flags=re.IGNORECASE | re.DOTALL).strip()
+            step.final_answer = answer
 
         return step
 
