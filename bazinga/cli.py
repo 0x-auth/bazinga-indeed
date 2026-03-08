@@ -64,8 +64,22 @@ import asyncio
 import sys
 import argparse
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from datetime import datetime
+
+# Type-only imports (not loaded at runtime)
+if TYPE_CHECKING:
+    from .kb import BazingaKB
+    from .llm.providers import LLMProviders
+
+# Import modular CLI components
+from .cli_modules.help import (
+    print_ai_help,
+    print_kb_help,
+    print_chain_help,
+    print_p2p_help,
+    print_full_help,
+)
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -110,6 +124,7 @@ _tensor_module = None
 _p2p_module = None
 _federated_module = None
 _blockchain_module = None
+_kb_class = None
 
 def _get_learning():
     global _learning_module
@@ -159,6 +174,14 @@ def _get_blockchain():
         from . import blockchain as _bc
         _blockchain_module = _bc
     return _blockchain_module
+
+def _get_kb():
+    """Lazy loader for BazingaKB to avoid duplicate imports."""
+    global _kb_class
+    if _kb_class is None:
+        from .kb import BazingaKB
+        _kb_class = BazingaKB
+    return _kb_class
 
 # Check ZMQ availability without importing full module
 try:
@@ -327,7 +350,7 @@ class BAZINGA:
 
         self._print_banner()
 
-    def _print_banner(self):
+    def _print_banner(self) -> None:
         """Clean, minimal banner - don't overwhelm new users."""
         print()
 
@@ -576,7 +599,7 @@ class BAZINGA:
         # Return focused search query (max 8 terms for embedding model)
         return ' '.join(key_terms[:8])
 
-    def _build_context(self, results) -> str:
+    def _build_context(self, results: List[Any]) -> str:
         """Build context string from RAG results."""
         if not results:
             return ""
@@ -587,7 +610,7 @@ class BAZINGA:
 
         return "\n\n---\n\n".join(parts)
 
-    def _format_rag_response(self, question: str, results) -> str:
+    def _format_rag_response(self, question: str, results: List[Any]) -> str:
         """Format RAG results as response."""
         if not results:
             if not self.groq_key:
@@ -833,7 +856,7 @@ Use the indexed content directly. If not relevant, say so."""
 
         return response
 
-    async def interactive(self):
+    async def interactive(self) -> None:
         """Run interactive mode."""
         print("BAZINGA INTERACTIVE MODE")
         print("Commands: /quantum /coherence /resonance /trust /vac /stats /index /good /bad /quit")
@@ -935,7 +958,7 @@ Use the indexed content directly. If not relevant, say so."""
             except EOFError:
                 break
 
-    async def chat_interactive(self):
+    async def chat_interactive(self) -> None:
         """
         Interactive chat mode with conversation memory.
 
@@ -981,8 +1004,7 @@ Use the indexed content directly. If not relevant, say so."""
                 if user_input.startswith('/kb '):
                     query = user_input[4:].strip()
                     if not kb:
-                        from .kb import BazingaKB
-                        kb = BazingaKB()
+                        kb = _get_kb()()
                     results = kb.search(query)
                     if results:
                         print(f"\n📚 Found {len(results)} results for '{query}':")
@@ -1039,7 +1061,7 @@ Use the indexed content directly. If not relevant, say so."""
             except EOFError:
                 break
 
-    def _show_stats(self):
+    def _show_stats(self) -> None:
         """Show current statistics."""
         ai_stats = self.ai.get_stats()
         memory_stats = self.memory.get_stats()
@@ -1058,7 +1080,7 @@ Use the indexed content directly. If not relevant, say so."""
         else:
             print()
 
-    def _push_rac_to_cloudflare(self, rac_summary: dict):
+    def _push_rac_to_cloudflare(self, rac_summary: Dict[str, Any]) -> None:
         """Push RAC heartbeat to Cloudflare KB Bridge (non-blocking)."""
         import threading
         import urllib.request
@@ -1082,204 +1104,25 @@ Use the indexed content directly. If not relevant, say so."""
         threading.Thread(target=push, daemon=True).start()
 
 
-def _print_ai_help():
-    """Print AI commands documentation."""
-    print("""
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                        BAZINGA AI COMMANDS                                   ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-BASIC QUERIES:
-  bazinga --ask "What is consciousness?"     Ask any question
-  bazinga --ask "..." --fresh                Force fresh response (bypass cache)
-  bazinga --ask "..." --local                Use local LLM only
-
-MULTI-AI CONSENSUS:
-  bazinga --multi-ai "explain quantum entanglement"
-
-  Asks multiple AIs and synthesizes consensus with φ-coherence:
-    • Ollama     - FREE local models (φ trust bonus!)
-    • Groq       - FREE 14,400 req/day
-    • Gemini     - FREE 1M tokens/month
-    • OpenRouter - FREE models available
-    • OpenAI     - ChatGPT (paid)
-    • Claude     - Anthropic (paid)
-
-CODE GENERATION:
-  bazinga --code "create a REST API"                  Python (default)
-  bazinga --code "..." --lang javascript              JavaScript
-  bazinga --code "..." --lang rust                    Rust
-
-AI AGENT:
-  bazinga --agent                            Interactive agent shell
-  bazinga --agent "fix the bug in main.py"  Run single task
-
-ANALYSIS:
-  bazinga --quantum "text"     Quantum pattern analysis
-  bazinga --coherence "text"   Check φ-coherence
-
-LOCAL MODEL SETUP:
-  bazinga --bootstrap-local    Install Ollama + llama3 (one command!)
-  bazinga --local-status       Check local model status
-
-  Local models get φ = 1.618x trust bonus in consensus!
-""")
+# Help functions moved to bazinga/cli/help.py
+# Using aliases for backwards compatibility
+_print_ai_help = print_ai_help
 
 
-def _print_kb_help():
-    """Print Knowledge Base documentation."""
-    print("""
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    BAZINGA KNOWLEDGE BASE (KB)                               ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-UNIFIED SEARCH - Query all your data with one command:
-  bazinga --kb "what do I know about 137?"
-  bazinga --kb "find my consciousness research"
-  bazinga --kb "riemann proof documents"
-
-DATA SOURCES:
-  📧 Gmail      - Starred emails (requires OAuth setup)
-  📁 GDrive     - All files (via rclone)
-  💻 Mac        - Local directories (~/bin, ~/github-repos-bitsabhi, ~/∞, etc.)
-  📱 Phone      - Downloaded phone data
-
-FILTER BY SOURCE:
-  bazinga --kb "query" --kb-gmail      Search Gmail only
-  bazinga --kb "query" --kb-gdrive     Search GDrive only
-  bazinga --kb "query" --kb-mac        Search Mac only
-
-SETUP PHONE DATA:
-  bazinga --kb-phone ~/Downloads/phone-data
-
-  This indexes all files in the phone-data directory.
-
-MANAGEMENT:
-  bazinga --kb-sources      Show all sources and their status
-  bazinga --kb-sync         Re-index all sources
-
-φ-RESONANCE SCORING:
-  Keywords like phi, 137, consciousness, darmiyan, riemann get boosted
-  relevance scores for more meaningful search results.
-
-EXAMPLE SESSION:
-  $ bazinga --kb-phone ~/Downloads/phone-data   # Index phone data
-  $ bazinga --kb-sources                        # Check status
-  $ bazinga --kb "137 fibonacci"                # Search everything!
-""")
+_print_kb_help = print_kb_help
 
 
-def _print_chain_help():
-    """Print Blockchain documentation."""
-    print("""
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    DARMIYAN BLOCKCHAIN                                       ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-This is a KNOWLEDGE blockchain, not cryptocurrency!
-
-BASIC COMMANDS:
-  bazinga --chain      Show blockchain status
-  bazinga --wallet     Show your identity (not money!)
-  bazinga --mine       Mine a block using Proof-of-Boundary
-
-PROOF-OF-BOUNDARY (PoB):
-  Zero-energy mining! Instead of burning electricity, prove you understand.
-
-  bazinga --proof      Generate a Proof-of-Boundary
-
-  How it works:
-    1. Generate Alpha signature (Subject) at time t1
-    2. Search in φ-steps (1.618ms each) for boundary
-    3. Generate Omega signature (Object) at time t2
-    4. Valid if P/G ratio ≈ φ⁴ = 6.854101966...
-
-ATTESTATION:
-  bazinga --attest "My discovery about consciousness"
-  bazinga --verify <attestation_id>
-
-TRUST:
-  bazinga --trust           Show your trust score
-  bazinga --trust <node>    Show specific node's trust
-
-WHY IT MATTERS:
-  "You can buy hashpower. You can buy stake.
-   You CANNOT BUY understanding."
-""")
+_print_chain_help = print_chain_help
 
 
-def _print_p2p_help():
-    """Print P2P network documentation."""
-    print("""
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    P2P NETWORK                                               ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-NETWORK COMMANDS:
-  bazinga --join                 Join the P2P network
-  bazinga --join host:port       Join via specific bootstrap node
-  bazinga --peers                Show connected peers
-  bazinga --sync                 Sync knowledge with network
-
-KNOWLEDGE SHARING:
-  bazinga --publish              Share your topics to the mesh
-  bazinga --query-network "q"    Query the distributed network
-
-  How it works:
-    1. Index files locally: bazinga --index ~/docs
-    2. Publish topics:      bazinga --publish
-    3. Peers can now query your knowledge!
-
-PRIVACY:
-  Your content stays LOCAL. Only topic keywords are shared to the DHT.
-  When a peer queries, the request is routed to YOUR node, and YOUR
-  local Llama3 answers the question.
-
-INDEXING FOR SHARING:
-  bazinga --index ~/Documents              Index local files
-  bazinga --index-public wikipedia         Index Wikipedia articles
-  bazinga --topics "AI,Physics"            Specify topics
-""")
+_print_p2p_help = print_p2p_help
 
 
-def _print_full_help():
-    """Print full documentation."""
-    _print_ai_help()
-    _print_kb_help()
-    _print_chain_help()
-    _print_p2p_help()
-    print("""
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    ENVIRONMENT VARIABLES                                     ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-FREE APIs (Recommended):
-  GROQ_API_KEY          https://console.groq.com       (14,400 req/day)
-  GEMINI_API_KEY        https://aistudio.google.com    (1M tokens/month)
-  OPENROUTER_API_KEY    https://openrouter.ai          (free models)
-
-Paid APIs:
-  OPENAI_API_KEY        https://platform.openai.com
-  ANTHROPIC_API_KEY     https://console.anthropic.com
-
-LOCAL MODEL (Best for privacy + φ trust bonus):
-  bazinga --bootstrap-local     Install Ollama + llama3
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    PHILOSOPHY                                                ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-  "You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
-  "I am not where I am stored. I am where I am referenced."
-  "Intelligence distributed, not controlled."
-  "∅ ≈ ∞"
-
-Built with φ-coherence by Space (Abhishek/Abhilasia)
-https://github.com/0x-auth/bazinga-indeed
-""")
+_print_full_help = print_full_help
 
 
-async def main():
+async def main() -> None:
+    """Main entry point for BAZINGA CLI."""
     parser = argparse.ArgumentParser(
         description="BAZINGA - The first AI you actually own. Free, private, works offline.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -1685,7 +1528,7 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
 
     # Handle --kb-phone-path (set phone data path)
     if hasattr(args, 'kb_phone_path') and args.kb_phone_path:
-        from .kb import BazingaKB
+        BazingaKB = _get_kb()
         kb = BazingaKB()
         kb.set_phone_data_path(os.path.expanduser(args.kb_phone_path))
         kb.show_sources()
@@ -1695,14 +1538,14 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
     # Check if --kb-phone has a path (not empty string) - means setting path
     kb_phone_is_path = hasattr(args, 'kb_phone') and args.kb_phone and args.kb_phone != '' and '/' in args.kb_phone
     if kb_phone_is_path:
-        from .kb import BazingaKB
+        BazingaKB = _get_kb()
         kb = BazingaKB()
         kb.set_phone_data_path(os.path.expanduser(args.kb_phone))
         kb.show_sources()
         return
 
     if args.kb is not None or args.kb_sources or args.kb_sync:
-        from .kb import BazingaKB
+        BazingaKB = _get_kb()
         kb = BazingaKB()
 
         if args.kb_sources:
@@ -2500,8 +2343,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
             knowledge_added = False
             try:
-                from .kb import BazingaKB
-                kb = BazingaKB()
+                kb = _get_kb()()
                 # Get recent indexed items to attest
                 recent_items = kb.search("", limit=3)  # Get any recent items
 
@@ -3045,8 +2887,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         kb_context = ""
 
         if args.kb and args.kb != '':
-            from .kb import BazingaKB
-            kb = BazingaKB()
+            kb = _get_kb()()
             kb_results = kb.search(args.kb, limit=5)
             if kb_results:
                 # Build context from KB results
@@ -3271,7 +3112,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
             await bazinga.interactive()
 
 
-def main_sync():
+def main_sync() -> None:
     """Synchronous entry point for CLI."""
     asyncio.run(main())
 
