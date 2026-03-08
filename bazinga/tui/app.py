@@ -121,7 +121,7 @@ class BazingaApp(App):
     def compose(self) -> ComposeResult:
         """Create child widgets."""
         yield Static(
-            "[bold]BAZINGA[/bold] v5.3.0 │ The first AI you actually own │ "
+            "[bold]BAZINGA[/bold] v5.4.1 │ The first AI you actually own │"
             "[dim]Ctrl+K: KB │ Ctrl+M: Multi-AI │ Ctrl+A: Agent │ Ctrl+C: Quit[/dim]",
             id="header-bar"
         )
