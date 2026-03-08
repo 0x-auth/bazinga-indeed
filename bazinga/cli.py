@@ -2827,8 +2827,9 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --stats
     if args.stats:
-        learning = _get_learning()
-        memory = learning.get_memory()
+        # Use RAC memory for full stats (includes CARM if available)
+        from .rac import get_resonance_memory
+        memory = get_resonance_memory()
         stats = memory.get_stats()
         tensor = _get_tensor().TensorIntersectionEngine()
         trust = tensor.get_trust_stats()
@@ -2851,6 +2852,23 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print(f"  Blocks mined: {chain_blocks}")
         print(f"  Total attestations: {chain_txs}")
         print(f"  Pending transactions: {len(chain.pending_transactions)}")
+
+        # Show RAC status if available
+        if 'rac' in stats:
+            rac = stats['rac']
+            status = "🟢 LOCKED" if rac.get('locked') else "🟡 CONVERGING" if rac.get('converging') else "🔴 DRIFTING"
+            print(f"\nRAC (Resonance-Augmented Continuity):")
+            print(f"  Status: {status}")
+            if rac.get('current_delta_gamma') is not None:
+                print(f"  ΔΓ: {rac['current_delta_gamma']:.4f} (mean: {rac['mean_delta_gamma']:.4f})")
+            print(f"  Trajectory points: {rac.get('trajectory_length', 0)}")
+
+        # Show CARM status if available
+        if 'carm' in stats:
+            carm = stats['carm']
+            print(f"\nCARM (Context-Addressed Resonant Memory):")
+            print(f"  Active channels: {carm.get('active_channels', 0)}")
+            print(f"  Crystallized patterns: {carm.get('total_crystallized', 0)}")
         return
 
     # Handle --rac
