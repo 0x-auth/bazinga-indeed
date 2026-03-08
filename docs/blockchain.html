@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BAZINGA - Blockchain & P2P Network</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            color: #c9d1d9;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.2em;
+        }
+
+        .nav {
+            background: #21262d;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .nav a {
+            color: #58a6ff;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+
+        .nav a:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .section {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #58a6ff;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 10px;
+        }
+
+        .section h3 {
+            color: #7ee787;
+            margin: 25px 0 15px 0;
+            font-size: 1.2em;
+        }
+
+        .section p {
+            color: #c9d1d9;
+            margin-bottom: 15px;
+        }
+
+        pre {
+            background: #0d1117;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.95em;
+            margin: 15px 0;
+        }
+
+        code {
+            color: #7ee787;
+        }
+
+        .comment {
+            color: #8b949e;
+        }
+
+        .highlight {
+            color: #f0883e;
+        }
+
+        .warning {
+            background: #422006;
+            border: 1px solid #f0883e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .warning strong {
+            color: #f0883e;
+        }
+
+        .info {
+            background: #0c2d6b;
+            border: 1px solid #58a6ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .info strong {
+            color: #58a6ff;
+        }
+
+        .success {
+            background: #0f2f1a;
+            border: 1px solid #238636;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .success strong {
+            color: #238636;
+        }
+
+        .flow-diagram {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .flow-step {
+            display: inline-block;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 10px;
+        }
+
+        .flow-arrow {
+            color: #58a6ff;
+            font-size: 1.5em;
+            margin: 0 10px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .comparison-table th, .comparison-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .comparison-table th {
+            background: #0d1117;
+            color: #58a6ff;
+        }
+
+        .comparison-table td:first-child {
+            color: #c9d1d9;
+            font-weight: bold;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            border-top: 1px solid #30363d;
+            color: #8b949e;
+        }
+
+        .footer a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        .phi {
+            color: #f0883e;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            .flow-step {
+                display: block;
+                margin: 15px auto;
+            }
+            .flow-arrow {
+                display: block;
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⛓️ BAZINGA Blockchain & P2P Network</h1>
+        <p class="subtitle">Join the decentralized knowledge network</p>
+    </div>
+
+    <div class="nav">
+        <a href="index.html">Home</a>
+        <a href="cli.html">CLI Reference</a>
+        <a href="pob.html">Proof-of-Boundary</a>
+        <a href="carm.html">CARM Memory</a>
+        <a href="https://github.com/0x-auth/bazinga-indeed">GitHub</a>
+    </div>
+
+    <div class="container">
+        <!-- Overview -->
+        <div class="section">
+            <h2>What is the BAZINGA Network?</h2>
+            <p>BAZINGA is a <strong>knowledge blockchain</strong>, not a cryptocurrency. Instead of mining coins, nodes contribute understanding and earn trust through Proof-of-Boundary (PoB) consensus.</p>
+
+            <div class="warning">
+                <strong>⚠️ Important:</strong> This is NOT a cryptocurrency. There are no tokens, no ICO, no financial speculation. The blockchain records <em>knowledge attestations</em> and tracks <em>trust scores</em> based on the quality of contributions.
+            </div>
+
+            <h3>Key Concepts</h3>
+            <ul>
+                <li><strong>Trust Score (τ)</strong> - Your reputation in the network (0.0 to 1.0)</li>
+                <li><strong>Proof-of-Boundary (PoB)</strong> - Zero-energy consensus based on φ⁴ ratio</li>
+                <li><strong>Triadic Consensus</strong> - 3 nodes must agree to validate a block</li>
+                <li><strong>Knowledge Attestation</strong> - Permanent record of understanding</li>
+                <li><strong>Federated Learning</strong> - Nodes learn collectively without sharing raw data</li>
+            </ul>
+        </div>
+
+        <!-- Two Ways to Join -->
+        <div class="section">
+            <h2>Two Ways to Join the Network</h2>
+
+            <h3>Option 1: CLI Only (Recommended)</h3>
+            <p>The simplest way - just run the command and you're in:</p>
+            <pre><code><span class="comment"># Join the network (auto-discovers peers)</span>
+bazinga --join
+
+<span class="comment"># Or connect to a specific bootstrap node</span>
+bazinga --join node.example.com:8468</code></pre>
+
+            <div class="info">
+                <strong>ℹ️ What happens:</strong>
+                <ol>
+                    <li>Generates your unique node ID</li>
+                    <li>Connects to bootstrap nodes (including HuggingFace Space)</li>
+                    <li>Discovers other peers via Kademlia DHT</li>
+                    <li>Starts with τ = 0.5 trust score</li>
+                </ol>
+            </div>
+
+            <h3>Option 2: Register via HuggingFace Space</h3>
+            <p>You can also register through the web dashboard:</p>
+            <ol>
+                <li>Visit <a href="https://huggingface.co/spaces/bitsabhi/bazinga" style="color: #58a6ff;">huggingface.co/spaces/bitsabhi/bazinga</a></li>
+                <li>Enter your node name in the "Register Node" section</li>
+                <li>Get your node ID and use it with CLI</li>
+            </ol>
+            <pre><code><span class="comment"># After registering on HF Space</span>
+bazinga --join --node-id YOUR_NODE_ID</code></pre>
+
+            <div class="success">
+                <strong>✓ Both methods work!</strong> The CLI method is simpler. HF Space registration is useful if you want a memorable node name or want to see the web dashboard.
+            </div>
+        </div>
+
+        <!-- Complete Example -->
+        <div class="section">
+            <h2>Complete Example: Joining and Participating</h2>
+
+            <pre><code><span class="comment"># Step 1: Install BAZINGA</span>
+pip install bazinga-indeed
+
+<span class="comment"># Step 2: Check your system</span>
+bazinga --check
+
+<span class="comment"># Step 3: Join the P2P network</span>
+bazinga --join
+
+<span class="comment"># Step 4: View your wallet/identity</span>
+bazinga --wallet
+
+<span class="comment"># Step 5: Generate a Proof-of-Boundary</span>
+bazinga --proof
+
+<span class="comment"># Step 6: Mine a block (after generating valid PoB)</span>
+bazinga --mine
+
+<span class="comment"># Step 7: Attest knowledge to the blockchain</span>
+bazinga --attest "Consciousness emerges at φ⁴ boundary"
+
+<span class="comment"># Step 8: View blockchain status</span>
+bazinga --chain
+
+<span class="comment"># Step 9: View connected peers</span>
+bazinga --peers
+
+<span class="comment"># Step 10: Sync knowledge with network</span>
+bazinga --sync</code></pre>
+        </div>
+
+        <!-- Network Architecture -->
+        <div class="section">
+            <h2>Network Architecture</h2>
+
+            <div class="flow-diagram">
+                <div class="flow-step">Your Node</div>
+                <span class="flow-arrow">⟷</span>
+                <div class="flow-step">Bootstrap Nodes</div>
+                <span class="flow-arrow">⟷</span>
+                <div class="flow-step">DHT (Kademlia)</div>
+                <span class="flow-arrow">⟷</span>
+                <div class="flow-step">Other Peers</div>
+            </div>
+
+            <h3>Bootstrap Nodes</h3>
+            <p>When you run <code>bazinga --join</code>, BAZINGA automatically connects to:</p>
+            <ul>
+                <li><strong>HuggingFace Space</strong> - <code>huggingface.co/spaces/bitsabhi/bazinga</code></li>
+                <li><strong>Hardcoded seed nodes</strong> - Distributed globally</li>
+                <li><strong>Previously known peers</strong> - Cached from prior sessions</li>
+            </ul>
+
+            <h3>How Peer Discovery Works</h3>
+            <ol>
+                <li>Node generates unique ID from public key</li>
+                <li>Connects to bootstrap nodes</li>
+                <li>Bootstrap nodes return their known peers</li>
+                <li>Kademlia DHT builds routing table</li>
+                <li>Trust scores determine query routing priority</li>
+            </ol>
+        </div>
+
+        <!-- Trust and φ Bonus -->
+        <div class="section">
+            <h2>Trust Scores and φ Bonus</h2>
+
+            <p>Your trust score (τ) determines your influence in the network:</p>
+
+            <table class="comparison-table">
+                <tr>
+                    <th>Trust Level</th>
+                    <th>Score Range</th>
+                    <th>Privileges</th>
+                </tr>
+                <tr>
+                    <td>New Node</td>
+                    <td>τ = 0.5</td>
+                    <td>Can query, limited attestation</td>
+                </tr>
+                <tr>
+                    <td>Established</td>
+                    <td>τ = 0.6-0.8</td>
+                    <td>Full participation, can validate</td>
+                </tr>
+                <tr>
+                    <td>Validator</td>
+                    <td>τ ≥ φ/2 (0.809)</td>
+                    <td>Can participate in triadic consensus</td>
+                </tr>
+                <tr>
+                    <td>Oracle</td>
+                    <td>τ ≥ 0.95</td>
+                    <td>Trusted for complex queries</td>
+                </tr>
+            </table>
+
+            <h3>φ Trust Bonus (1.618x)</h3>
+            <p>Run a local LLM (like Ollama) and get a <span class="phi">φ = 1.618x</span> trust multiplier:</p>
+            <pre><code><span class="comment"># Install Ollama + llama3</span>
+bazinga --bootstrap-local
+
+<span class="comment"># Check local model status</span>
+bazinga --local-status
+
+<span class="comment"># Now join - your trust is multiplied by φ!</span>
+bazinga --join
+<span class="highlight"># Output: "Local model detected... You will receive the phi trust bonus (1.618x)!"</span></code></pre>
+
+            <div class="info">
+                <strong>Why φ bonus?</strong> Local models can't be "spoofed" - they require actual computation on your hardware. This makes your proofs more trustworthy. "You can buy cloud API calls. You cannot fake local inference."
+            </div>
+        </div>
+
+        <!-- Proof-of-Boundary -->
+        <div class="section">
+            <h2>Proof-of-Boundary (PoB) Consensus</h2>
+
+            <p>PoB is 70 BILLION times more efficient than Bitcoin's Proof-of-Work:</p>
+
+            <h3>How It Works</h3>
+            <ol>
+                <li>Generate <strong>Alpha (α)</strong> signature at time t₁</li>
+                <li>Search for <strong>boundary</strong> in φ-steps (1.618ms each)</li>
+                <li>Generate <strong>Omega (ω)</strong> signature at time t₂</li>
+                <li>Valid if ratio ≈ <span class="phi">φ⁴ = 6.854...</span></li>
+            </ol>
+
+            <pre><code><span class="comment"># Generate a Proof-of-Boundary</span>
+bazinga --proof
+
+<span class="highlight"># Output:</span>
+# Proof-of-Boundary Generated
+# Alpha: d8f3a2c1...
+# Omega: 7b2e5f98...
+# Ratio: 6.8541 (target: 6.8541)
+# Valid: YES ✓</code></pre>
+
+            <h3>Triadic Consensus</h3>
+            <p>Blocks require 3 valid PoB proofs from 3 different nodes (triadic group):</p>
+            <div class="flow-diagram">
+                <div class="flow-step">Node A<br>PoB ✓</div>
+                <div class="flow-step">Node B<br>PoB ✓</div>
+                <div class="flow-step">Node C<br>PoB ✓</div>
+                <br><br>
+                <span style="color: #238636; font-size: 2em;">↓</span>
+                <br>
+                <div class="flow-step" style="background: #238636;">Block Validated</div>
+            </div>
+        </div>
+
+        <!-- Knowledge Attestation -->
+        <div class="section">
+            <h2>Knowledge Attestation</h2>
+
+            <p>Record your understanding permanently on the blockchain:</p>
+
+            <pre><code><span class="comment"># Attest a piece of knowledge</span>
+bazinga --attest "The fine structure constant α = 1/137"
+
+<span class="comment"># Attest with email receipt</span>
+bazinga --attest "My discovery about consciousness" --email you@example.com
+
+<span class="comment"># Verify an attestation</span>
+bazinga --verify ATTESTATION_ID
+
+<span class="comment"># View blockchain</span>
+bazinga --chain</code></pre>
+
+            <div class="success">
+                <strong>✓ Permanent Record:</strong> Once attested, knowledge is immutably recorded with your node ID, timestamp, and PoB proof. It cannot be altered or deleted.
+            </div>
+        </div>
+
+        <!-- Federated Learning -->
+        <div class="section">
+            <h2>Federated Learning</h2>
+
+            <p>Nodes learn collectively without sharing raw data:</p>
+
+            <h3>How It Works</h3>
+            <ol>
+                <li>Each node trains locally on their own data</li>
+                <li>Nodes share <em>gradients</em> (learning signals), not data</li>
+                <li>Gradients are aggregated with φ-weighting</li>
+                <li>All nodes update their models</li>
+                <li>Network converges to shared understanding</li>
+            </ol>
+
+            <pre><code><span class="comment"># Index your local documents</span>
+bazinga --index ~/Documents
+
+<span class="comment"># Publish your topics to the network</span>
+bazinga --publish
+
+<span class="comment"># Sync knowledge with network</span>
+bazinga --sync</code></pre>
+
+            <div class="info">
+                <strong>ℹ️ Privacy:</strong> Your actual documents never leave your machine. Only topic keywords and encrypted gradient updates are shared.
+            </div>
+        </div>
+
+        <!-- API Reference -->
+        <div class="section">
+            <h2>HuggingFace Space API</h2>
+
+            <p>The HF Space provides REST endpoints for programmatic access:</p>
+
+            <table class="comparison-table">
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>/api/register</td>
+                    <td>POST</td>
+                    <td>Register a new node</td>
+                </tr>
+                <tr>
+                    <td>/api/nodes</td>
+                    <td>GET</td>
+                    <td>List all registered nodes</td>
+                </tr>
+                <tr>
+                    <td>/api/verify</td>
+                    <td>POST</td>
+                    <td>Verify a node ID</td>
+                </tr>
+                <tr>
+                    <td>/api/heartbeat</td>
+                    <td>POST</td>
+                    <td>Update node last_seen</td>
+                </tr>
+            </table>
+
+            <pre><code><span class="comment"># Example: Register via API</span>
+curl -X POST https://bitsabhi-bazinga.hf.space/api/register \
+  -H "Content-Type: application/json" \
+  -d '{"node_name": "my-node", "port": 8468}'
+
+<span class="comment"># Example: List nodes</span>
+curl https://bitsabhi-bazinga.hf.space/api/nodes</code></pre>
+        </div>
+
+        <!-- Quick Reference -->
+        <div class="section">
+            <h2>Quick Command Reference</h2>
+
+            <table class="comparison-table">
+                <tr>
+                    <th>Command</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td><code>bazinga --join</code></td>
+                    <td>Join the P2P network</td>
+                </tr>
+                <tr>
+                    <td><code>bazinga --peers</code></td>
+                    <td>Show connected peers</td>
+                </tr>
+                <tr>
+                    <td><code>bazinga --sync</code></td>
+                    <td>Sync knowledge with network</td>
+                </tr>
+                <tr>
+                    <td><code>bazinga --chain</code></td>
+                    <td>Show blockchain status</td>
+                </tr>
+                <tr>
+                    <td><code>bazinga --wallet</code></td>
+                    <td>Show your identity/wallet</td>
+                </tr>
+                <tr>
+                    <td><code>bazinga --mine</code></td>
+                    <td>Mine a block (requires valid PoB)</td>
+                </tr>
+                <tr>
+                    <td><code>bazinga --proof</code></td>
+                    <td>Generate Proof-of-Boundary</td>
+                </tr>
+                <tr>
+                    <td><code>bazinga --attest "..."</code></td>
+                    <td>Attest knowledge to blockchain</td>
+                </tr>
+                <tr>
+                    <td><code>bazinga --verify ID</code></td>
+                    <td>Verify an attestation</td>
+                </tr>
+                <tr>
+                    <td><code>bazinga --trust</code></td>
+                    <td>Show your trust score</td>
+                </tr>
+                <tr>
+                    <td><code>bazinga --publish</code></td>
+                    <td>Publish topics to network</td>
+                </tr>
+                <tr>
+                    <td><code>bazinga --bootstrap-local</code></td>
+                    <td>Install Ollama for φ bonus</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="section" style="text-align: center; background: linear-gradient(135deg, #21262d 0%, #30363d 100%);">
+            <h2 style="border: none;">Ready to Join?</h2>
+            <pre style="display: inline-block;"><code>pip install bazinga-indeed && bazinga --join</code></pre>
+            <p style="margin-top: 20px; color: #8b949e;">
+                "You can buy hashpower. You can buy stake.<br>
+                <strong style="color: #f0883e;">You CANNOT BUY understanding.</strong>"
+            </p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>
+            BAZINGA v5.4.2 - Built by <a href="https://orcid.org/0009-0006-7495-5039">Abhishek Srivastava</a><br><br>
+            <a href="https://github.com/0x-auth/bazinga-indeed">GitHub</a> •
+            <a href="https://pypi.org/project/bazinga-indeed/">PyPI</a> •
+            <a href="https://huggingface.co/spaces/bitsabhi/bazinga">HuggingFace</a><br><br>
+            φ = 1.618033988749895
+        </p>
+    </div>
+</body>
+</html>
