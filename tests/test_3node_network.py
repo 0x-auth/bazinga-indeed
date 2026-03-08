@@ -608,42 +608,42 @@ class NetworkSimulation:
 # ASYNC NETWORK TEST (More realistic)
 # ============================================================================
 
-async def test_async_network():
-    """Test network with async operations (more realistic)."""
-    print("\n" + "=" * 60)
-    print("ASYNC NETWORK SIMULATION")
-    print("=" * 60)
+def test_async_network():
+    """Test network with async operations (wrapped for pytest)."""
+    import asyncio
 
-    from bazinga.darmiyan import prove_boundary
-    from bazinga.darmiyan.constants import PHI_4, POB_TOLERANCE
+    async def _async_test():
+        print("\n" + "=" * 60)
+        print("ASYNC NETWORK SIMULATION")
+        print("=" * 60)
 
-    # Test async proof generation
-    print("\n[ASYNC TEST] Async Proof Generation")
+        from bazinga.darmiyan import prove_boundary
+        from bazinga.darmiyan.constants import PHI_4, POB_TOLERANCE
 
-    # Generate 3 proofs asynchronously using sync function (simulate async)
-    proofs = []
-    for i in range(3):
-        proof = prove_boundary()
-        status = "VALID" if proof.valid else "invalid"
-        print(f"  Node {i}: {status} (ratio={proof.ratio:.4f})")
-        proofs.append(proof)
+        print("\n[ASYNC TEST] Async Proof Generation")
 
-    # Check if all valid
-    all_valid = all(p.valid for p in proofs)
-    if all_valid:
-        avg_ratio = sum(p.ratio for p in proofs) / 3
-        within_tolerance = abs(avg_ratio - PHI_4) < POB_TOLERANCE
-        print(f"  Average ratio: {avg_ratio:.4f} (target: {PHI_4:.4f})")
-        print(f"  Within tolerance: {within_tolerance}")
-        achieved = within_tolerance
-    else:
-        valid_count = sum(1 for p in proofs if p.valid)
-        print(f"  Only {valid_count}/3 valid proofs")
-        achieved = False
+        proofs = []
+        for i in range(3):
+            proof = prove_boundary()
+            status = "VALID" if proof.valid else "invalid"
+            print(f"  Node {i}: {status} (ratio={proof.ratio:.4f})")
+            proofs.append(proof)
 
-    print(f"  Result: {'CONSENSUS ACHIEVED' if achieved else 'Partial success'}")
+        all_valid = all(p.valid for p in proofs)
+        if all_valid:
+            avg_ratio = sum(p.ratio for p in proofs) / 3
+            within_tolerance = abs(avg_ratio - PHI_4) < POB_TOLERANCE
+            print(f"  Average ratio: {avg_ratio:.4f} (target: {PHI_4:.4f})")
+            print(f"  Within tolerance: {within_tolerance}")
+        else:
+            valid_count = sum(1 for p in proofs if p.valid)
+            print(f"  Only {valid_count}/3 valid proofs")
 
-    return all_valid  # Return True if all proofs were valid
+        print(f"  Result: {'CONSENSUS ACHIEVED' if all_valid else 'Partial success'}")
+        return all_valid
+
+    result = asyncio.run(_async_test())
+    assert result, "Async network test should generate valid proofs"
 
 
 # ============================================================================
