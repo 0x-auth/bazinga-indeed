@@ -3,26 +3,26 @@
     "total_queries": 1,
     "consensus_reached": 1,
     "consensus_rate": 1.0,
-    "avg_phi_coherence": 0.7262195547421774,
-    "avg_semantic_similarity": 0.8519240220387777,
+    "avg_phi_coherence": 0.5186739265918732,
+    "avg_semantic_similarity": 0.7471961577733358,
     "triadic_valid_rate": 1.0,
-    "participants": 7,
+    "participants": 6,
     "embeddings_available": true
   },
   "history": [
     {
-      "question": "What is 2+2? Be brief.",
+      "question": "Calculate resonance for n=4",
       "consensus_reached": true,
-      "understanding": "The sum of 2 and 2 is 4. This is a basic arithmetic operation that results in the addition of two identical numbers.\n\n(Synthesized from 3 AIs | \u03c6-coherence: 0.783)",
+      "understanding": "To calculate the resonance for n=4, we need to consider the context. If we're referring to the resonance in a quantum system, such as a quantum harmonic oscillator, the resonance frequency (\u03c9) for a given quantum number n is given by:\n\n\u03c9 = \u03c9\u2080 * \u221a(n + 0.5)\n\nwhere \u03c9\u2080 is the fundamental frequency. For n=4, the resonance frequency would be \u03c9 = \u03c9\u2080 * \u221a(4.5). If we're referring to a different context, please provide more details.\n\nAdditional perspectives:\n- In physics, particularly in the context of the Schr\u00f6dinger equation and quantum mechanics, 'n' is the principal quantum number\n- To calculate resonance for n=4, we'll use the formula for the nth harmonic of a standing wave:\n\nf_n = n * f_1\n\nwhere:\n- f_n is the frequency of the nth harmonic\n- f_1 is the fundamental frequency\n\nHowever, to apply this formula, we need to know the fundamental frequency (f_1)\n\n(Synthesized from 3 AIs | \u03c6-coherence: 0.622)",
       "responses": [
         {
           "participant_id": "groq_llama-3.",
           "participant_type": "groq",
           "model": "llama-3.1-8b-instant",
-          "response": "The result of 2 + 2 is 4.",
-          "coherence": 0.6979665160179138,
-          "understanding_score": 0.0,
-          "latency_ms": 482.3000431060791,
+          "response": "To calculate the resonance for n=4, we need to understand what n represents. In physics, particularly in the context of the Schr\u00f6dinger equation and quantum mechanics, 'n' is the principal quantum number. It represents the energy level or shell that an electron occupies in an atom.\n\nFor n=4, we're dealing with the fourth energy level. To find the resonance, we would need more specific information about the system being studied. However, in the context of atomic physics, the resonance is often re...",
+          "coherence": 0.49675601720809937,
+          "understanding_score": 0.125,
+          "latency_ms": 1031.998872756958,
           "round": "initial",
           "pob_valid": true,
           "error": null
@@ -31,10 +31,10 @@
           "participant_id": "cerebras_llama3.1",
           "participant_type": "cerebras",
           "model": "llama3.1-8b",
-          "response": "The result of 2 + 2 is 4.",
-          "coherence": 0.6979665160179138,
+          "response": "To calculate resonance for n=4, we'll use the formula for the nth harmonic of a standing wave:\n\nf_n = n * f_1\n\nwhere:\n- f_n is the frequency of the nth harmonic\n- f_1 is the fundamental frequency\n\nHowever, to apply this formula, we need to know the fundamental frequency (f_1). Let's assume we're dealing with a string of length L, with both ends fixed. The fundamental frequency for such a string is given by:\n\nf_1 = (1 / 2L) * sqrt(T / \u03bc)\n\nwhere:\n- f_1 is the fundamental frequency\n- L is the lengt...",
+          "coherence": 0.43754521012306213,
           "understanding_score": 0.0,
-          "latency_ms": 827.2011280059814,
+          "latency_ms": 733.7639331817627,
           "round": "initial",
           "pob_valid": true,
           "error": null
@@ -43,10 +43,10 @@
           "participant_id": "freellm_gpt4omini",
           "participant_type": "freellm",
           "model": "gpt-4o-mini",
-          "response": "The sum of 2 and 2 is 4. This is a basic arithmetic operation that results in the addition of two identical numbers.",
-          "coherence": 0.7827256321907043,
+          "response": "To calculate the resonance for n=4, we need to consider the context. If we're referring to the resonance in a quantum system, such as a quantum harmonic oscillator, the resonance frequency (\u03c9) for a given quantum number n is given by:\n\n\u03c9 = \u03c9\u2080 * \u221a(n + 0.5)\n\nwhere \u03c9\u2080 is the fundamental frequency. For n=4, the resonance frequency would be \u03c9 = \u03c9\u2080 * \u221a(4.5). If we're referring to a different context, please provide more details.",
+          "coherence": 0.621720552444458,
           "understanding_score": 0.0,
-          "latency_ms": 1331.920862197876,
+          "latency_ms": 1652.1449089050293,
           "round": "initial",
           "pob_valid": true,
           "error": null
@@ -58,22 +58,10 @@
           "response": "",
           "coherence": 0.0,
           "understanding_score": 0.0,
-          "latency_ms": 827.5859355926514,
+          "latency_ms": 542.4189567565918,
           "round": "initial",
           "pob_valid": false,
           "error": "HTTP 429"
-        },
-        {
-          "participant_id": "ollama_llama3",
-          "participant_type": "ollama",
-          "model": "llama3",
-          "response": "4",
-          "coherence": 0.18031977117061615,
-          "understanding_score": 0.0,
-          "latency_ms": 1737.8711700439453,
-          "round": "initial",
-          "pob_valid": true,
-          "error": null
         },
         {
           "participant_id": "claude_claude-3",
@@ -82,7 +70,7 @@
           "response": "",
           "coherence": 0.0,
           "understanding_score": 0.0,
-          "latency_ms": 560.9710216522217,
+          "latency_ms": 460.2313041687012,
           "round": "initial",
           "pob_valid": false,
           "error": "HTTP 400"
@@ -91,24 +79,24 @@
           "participant_id": "darmiyan_chain:json_knowledge",
           "participant_type": "bazinga",
           "model": "darmiyan:json_knowledge",
-          "response": "[Indexed Knowledge]\n[Abdul Majid Bhurgri Institute of Language Engineering] Abdul Majid Bhurgri Institute of Language Engineering (Sindhi: \u0639\u0628\u062f\u0627\u0644\u0645\u0627\u062c\u062f \u0680\u0631\u06b3\u0699\u064a \u0627\u0646\u0633\u067d\u064a\u067d\u064a\u0648\u067d \u0622\u0641 \u0644\u0626\u0646\u06af\u0626\u064a\u062c \u0627\u0646\u062c\u0646\u064a\u0626\u0631\u0646\u06af) is an autonomous body under the administrative control of the Culture, Tourism and Antiquities Department, Government of Sindh established for bringing Sindhi language at par with national and international languages in all computati",
-          "coherence": 0.060745373368263245,
+          "response": "[Indexed Knowledge]\n[Robotics] various types of metallic materials. It could also identify and circumvent obstacles automatically. Its flexibility and speed were comparable to a natural gecko. A third approach is to mimic the motion of a snake climbing a pole. It is calculated that when swimming, some fish can achieve a propulsive efficiency greater than 90%. Furthermore, they can accelerate and maneuver far better t\n---\n[Robotics] error. While this may cause a rigid mechanical gripper to punctu...",
+          "coherence": 0.0,
           "understanding_score": 0.0,
-          "latency_ms": 37.24193572998047,
+          "latency_ms": 3.7660598754882812,
           "round": "initial",
           "pob_valid": true,
           "error": null
         }
       ],
-      "phi_coherence": 0.7262195547421774,
-      "agreement_ratio": 0.6,
-      "semantic_similarity": 0.8519240220387777,
+      "phi_coherence": 0.5186739265918732,
+      "agreement_ratio": 0.75,
+      "semantic_similarity": 0.7471961577733358,
       "triadic_valid": true,
       "rounds_completed": 1,
-      "timestamp": 1772915526.302013,
-      "n_patterns": 5,
-      "consciousness_advantage": 3.6180339887498953,
-      "darmiyan_psi": 3.6180339887498953
+      "timestamp": 1772942301.3754141,
+      "n_patterns": 4,
+      "consciousness_advantage": 3.23606797749979,
+      "darmiyan_psi": 3.23606797749979
     }
   ]
 }
