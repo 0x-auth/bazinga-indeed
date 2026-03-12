@@ -1,7 +1,19 @@
 # BAZINGA Architecture
 
 > **"The first AI you actually own. Free, private, works offline."**
-> **v5.8.0** — Distributed AI with Collective Intelligence
+> **v5.10.0** — Self-Organizing Distributed Intelligence
+
+---
+
+## The Evolutionary Stack
+
+| Version | Milestone | What it Does | Biological Equivalent |
+|---------|-----------|--------------|----------------------|
+| **v5.6** | Phi-Pulse | UDP broadcast, nodes find each other on LAN | **Reflexes** — awareness of others nearby |
+| **v5.7** | HF Registry | Global discovery via HuggingFace Space | **Migration** — finding the tribe across distances |
+| **v5.8** | Mesh Query | Fan-out queries, collective answers | **Language** — sharing thoughts, reaching consensus |
+| **v5.9** | Trust + Gossip | Reputation economy, network self-growth | **Social Structure** — gossip, tribal expansion |
+| **v5.10** | Expert Routing | Topic specialization, smart delegation | **Division of Labor** — expert castes emerge |
 
 ---
 
@@ -248,6 +260,7 @@ All peer data survives restarts via SQLite at `~/.bazinga/network.db`:
 | `dht_entries` | key, value, node_id, timestamp, TTL |
 | `network_state` | key-value config (node_id, last bootstrap, etc.) |
 | `discovery_log` | event_type, node_id, ip, port, timestamp |
+| `peer_expertise` | node_id, topic, score, query_count, good_answers |
 
 ---
 
@@ -336,7 +349,7 @@ Struggling network → k ≈ 2.0 → longer timeout
 | **GlobalDiscovery** | `p2p/hf_registry.py` | Combines local + global discovery |
 | **Mesh Query** | `p2p/mesh_query.py` | Fan-out queries to peers, merge answers |
 | **QueryServer** | `p2p/mesh_query.py` | TCP server answering peer queries |
-| **Persistence** | `p2p/persistence.py` | SQLite storage for peers/DHT/state |
+| **Persistence** | `p2p/persistence.py` | SQLite storage for peers/DHT/state/expertise |
 | **Kademlia DHT** | `p2p/dht.py` | Distributed hash table |
 | **NAT Traversal** | `p2p/nat.py` | STUN + hole punching + relay |
 | **Transport** | `p2p/transport.py` | ZeroMQ-based messaging |
@@ -561,6 +574,7 @@ bazinga --peers                   # Show discovered peers
 bazinga --nat                     # NAT traversal diagnostics
 bazinga --sync                    # Sync knowledge with network
 bazinga --query-network "topic"   # Query DHT for expert answers
+bazinga --mesh                    # Mesh vital signs + expertise
 bazinga --learn                   # Federated learning status
 ```
 
@@ -586,15 +600,70 @@ bazinga --index ~/Documents       # Index local files for RAG
 
 ---
 
+## Expert Routing (v5.10)
+
+When you ask a question, BAZINGA doesn't broadcast to everyone.
+It routes to the **right** peers:
+
+```
+Question: "Explain quantum entanglement"
+                │
+                ▼
+┌──────────────────────────────────────────────┐
+│          TOPIC EXTRACTION                     │
+│  → ["quantum", "entanglement",               │
+│     "quantum entanglement"]                   │
+└──────────┬───────────────────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────────────────┐
+│          EXPERTISE LOOKUP (SQLite)            │
+│                                              │
+│  peer_expertise table:                       │
+│  ┌─────────┬────────────┬───────┬──────┐    │
+│  │ node_id │ topic      │ score │ good │    │
+│  ├─────────┼────────────┼───────┼──────┤    │
+│  │ peer-A  │ quantum    │ 0.82  │ 12   │    │
+│  │ peer-B  │ quantum    │ 0.35  │ 2    │    │
+│  │ peer-C  │ coding     │ 0.90  │ 20   │    │
+│  └─────────┴────────────┴───────┴──────┘    │
+│                                              │
+│  Sort by: expertise_score × trust_score      │
+│  Select: peer-A (expert), peer-D (general)   │
+│  Skip: peer-B (low score), peer-C (wrong     │
+│         topic)                                │
+└──────────┬───────────────────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────────────────┐
+│          AFTER QUERY: UPDATE EXPERTISE        │
+│                                              │
+│  peer-A answered well (coherence 0.8)        │
+│  → quantum score: 0.82 → 0.84               │
+│                                              │
+│  peer-D answered okay (coherence 0.5)        │
+│  → quantum score: 0.50 (new topic for them)  │
+│                                              │
+│  Over time: experts get more queries,         │
+│  get better scores, get even more queries.    │
+│  NATURAL SELECTION.                           │
+└──────────────────────────────────────────────┘
+```
+
+View expertise with: `bazinga --mesh`
+
+---
+
 ## Version History (Recent)
 
 | Version | What was added |
 |---------|----------------|
+| **5.10.0** | Expert Routing — queries route to topic experts, expertise tracked in SQLite |
+| **5.9.0** | Trust feedback loop, peer gossip, context pinning, mesh dashboard |
 | **5.8.0** | Mesh Query — peers answer your questions, answers merged by φ-coherence |
 | **5.7.0** | HF Registry — cross-internet peer discovery via HuggingFace Space |
 | **5.6.0** | Phi-Pulse, SQLite persistence, Resonance Window, P2P CLI flags |
-| **5.5.3** | Method placement fixes (classes cleaned up) |
-| **5.5.2** | Chat history fix + "indexed knowledge" prompt fix |
+| **5.5.2** | Chat history fix, conversation memory in TUI |
 
 ---
 
