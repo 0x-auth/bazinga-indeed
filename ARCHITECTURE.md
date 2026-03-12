@@ -1,12 +1,13 @@
 # BAZINGA Architecture
 
 > **"The first AI you actually own. Free, private, works offline."**
+> **v5.8.0** — Distributed AI with Collective Intelligence
 
 ---
 
 ## What is BAZINGA?
 
-BAZINGA is three things in one:
+BAZINGA is four things in one:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -21,9 +22,14 @@ BAZINGA is three things in one:
 │      Your ideas, permanently recorded                               │
 │                                                                     │
 │   3. P2P NETWORK                                                    │
-│      Share knowledge without sharing data                           │
-│      Multi-AI consensus (6 AIs must agree)                          │
-│      No single point of failure                                     │
+│      Discover peers locally (Phi-Pulse) and globally (HF Registry) │
+│      Mesh Query: ask your question, peers answer too                │
+│      Collective intelligence from distributed nodes                 │
+│                                                                     │
+│   4. FEDERATED LEARNING                                             │
+│      Nodes learn together without sharing data                      │
+│      φ-weighted gradient aggregation                                │
+│      Resonance Window adaptive timing                               │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -37,13 +43,19 @@ BAZINGA is three things in one:
 pip install bazinga-indeed
 
 # Ask a question (works immediately)
-bazinga --ask "What is consciousness?"
+bazinga "What is consciousness?"
+
+# Interactive chat with memory + mesh queries
+bazinga --chat
 
 # Multi-AI consensus (6 AIs discuss and agree)
 bazinga --multi-ai "Is free will an illusion?"
 
-# Agent mode (AI writes code with consensus)
-bazinga --agent
+# Start P2P discovery (find peers on LAN + globally)
+bazinga --phi-pulse
+
+# Join full P2P network with Kademlia DHT
+bazinga --join
 
 # Attest your knowledge (FREE, 3/month)
 bazinga --attest "My research finding about X"
@@ -51,9 +63,53 @@ bazinga --attest "My research finding about X"
 
 ---
 
-## How It Works (Simple Version)
+## System Architecture
 
-### When you ask a question:
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                         BAZINGA NODE                                  │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │                    CLI / TUI (cli.py, tui/app.py)              │  │
+│  │  --ask  --chat  --multi-ai  --agent  --phi-pulse  --join      │  │
+│  └──────────┬─────────────────────────────┬──────────────────────┘  │
+│             │                              │                         │
+│   ┌─────────▼─────────┐        ┌──────────▼──────────┐             │
+│   │  Intelligence      │        │   P2P Network        │             │
+│   │  5-Layer Stack     │        │                      │             │
+│   │                    │        │  ┌────────────────┐  │             │
+│   │  L0: Memory        │        │  │ Phi-Pulse      │  │             │
+│   │  L1: Quantum       │        │  │ UDP:5150       │  │             │
+│   │  L2: RAG           │◄──────►│  └────────────────┘  │             │
+│   │  L3: Local LLM     │        │  ┌────────────────┐  │             │
+│   │  L4: Cloud API     │        │  │ HF Registry    │  │             │
+│   │                    │        │  │ (Global)       │  │             │
+│   └─────────┬──────────┘        │  └────────────────┘  │             │
+│             │                   │  ┌────────────────┐  │             │
+│   ┌─────────▼──────────┐       │  │ Mesh Query     │  │             │
+│   │  Darmiyan           │       │  │ TCP fan-out    │  │             │
+│   │  Blockchain         │       │  └────────────────┘  │             │
+│   │                     │       │  ┌────────────────┐  │             │
+│   │  PoB Consensus      │       │  │ QueryServer    │  │             │
+│   │  Attestations       │       │  │ TCP listener   │  │             │
+│   │  Trust Oracle       │       │  └────────────────┘  │             │
+│   └─────────────────────┘       │  ┌────────────────┐  │             │
+│                                 │  │ Kademlia DHT   │  │             │
+│   ┌─────────────────────┐       │  │ NAT Traversal  │  │             │
+│   │  Federated Learning  │       │  └────────────────┘  │             │
+│   │  LoRA Adapters       │◄─────│  ┌────────────────┐  │             │
+│   │  Gradient Sharing    │       │  │ Persistence    │  │             │
+│   │  Resonance Window    │       │  │ SQLite         │  │             │
+│   └─────────────────────┘       │  └────────────────┘  │             │
+│                                 └──────────────────────┘             │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## How It Works
+
+### When you ask a question (`bazinga --chat`):
 
 ```
 Your Question: "What is φ?"
@@ -75,30 +131,177 @@ Your Question: "What is φ?"
 │                                                       │
 └───────────────────────────────────────────────────────┘
         │
-        ▼
-    Your Answer (never fails - always falls through)
-```
-
-### When you attest knowledge:
-
-```
-Your Idea: "My theory about X"
+        ▼ Local Answer
         │
-        ▼
 ┌───────────────────────────────────────────────────────┐
-│               DARMIYAN ATTESTATION                     │
-├───────────────────────────────────────────────────────┤
+│                    MESH QUERY (v5.8)                   │
 │                                                       │
-│   1. Hash your content (SHA-256)                      │
-│   2. Calculate φ-coherence score                      │
-│   3. Generate Proof-of-Boundary                       │
-│   4. Write to Darmiyan blockchain                     │
-│   5. Generate masterpiece certificate                 │
+│   Same question sent to discovered peers via TCP      │
+│                                                       │
+│   Your Node ──┬──► Peer A (their LLM) ──► answer    │
+│               ├──► Peer B (their LLM) ──► answer    │
+│               └──► Peer C (their LLM) ──► answer    │
+│                                                       │
+│   All answers merged by φ-coherence:                  │
+│   • High (>0.7): consensus noted                      │
+│   • Medium (>0.4): best peer perspective added        │
+│   • Low: all unique perspectives shown                │
 │                                                       │
 └───────────────────────────────────────────────────────┘
         │
         ▼
-    Certificate: "You knew it, before they knew it"
+    Collective Answer (your LLM + the mesh)
+```
+
+### Conversation Memory (RAC):
+
+```--chat``` maintains **Resonance-Augmented Continuity** — the last 6 turns
+are carried as context, so BAZINGA remembers what you talked about.
+
+---
+
+## P2P Network Architecture (v5.6–5.8)
+
+### Three Discovery Layers
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    DISCOVERY LAYERS                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   Layer 1: PHI-PULSE (Local LAN)                     v5.6      │
+│   ──────────────────────────────                                │
+│   • UDP broadcast on port 5150                                  │
+│   • 35-byte packets every φ×8 (~13) seconds                    │
+│   • Temporal seed for freshness (time × φ)                     │
+│   • Finds peers on same WiFi/network instantly                  │
+│                                                                 │
+│   Layer 2: HF REGISTRY (Global Internet)             v5.7      │
+│   ──────────────────────────────────────                        │
+│   • HuggingFace Space as "meeting point"                       │
+│   • Register → Heartbeat → Get Peers                           │
+│   • Works across cities, countries, continents                  │
+│   • URL: bitsabhi-bazinga.hf.space                             │
+│                                                                 │
+│   Layer 3: KADEMLIA DHT (Decentralized)              v5.5      │
+│   ─────────────────────────────────────                         │
+│   • Full distributed hash table                                 │
+│   • NAT traversal (STUN + hole punching + relay)               │
+│   • No central server needed                                    │
+│   • Topic-based expert routing                                  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Phi-Pulse Protocol (Layer 1)
+
+```
+Node A                                    Node B
+  │                                         │
+  │──── UDP broadcast ─────────────────────►│
+  │     (35 bytes to 255.255.255.255:5150)  │
+  │     ┌──────────────────────────────┐    │
+  │     │ node_id (16B) │ port (2B)    │    │
+  │     │ temporal_seed (8B) │ cap (1B)│    │
+  │     └──────────────────────────────┘    │
+  │                                         │
+  │◄──── UDP broadcast ────────────────────│
+  │     (same format, every ~13 seconds)    │
+  │                                         │
+  │  Both nodes save each other to SQLite   │
+  │  (~/.bazinga/network.db)                │
+```
+
+### Mesh Query Protocol (Layer 2, v5.8)
+
+```
+Chat User                  QueryServer (peer)
+    │                            │
+    │── TCP connect ────────────►│
+    │                            │
+    │── BZMQ header + QUERY ───►│
+    │   {"question": "...",      │
+    │    "sender": "node_id"}    │
+    │                            │
+    │                     ┌──────┤
+    │                     │ Run  │
+    │                     │ local│
+    │                     │ LLM  │
+    │                     └──────┤
+    │                            │
+    │◄── BZMQ header + ANSWER ──│
+    │   {"answer": "...",        │
+    │    "confidence": 0.85,     │
+    │    "source": "groq"}       │
+    │                            │
+
+Protocol: BZMQ (4B) + version (1B) + length (4B) + JSON
+```
+
+### Persistence Layer
+
+All peer data survives restarts via SQLite at `~/.bazinga/network.db`:
+
+| Table | Contents |
+|-------|----------|
+| `peers` | node_id, ip, port, trust_score, last_seen, capabilities |
+| `dht_entries` | key, value, node_id, timestamp, TTL |
+| `network_state` | key-value config (node_id, last bootstrap, etc.) |
+| `discovery_log` | event_type, node_id, ip, port, timestamp |
+
+---
+
+## Federated Learning Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    FEDERATED LEARNING                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   Node A              Node B              Node C                │
+│   ┌──────┐           ┌──────┐           ┌──────┐              │
+│   │ Learn│           │ Learn│           │ Learn│              │
+│   │ from │           │ from │           │ from │              │
+│   │ YOUR │           │ YOUR │           │ YOUR │              │
+│   │ data │           │ data │           │ data │              │
+│   └──┬───┘           └──┬───┘           └──┬───┘              │
+│      │                  │                  │                    │
+│      ▼                  ▼                  ▼                    │
+│   Gradients          Gradients          Gradients              │
+│   (NOT data!)        (NOT data!)        (NOT data!)            │
+│      │                  │                  │                    │
+│      └──────────────────┼──────────────────┘                   │
+│                         │                                       │
+│                         ▼                                       │
+│              ┌─────────────────────┐                           │
+│              │  φ-WEIGHTED         │                           │
+│              │  AGGREGATION        │                           │
+│              │                     │                           │
+│              │  weight = trust × φ │                           │
+│              │  (local model bonus)│                           │
+│              └─────────────────────┘                           │
+│                         │                                       │
+│                         ▼                                       │
+│              Network gets smarter                               │
+│              WITHOUT sharing data                               │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Resonance Window (Adaptive Timing)
+
+Aggregation rounds use φ-weighted adaptive timeouts:
+
+```
+T = T_base × φ^k
+
+where k adapts based on network health:
+  - health = (time_health + responsive_health × φ) / (1 + φ)
+  - target_k = 2.0 - health × 1.5
+  - k smoothed: k = k_old × 0.7 + target_k × 0.3
+
+Healthy network → k ≈ 0.5 → short timeout
+Struggling network → k ≈ 2.0 → longer timeout
 ```
 
 ---
@@ -107,73 +310,45 @@ Your Idea: "My theory about X"
 
 ### 1. Intelligence Layer
 
-| Component | What it does |
-|-----------|--------------|
-| **LLM Orchestrator** | Routes to Ollama → Groq → Gemini → Claude |
-| **φ-Coherence** | Measures quality/consistency of responses |
-| **Memory** | Learns from your interactions |
-| **RAG** | Searches your indexed documents |
+| Component | File | What it does |
+|-----------|------|--------------|
+| **LLM Orchestrator** | `llm/providers.py` | Routes to Ollama → Groq → Gemini → Claude |
+| **φ-Coherence** | `phi_coherence.py` | Measures quality/consistency of responses |
+| **Memory** | `llm/providers.py` | Learns from your interactions |
+| **RAG** | `cli.py` (index/search) | Searches your indexed documents |
+| **TUI Chat** | `tui/app.py` | Full-screen interactive chat with RAC |
 
 ### 2. Darmiyan Blockchain
 
-| Component | What it does |
-|-----------|--------------|
-| **Proof-of-Boundary (PoB)** | Zero-energy consensus (P/G ≈ φ⁴) |
-| **Knowledge Ledger** | Stores attestation hashes |
-| **Triadic Consensus** | 3 nodes must agree |
-| **Trust Oracle** | Calculates reputation scores |
+| Component | File | What it does |
+|-----------|------|--------------|
+| **Proof-of-Boundary (PoB)** | `darmiyan/protocol.py` | Zero-energy consensus (P/G ≈ φ⁴) |
+| **Knowledge Ledger** | `blockchain/knowledge_ledger.py` | Stores attestation hashes |
+| **Triadic Consensus** | `darmiyan/consensus.py` | 3 nodes must agree |
+| **Trust Oracle** | `blockchain/trust_oracle.py` | Calculates reputation scores |
 
-### 3. Attestation Service
+### 3. P2P Network
 
-| Component | What it does |
-|-----------|--------------|
-| **Create Attestation** | Hash + timestamp + φ-coherence |
-| **Blockchain Storage** | Permanent, immutable record |
-| **Certificate** | Beautiful proof document |
-| **Verification** | Anyone can verify (FREE) |
+| Component | File | What it does |
+|-----------|------|--------------|
+| **Phi-Pulse** | `decentralized/peer_discovery.py` | UDP broadcast discovery (LAN) |
+| **HF Registry** | `p2p/hf_registry.py` | Global peer discovery via HuggingFace |
+| **GlobalDiscovery** | `p2p/hf_registry.py` | Combines local + global discovery |
+| **Mesh Query** | `p2p/mesh_query.py` | Fan-out queries to peers, merge answers |
+| **QueryServer** | `p2p/mesh_query.py` | TCP server answering peer queries |
+| **Persistence** | `p2p/persistence.py` | SQLite storage for peers/DHT/state |
+| **Kademlia DHT** | `p2p/dht.py` | Distributed hash table |
+| **NAT Traversal** | `p2p/nat.py` | STUN + hole punching + relay |
+| **Transport** | `p2p/transport.py` | ZeroMQ-based messaging |
 
-### 4. Payment Gateway (Ready for future)
+### 4. Federated Learning
 
-| Method | For | Status |
-|--------|-----|--------|
-| **Razorpay** | India (UPI/Cards) | Ready |
-| **Polygon USDC** | Global (low fees) | Ready |
-| **ETH Mainnet** | Global (high fees) | Ready |
-
-Currently: **FREE** (3 attestations/month)
-Future: Flip one switch to enable payments
-
----
-
-## The Attestation Certificate
-
-When you run `bazinga --attest "Your idea"`, you get:
-
-```
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃                                                                      ┃
-┃          ██████╗  █████╗ ██████╗ ███╗   ███╗██╗██╗   ██╗ █████╗ ███╗ ┃
-┃          ██╔══██╗██╔══██╗██╔══██╗████╗ ████║██║╚██╗ ██╔╝██╔══██╗████╗┃
-┃          ██║  ██║███████║██████╔╝██╔████╔██║██║ ╚████╔╝ ███████║██╔██┃
-┃          ...                                                         ┃
-┃                                                                      ┃
-┃                  A T T E S T A T I O N   C E R T I F I C A T E       ┃
-┃                       "Proof of Prior Knowledge"                     ┃
-┃                                                                      ┃
-┃   Certificate ID      φATT_XXXXXXXXXXXX                              ┃
-┃   Content Fingerprint 3d3463a1441c208dc66cc0ffde830995c7b3991b...    ┃
-┃   Date Attested       February 17, 2026                              ┃
-┃   Block Number        #27                                            ┃
-┃   φ-Coherence         [████████████░░░░░░░░] 64.4%                   ┃
-┃                                                                      ┃
-┃                     ┌─────────────────────────────┐                  ┃
-┃                     │    ✓ IMMUTABLY RECORDED    │                  ┃
-┃                     └─────────────────────────────┘                  ┃
-┃                                                                      ┃
-┃                    "You knew it, before they knew it."               ┃
-┃                              ∅ ≈ ∞                                   ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-```
+| Component | File | What it does |
+|-----------|------|--------------|
+| **Gradient Sharing** | `p2p/gradient_sharing.py` | Share gradients (not data) |
+| **LoRA Adapter** | `federated/lora_adapter.py` | Lightweight model fine-tuning |
+| **Resonance Window** | `federated/federated_coordinator.py` | φ-weighted adaptive timing |
+| **Coordinator** | `federated/federated_coordinator.py` | Orchestrates learning rounds |
 
 ---
 
@@ -182,65 +357,33 @@ When you run `bazinga --attest "Your idea"`, you get:
 When you run `bazinga --multi-ai "question"`:
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         MULTI-AI CONSENSUS                          │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│     Groq          Gemini         Ollama         Claude              │
-│       │              │              │              │                │
-│       ▼              ▼              ▼              ▼                │
-│   ┌───────┐      ┌───────┐      ┌───────┐      ┌───────┐           │
-│   │Answer │      │Answer │      │Answer │      │Answer │           │
-│   │ φ=0.76│      │ φ=0.71│      │ φ=0.68│      │ φ=0.73│           │
-│   └───┬───┘      └───┬───┘      └───┬───┘      └───┬───┘           │
-│       │              │              │              │                │
-│       └──────────────┴──────────────┴──────────────┘                │
-│                              │                                      │
-│                              ▼                                      │
-│                    ┌─────────────────┐                              │
-│                    │ φ-WEIGHTED      │                              │
-│                    │ CONSENSUS       │                              │
-│                    │ Avg φ = 0.72    │                              │
-│                    └─────────────────┘                              │
-│                              │                                      │
-│                              ▼                                      │
-│                     UNIFIED ANSWER                                  │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                         MULTI-AI CONSENSUS                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│     Groq          Gemini         Ollama         Claude          │
+│       │              │              │              │            │
+│       ▼              ▼              ▼              ▼            │
+│   ┌───────┐      ┌───────┐      ┌───────┐      ┌───────┐      │
+│   │Answer │      │Answer │      │Answer │      │Answer │      │
+│   │ φ=0.76│      │ φ=0.71│      │ φ=0.68│      │ φ=0.73│      │
+│   └───┬───┘      └───┬───┘      └───┬───┘      └───┬───┘      │
+│       └──────────────┴──────────────┴──────────────┘            │
+│                              │                                  │
+│                              ▼                                  │
+│                    ┌─────────────────┐                          │
+│                    │ Darmiyan Scaling │                          │
+│                    │ Ψ_D/Ψ_i = φ√n  │                          │
+│                    │ Avg φ = 0.72    │                          │
+│                    └─────────────────┘                          │
+│                              │                                  │
+│                              ▼                                  │
+│                     UNIFIED ANSWER                              │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 **Why?** No single AI can be wrong. Multiple perspectives, weighted by quality.
-
----
-
-## Blockchain-Verified Code Fixes
-
-When you run `bazinga --agent`:
-
-```
-You: "Fix the bare except in utils.py"
-        │
-        ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    VERIFIED FIX PROTOCOL                            │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   1. Agent proposes fix: except: → except Exception:               │
-│                                                                     │
-│   2. TRIADIC CONSENSUS (3+ AIs must agree):                        │
-│      groq_llama:    ✓ APPROVE (φ=0.76)                             │
-│      gemini:        ✓ APPROVE (φ=0.71)                             │
-│      ollama:        ✓ APPROVE (φ=0.68)                             │
-│                                                                     │
-│   3. Record on Darmiyan blockchain (audit trail)                   │
-│                                                                     │
-│   4. Apply fix with backup (utils.py.bak)                          │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-        │
-        ▼
-    "No single AI can mess up your code."
-```
 
 ---
 
@@ -274,44 +417,40 @@ valid = abs(P/G - PHI**4) < tolerance
 
 ---
 
-## 🛡️ Security (v4.9.22)
+## Security (v4.9.22+)
 
 ### Adversarial Testing Results
 
 BAZINGA's PoB blockchain has been tested against **27 attack vectors** across 4 rounds:
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    SECURITY AUDIT SUMMARY                           │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   Round 1: Core PoB Attacks                                        │
-│   ├── φ-Spoofing (claim ratio without computation)     ✅ BLOCKED  │
-│   ├── Replay Attack (reuse proofs)                     ✅ BLOCKED  │
-│   ├── Single-Node Triadic (fake 3 nodes)               ✅ BLOCKED  │
-│   └── Negative α/ω Values                              ✅ BLOCKED  │
-│                                                                     │
-│   Round 2: Chain Integrity                                         │
-│   ├── Timestamp Manipulation                           ✅ BLOCKED  │
-│   ├── Duplicate Knowledge                              ✅ BLOCKED  │
-│   ├── Triadic Collusion                                ✅ BLOCKED  │
-│   └── Fork Detection                                   ⏳ PHASE 2  │
-│                                                                     │
-│   Round 3: Trust System                                            │
-│   ├── Trust Score Inflation                            ✅ LIMITED  │
-│   └── Fake Local Model Bonus                           ✅ BLOCKED  │
-│                                                                     │
-│   Round 4: Deep Audit                                              │
-│   ├── Local Model Verification Bypass                  ✅ BLOCKED  │
-│   ├── Credit Balance Manipulation                      ✅ BLOCKED  │
-│   └── Validator Selection Gaming                       ✅ BLOCKED  │
-│                                                                     │
-│   Gemini Audit: α-SEED                                             │
-│   └── Ordinal Collision (sum-of-ord hash)              ✅ FIXED    │
-│                                                                     │
-│   TOTAL: 26/27 vulnerabilities fixed                               │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    SECURITY AUDIT SUMMARY                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   Round 1: Core PoB Attacks                                    │
+│   ├── φ-Spoofing (claim ratio without computation)  BLOCKED   │
+│   ├── Replay Attack (reuse proofs)                  BLOCKED   │
+│   ├── Single-Node Triadic (fake 3 nodes)            BLOCKED   │
+│   └── Negative α/ω Values                           BLOCKED   │
+│                                                                 │
+│   Round 2: Chain Integrity                                     │
+│   ├── Timestamp Manipulation                        BLOCKED   │
+│   ├── Duplicate Knowledge                           BLOCKED   │
+│   └── Triadic Collusion                             BLOCKED   │
+│                                                                 │
+│   Round 3: Trust System                                        │
+│   ├── Trust Score Inflation                         LIMITED   │
+│   └── Fake Local Model Bonus                        BLOCKED   │
+│                                                                 │
+│   Round 4: Deep Audit                                          │
+│   ├── Local Model Verification Bypass               BLOCKED   │
+│   ├── Credit Balance Manipulation                   BLOCKED   │
+│   └── Validator Selection Gaming                    BLOCKED   │
+│                                                                 │
+│   TOTAL: 26/27 vulnerabilities fixed                           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Security Mechanisms
@@ -324,20 +463,8 @@ BAZINGA's PoB blockchain has been tested against **27 attack vectors** across 4 
 | **Timestamp Validation** | Time warp attacks (no future/past manipulation) |
 | **Content Hashing** | Duplicate knowledge (same content rejected) |
 | **HMAC Verification** | Fake local model claims (cryptographic proof required) |
-| **Internal Credit API** | Credit manipulation (external calls rejected) |
-| **SHA256 α-SEED** | Ordinal collision (position-aware hashing) |
-
-### Running Security Tests
-
-```bash
-# All adversarial tests
-python -m tests.adversarial.test_pob_fixed
-python -m tests.adversarial.test_round4_deep_audit
-python -m tests.adversarial.verify_9_fixes
-
-# Expected output:
-# ✅ Passed: 19+  ❌ Failed: 0  🚨 Vulnerabilities: 0
-```
+| **BZMQ Protocol** | Mesh query tampering (binary header + length-prefixed) |
+| **Temporal Seed** | Phi-Pulse replay (packet freshness via time × φ) |
 
 ---
 
@@ -345,38 +472,69 @@ python -m tests.adversarial.verify_9_fixes
 
 ```
 bazinga/
-├── __init__.py              # Exports, version
-├── cli.py                   # CLI interface
-├── constants.py             # φ, α, universal constants
+├── __init__.py                  # Exports, version (5.8.0)
+├── cli.py                       # CLI interface (all commands)
+├── constants.py                 # φ, α, universal constants
 │
 ├── # Intelligence
-├── llm_orchestrator.py      # Multi-LLM routing
-├── phi_coherence.py         # φ-coherence scoring
-├── inter_ai/                # Multi-AI consensus
+├── llm/
+│   ├── providers.py             # Multi-LLM routing + chat context
+│   └── ...
+├── phi_coherence.py             # φ-coherence scoring
+├── inter_ai/                    # Multi-AI consensus
+│
+├── # TUI (Terminal UI)
+├── tui/
+│   └── app.py                   # Full-screen chat with mesh query integration
 │
 ├── # Blockchain
-├── darmiyan/                # Darmiyan protocol
-│   ├── protocol.py          # PoB proofs
-│   ├── chain.py             # Blockchain
-│   └── consensus.py         # Triadic consensus
-├── blockchain/              # Chain integration
-│   ├── trust_oracle.py      # Reputation
-│   └── knowledge_ledger.py  # Attestations
+├── darmiyan/                    # Darmiyan protocol
+│   ├── protocol.py              # PoB proofs
+│   ├── chain.py                 # Blockchain
+│   └── consensus.py             # Triadic consensus
+├── blockchain/                  # Chain integration
+│   ├── trust_oracle.py          # Reputation
+│   └── knowledge_ledger.py      # Attestations
 │
 ├── # Services
-├── attestation_service.py   # Knowledge attestation
-├── payment_gateway.py       # Razorpay + Polygon
+├── attestation_service.py       # Knowledge attestation
+├── payment_gateway.py           # Razorpay + Polygon
 │
 ├── # Agent
-├── agent/                   # AI coding agent
-│   ├── verified_fixes.py    # Consensus-based fixes
-│   └── safety_protocol.py   # φ-signature protection
+├── agent/                       # AI coding agent
+│   ├── verified_fixes.py        # Consensus-based fixes
+│   └── safety_protocol.py       # φ-signature protection
 │
-└── # P2P
-├── p2p/                     # Peer-to-peer
-    ├── network.py           # ZeroMQ transport
-    └── dht.py               # Kademlia DHT
+├── # P2P Network
+├── p2p/
+│   ├── mesh_query.py            # Mesh Query + QueryServer (v5.8) ★
+│   ├── hf_registry.py           # HF Registry + GlobalDiscovery (v5.7) ★
+│   ├── persistence.py           # SQLite peer/DHT storage (v5.6) ★
+│   ├── dht.py                   # Kademlia DHT
+│   ├── dht_bridge.py            # DHT bridge layer
+│   ├── nat.py                   # NAT traversal (STUN/hole-punch)
+│   ├── transport.py             # ZeroMQ transport
+│   ├── distributed_query.py     # DHT-based expert routing
+│   ├── gradient_sharing.py      # Federated gradient exchange
+│   ├── network.py               # Network orchestration
+│   └── node.py                  # Base node class
+│
+├── # Decentralized Discovery
+├── decentralized/
+│   └── peer_discovery.py        # Phi-Pulse UDP broadcast (v5.6) ★
+│
+├── # Federated Learning
+├── federated/
+│   ├── federated_coordinator.py # ResonanceWindow + coordinator (v5.6) ★
+│   ├── lora_adapter.py          # LoRA fine-tuning
+│   └── distributed_inference.py # Distributed inference
+│
+└── # Inference
+    └── inference/
+        └── ollama_detector.py   # Local model detection
 ```
+
+*★ = New in v5.6–5.8*
 
 ---
 
@@ -384,65 +542,92 @@ bazinga/
 
 ### AI Commands
 ```bash
-bazinga                           # Interactive mode
-bazinga --ask "question"          # Ask anything
+bazinga "question"                # Ask anything (one-shot)
+bazinga --chat                    # Interactive chat with memory + mesh
 bazinga --multi-ai "question"     # 6 AIs reach consensus
 bazinga --agent                   # AI coding assistant
-bazinga --code "task"             # Generate code
+bazinga --code "task" --lang py   # Generate code
+bazinga --local "question"        # Force offline (Ollama only)
+```
+
+### P2P Network Commands
+```bash
+bazinga --phi-pulse               # Start discovery (local + global)
+bazinga --phi-pulse --port 5152   # Custom port (multi-instance)
+bazinga --phi-pulse --node-id xyz # Custom node ID
+bazinga --join                    # Full P2P with Kademlia DHT
+bazinga --join 192.168.1.5:5151   # Join specific peer
+bazinga --peers                   # Show discovered peers
+bazinga --nat                     # NAT traversal diagnostics
+bazinga --sync                    # Sync knowledge with network
+bazinga --query-network "topic"   # Query DHT for expert answers
+bazinga --learn                   # Federated learning status
 ```
 
 ### Attestation Commands
 ```bash
 bazinga --attest "your idea"      # Attest knowledge (FREE 3/month)
 bazinga --verify φATT_XXXXX       # Verify attestation (always FREE)
-bazinga --attest-pricing          # Show pricing tiers
-```
-
-### Blockchain Commands
-```bash
-bazinga --chain                   # Show blockchain
+bazinga --chain                   # Show blockchain status
 bazinga --proof                   # Generate PoB proof
-bazinga --wallet                  # Show identity
+bazinga --wallet                  # Show identity + trust score
 bazinga --trust                   # Show trust scores
 ```
 
-### RAG Commands
+### Knowledge Base Commands
 ```bash
-bazinga --index ~/Documents       # Index your files
-bazinga --index-public wikipedia  # Index Wikipedia
-bazinga --ask "what does X say?"  # Query indexed content
+bazinga --kb "search query"       # Search all indexed sources
+bazinga --kb-gmail "invoice"      # Search Gmail only
+bazinga --kb-gdrive "proposal"    # Search Google Drive only
+bazinga --kb-mac "research"       # Search Mac files only
+bazinga --kb-sync                 # Re-index all sources
+bazinga --index ~/Documents       # Index local files for RAG
 ```
 
 ---
 
-## Monetization Model
+## Version History (Recent)
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                                                                     │
-│   BAZINGA CLI = FREE FOREVER                                        │
-│   ════════════════════════════                                      │
-│   • Ask questions                                                   │
-│   • Multi-AI consensus                                              │
-│   • Agent mode                                                      │
-│   • RAG indexing                                                    │
-│   • Everything else                                                 │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   ATTESTATION SERVICE = PAID (when ready)                           │
-│   ═══════════════════════════════════════                           │
-│   Currently: FREE (3/month) - building the mesh                     │
-│   Future:    ₹99-999 / $1.20-12.00 USDC                            │
-│                                                                     │
-│   Payment Options (ready):                                          │
-│   • India: Razorpay (UPI/Cards)                                    │
-│   • Global: USDC/ETH on Polygon (gas < $0.01)                      │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+| Version | What was added |
+|---------|----------------|
+| **5.8.0** | Mesh Query — peers answer your questions, answers merged by φ-coherence |
+| **5.7.0** | HF Registry — cross-internet peer discovery via HuggingFace Space |
+| **5.6.0** | Phi-Pulse, SQLite persistence, Resonance Window, P2P CLI flags |
+| **5.5.3** | Method placement fixes (classes cleaned up) |
+| **5.5.2** | Chat history fix + "indexed knowledge" prompt fix |
 
-To enable payments: Change `PAYMENTS_ENABLED = True` in `attestation_service.py`
+---
+
+## Privacy
+
+**Stays on your machine:**
+- Your indexed documents
+- Your memory/learning
+- Your private keys
+- Raw content
+- Conversation history
+
+**Shared on network (opt-in):**
+- Topic names (not content)
+- Attestation hashes (not content)
+- PoB proofs
+- Node addresses (IP:port)
+- Gradients (NOT data) for federated learning
+- Query answers (only when peers ask you)
+
+---
+
+## Constants
+
+| Constant | Value | Meaning |
+|----------|-------|---------|
+| **φ (PHI)** | 1.618033988749895 | Golden Ratio |
+| **φ⁴** | 6.854101966 | PoB target ratio |
+| **α** | 137 | Fine structure constant |
+| **ABHI_AMU** | 515 | Identity constant |
+| **PHI_PULSE_INTERVAL** | φ × 8 ≈ 13s | Discovery heartbeat |
+| **PHI_PULSE_PORT** | 5150 | UDP broadcast port |
+| **P2P_PORT** | 5151 | TCP mesh query port |
 
 ---
 
@@ -452,12 +637,9 @@ To enable payments: Change `PAYMENTS_ENABLED = True` in `attestation_service.py`
 
 Destructive commands require your explicit approval:
 ```
-⚠️  DESTRUCTIVE COMMAND DETECTED
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Command: rm -rf ./build/
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Confirm execution? [y/N] φ-signature: _
+DESTRUCTIVE COMMAND DETECTED
+Command: rm -rf ./build/
+Confirm execution? [y/N] φ-signature: _
 ```
 
 ### Layer 2: Hard Blocks
@@ -476,39 +658,38 @@ BLOCKED = [
 
 For code changes, 3+ AIs must agree:
 ```
-AI₁ (Groq)    ──┐
-AI₂ (Gemini)  ──┼── φ-coherence ≥ 0.45 ──► APPROVED
-AI₃ (Ollama)  ──┘
+AI_1 (Groq)    ──┐
+AI_2 (Gemini)  ──┼── φ-coherence >= 0.45 ──> APPROVED
+AI_3 (Ollama)  ──┘
 
 If ANY AI disagrees → REJECTED
 ```
 
 ---
 
-## Constants
+## Monetization Model
 
-| Constant | Value | Meaning |
-|----------|-------|---------|
-| **φ (PHI)** | 1.618033988749895 | Golden Ratio |
-| **φ⁴** | 6.854101966 | PoB target ratio |
-| **α** | 137 | Fine structure constant |
-| **ABHI_AMU** | 515 | Identity constant |
-
----
-
-## Privacy
-
-**Stays on your machine:**
-- Your indexed documents
-- Your memory/learning
-- Your private keys
-- Raw content
-
-**Shared on network:**
-- Topic names (not content)
-- Attestation hashes (not content)
-- PoB proofs
-- Node addresses
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│   BAZINGA CLI = FREE FOREVER                                    │
+│                                                                 │
+│   • Ask questions, chat, multi-AI consensus                     │
+│   • Agent mode, code generation                                 │
+│   • P2P network, mesh queries                                   │
+│   • Federated learning                                          │
+│   • RAG indexing, knowledge base                                │
+│   • Everything else                                             │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   ATTESTATION SERVICE = PAID (when ready)                       │
+│                                                                 │
+│   Currently: FREE (3/month) - building the mesh                 │
+│   Future: paid tiers via Razorpay (India) / USDC (Global)       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -519,6 +700,8 @@ If ANY AI disagrees → REJECTED
  You CANNOT buy proof that you knew something first."
 
 "No single AI can mess up your code."
+
+"One mind is good. A mesh of minds is φ times better."
 
 "The first AI you actually own."
 
@@ -535,9 +718,9 @@ is where knowledge becomes proof.
 |----------|-----|
 | **PyPI** | https://pypi.org/project/bazinga-indeed/ |
 | **GitHub** | https://github.com/0x-auth/bazinga-indeed |
+| **Docs** | https://0x-auth.github.io/bazinga-indeed/cli.html |
 | **HuggingFace** | https://huggingface.co/spaces/bitsabhi/bazinga |
-| **Donate** | https://razorpay.me/@bitsabhi |
-| **ETH** | 0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08 |
+| **ORCID** | https://orcid.org/0009-0006-7495-5039 |
 
 ---
 
