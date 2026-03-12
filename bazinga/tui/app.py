@@ -111,6 +111,9 @@ class BazingaApp(App):
         self.agent_mode = False
         self.agent_loop = None
 
+        # Conversation history for multi-turn chat
+        self.conversation_history = []
+
         # Initialize agent if available
         if AGENT_AVAILABLE:
             try:
@@ -230,7 +233,8 @@ class BazingaApp(App):
             ))
         elif command == "/clear":
             log.clear()
-            log.write("[dim]Chat cleared.[/dim]")
+            self.conversation_history = []
+            log.write("[dim]Chat cleared. Conversation history reset.[/dim]")
         elif command == "/quit":
             self.exit()
         elif command == "/kb" and args:
@@ -322,22 +326,39 @@ class BazingaApp(App):
             if self.agent_mode and self.agent_loop:
                 return await self._process_agent_query(query)
 
+            # Build context from conversation history (last 3 exchanges = 6 turns)
+            full_query = query
+            if self.conversation_history:
+                context = "Previous conversation:\n"
+                for turn in self.conversation_history[-6:]:
+                    context += f"User: {turn['user']}\nAssistant: {turn['assistant']}\n"
+                context += "\nCurrent question: "
+                full_query = context + query
+
             # Multi-AI mode
             if self.multi_ai_mode:
-                result = await self.bazinga.multi_ai_ask(query)
+                result = await self.bazinga.multi_ai_ask(full_query)
             else:
-                result = await self.bazinga.ask(query)
+                result = await self.bazinga.ask(full_query, fresh=True)
 
+            # Extract response text
             if isinstance(result, dict):
-                return (
-                    result.get('response', str(result)),
-                    {
-                        'coherence': result.get('coherence', 0),
-                        'source': result.get('source', 'unknown')
-                    }
-                )
+                response_text = result.get('response', str(result))
+                metadata = {
+                    'coherence': result.get('coherence', 0),
+                    'source': result.get('source', 'unknown')
+                }
             else:
-                return (str(result), {'coherence': 0.618, 'source': 'llm'})
+                response_text = str(result)
+                metadata = {'coherence': 0.618, 'source': 'llm'}
+
+            # Store in conversation history
+            self.conversation_history.append({
+                'user': query,
+                'assistant': response_text
+            })
+
+            return (response_text, metadata)
         except Exception as e:
             return (f"Error: {str(e)}", {'coherence': 0, 'source': 'error'})
 
@@ -444,7 +465,8 @@ class BazingaApp(App):
         """Clear chat history."""
         log = self.query_one("#chat-log", RichLog)
         log.clear()
-        log.write("[dim]Chat cleared. Ready for new conversation.[/dim]")
+        self.conversation_history = []
+        log.write("[dim]Chat cleared. Conversation history reset. Ready for new conversation.[/dim]")
 
     def action_cancel(self) -> None:
         """Cancel current operation."""
