@@ -11,9 +11,11 @@ Architecture:
 - Each node runs a TCP QueryServer on its P2P port
 - When a query comes in from chat, MeshQuery fans out to known peers
 - Responses are collected with timeout, merged by trust/confidence
-- User sees both local answer AND network perspective
+- Trust scores updated based on response quality (feedback loop)
+- Peer lists exchanged during queries (gossip layer)
+- Session context sent to peers for follow-up questions
 
-"One mind is good. A mesh of minds is φ times better."
+"One mind is good. A mesh of minds is phi times better."
 
 Author: Space (Abhishek/Abhilasia)
 License: MIT
@@ -32,8 +34,8 @@ from dataclasses import dataclass, field
 PHI = 1.618033988749895
 MESH_QUERY_TIMEOUT = 15.0  # Max wait for peer responses
 MESH_HEADER = b"BZMQ"  # BAZINGA Mesh Query header
-MESH_VERSION = 1
-MAX_RESPONSE_SIZE = 64 * 1024  # 64KB max response
+MESH_VERSION = 2  # Bumped for gossip + context support
+MAX_RESPONSE_SIZE = 128 * 1024  # 128KB max response (up from 64KB for context)
 
 
 @dataclass
@@ -81,7 +83,6 @@ def _decode_message(raw: bytes) -> Optional[dict]:
     """Decode a mesh query message."""
     if len(raw) < 9 or raw[:4] != MESH_HEADER:
         return None
-    version = raw[4]
     length = struct.unpack("!I", raw[5:9])[0]
     if len(raw) < 9 + length:
         return None
@@ -95,8 +96,11 @@ class QueryServer:
     """
     TCP server that listens for mesh queries from other BAZINGA nodes.
 
-    When a peer asks a question, this server processes it through the
-    local BAZINGA instance and returns the answer.
+    Handles:
+    - QUERY: Answer a question using local LLM
+    - QUERY_CTX: Answer with conversation context
+    - PING: Liveness check
+    - GOSSIP: Exchange peer lists
     """
 
     def __init__(self, port: int, node_id: str):
@@ -122,7 +126,7 @@ class QueryServer:
             )
             return True
         except OSError:
-            # Port in use - that's okay, might be used by PhiPulse recv
+            # Port in use
             return False
 
     async def stop(self):
@@ -132,7 +136,7 @@ class QueryServer:
             await self._server.wait_closed()
 
     async def _handle_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        """Handle incoming query from a peer."""
+        """Handle incoming request from a peer."""
         try:
             # Read header (9 bytes)
             header = await asyncio.wait_for(reader.readexactly(9), timeout=5.0)
@@ -147,32 +151,95 @@ class QueryServer:
 
             data = await asyncio.wait_for(reader.readexactly(length), timeout=5.0)
             msg = json.loads(data.decode("utf-8"))
+            msg_type = msg.get("type", "")
 
-            if msg.get("type") == "QUERY" and self._query_handler:
+            # --- QUERY: Answer a question ---
+            if msg_type in ("QUERY", "QUERY_CTX") and self._query_handler:
                 question = msg.get("question", "")
-                sender = msg.get("sender", "unknown")
 
-                # Process query through local BAZINGA
+                # Context pinning: prepend conversation context if provided
+                context = msg.get("context", "")
+                if context and msg_type == "QUERY_CTX":
+                    question = f"Previous conversation:\n{context}\n\nCurrent question: {question}"
+
                 result = await asyncio.wait_for(
                     self._query_handler(question),
-                    timeout=MESH_QUERY_TIMEOUT - 2  # Leave 2s buffer
+                    timeout=MESH_QUERY_TIMEOUT - 2
                 )
 
-                response = _encode_message("ANSWER", {
+                # Build response with our peer list for gossip
+                response_payload = {
                     "node_id": self.node_id,
                     "answer": result.get("answer", ""),
                     "confidence": result.get("confidence", 0.5),
                     "source": result.get("source", "unknown"),
-                })
+                }
 
+                # Attach our known peers for gossip (top 5 by trust)
+                try:
+                    from .persistence import get_persistence_manager
+                    pm = get_persistence_manager()
+                    known = pm.get_known_peers(limit=5, max_age_hours=2.0)
+                    response_payload["peers"] = [
+                        {"node_id": p.node_id, "ip": p.ip, "port": p.port, "trust": p.trust_score}
+                        for p in known
+                    ]
+                except Exception:
+                    pass
+
+                response = _encode_message("ANSWER", response_payload)
                 writer.write(response)
                 await writer.drain()
                 self.queries_served += 1
 
-            elif msg.get("type") == "PING":
+                # Save the querying peer if we got their info
+                sender_id = msg.get("sender", "")
+                if sender_id:
+                    try:
+                        addr = writer.get_extra_info("peername")
+                        if addr:
+                            from .persistence import get_persistence_manager, PeerRecord
+                            pm = get_persistence_manager()
+                            pm.save_peer(PeerRecord(
+                                node_id=sender_id,
+                                ip=addr[0],
+                                port=msg.get("sender_port", 5151),
+                                last_seen=time.time(),
+                                trust_score=0.5,
+                            ))
+                    except Exception:
+                        pass
+
+            # --- PING: Liveness check ---
+            elif msg_type == "PING":
                 response = _encode_message("PONG", {
                     "node_id": self.node_id,
                     "timestamp": time.time(),
+                })
+                writer.write(response)
+                await writer.drain()
+
+            # --- GOSSIP: Exchange peer lists ---
+            elif msg_type == "GOSSIP":
+                # Ingest their peers
+                incoming_peers = msg.get("peers", [])
+                self._ingest_gossip_peers(incoming_peers, msg.get("sender", ""))
+
+                # Send back our peers
+                try:
+                    from .persistence import get_persistence_manager
+                    pm = get_persistence_manager()
+                    known = pm.get_known_peers(limit=10, max_age_hours=4.0)
+                    our_peers = [
+                        {"node_id": p.node_id, "ip": p.ip, "port": p.port, "trust": p.trust_score}
+                        for p in known
+                    ]
+                except Exception:
+                    our_peers = []
+
+                response = _encode_message("GOSSIP_ACK", {
+                    "node_id": self.node_id,
+                    "peers": our_peers,
                 })
                 writer.write(response)
                 await writer.drain()
@@ -188,38 +255,90 @@ class QueryServer:
             except Exception:
                 pass
 
+    def _ingest_gossip_peers(self, peers: list, sender_id: str):
+        """Save gossiped peers to persistence with reduced trust."""
+        try:
+            from .persistence import get_persistence_manager, PeerRecord
+            pm = get_persistence_manager()
+            for p in peers:
+                node_id = p.get("node_id", "")
+                if not node_id or node_id == self.node_id:
+                    continue
+                # Gossiped peers start with lower trust (0.3) since we haven't verified them
+                pm.save_peer(PeerRecord(
+                    node_id=node_id,
+                    ip=p.get("ip", ""),
+                    port=p.get("port", 5151),
+                    last_seen=time.time(),
+                    trust_score=min(p.get("trust", 0.3), 0.4),  # Cap at 0.4 for gossip
+                ))
+                pm.log_discovery(
+                    event_type="gossip",
+                    node_id=node_id,
+                    ip=p.get("ip", ""),
+                    port=p.get("port", 5151),
+                    details=f"via {sender_id[:8]}",
+                )
+        except Exception:
+            pass
+
 
 class MeshQuery:
     """
     Fan-out queries to discovered peers and merge responses.
+
+    Features:
+    - Parallel fan-out to all known peers
+    - Trust-based peer selection (higher trust = priority)
+    - Context pinning for follow-up questions
+    - Trust feedback after each query (good answers = more trust)
+    - Peer gossip: learn about new peers from query responses
 
     Usage:
         mesh = MeshQuery(node_id="abc123")
         answer = await mesh.query_mesh("What is phi?", local_answer="The golden ratio...")
     """
 
-    def __init__(self, node_id: str, timeout: float = MESH_QUERY_TIMEOUT):
+    def __init__(self, node_id: str, port: int = 5151, timeout: float = MESH_QUERY_TIMEOUT):
         self.node_id = node_id
+        self.port = port
         self.timeout = timeout
+        self._session_id = hashlib.sha256(f"{node_id}{time.time()}".encode()).hexdigest()[:12]
         self.stats = {
             "queries_sent": 0,
             "responses_received": 0,
             "timeouts": 0,
+            "trust_updates": 0,
+            "peers_learned": 0,
         }
 
-    async def _query_peer(self, ip: str, port: int, question: str) -> Optional[PeerAnswer]:
+    async def _query_peer(
+        self,
+        ip: str,
+        port: int,
+        question: str,
+        context: str = "",
+    ) -> Optional[PeerAnswer]:
         """Send query to a single peer and get response."""
         start = time.time()
         try:
             reader, writer = await asyncio.wait_for(
                 asyncio.open_connection(ip, port),
-                timeout=3.0  # Connection timeout
+                timeout=3.0
             )
 
-            msg = _encode_message("QUERY", {
+            # Choose message type based on whether we have context
+            msg_type = "QUERY_CTX" if context else "QUERY"
+            payload = {
                 "question": question,
                 "sender": self.node_id,
-            })
+                "sender_port": self.port,
+                "session_id": self._session_id,
+            }
+            if context:
+                payload["context"] = context
+
+            msg = _encode_message(msg_type, payload)
             writer.write(msg)
             await writer.drain()
 
@@ -244,6 +363,12 @@ class MeshQuery:
 
             if response.get("type") == "ANSWER":
                 self.stats["responses_received"] += 1
+
+                # Ingest gossiped peers from response
+                gossiped_peers = response.get("peers", [])
+                if gossiped_peers:
+                    self._ingest_gossip(gossiped_peers, response.get("node_id", ""))
+
                 return PeerAnswer(
                     node_id=response.get("node_id", "unknown"),
                     ip=ip,
@@ -261,11 +386,96 @@ class MeshQuery:
 
         return None
 
+    def _ingest_gossip(self, peers: list, source_node: str):
+        """Save peers learned through gossip with reduced trust."""
+        try:
+            from .persistence import get_persistence_manager, PeerRecord
+            pm = get_persistence_manager()
+            for p in peers:
+                node_id = p.get("node_id", "")
+                if not node_id or node_id == self.node_id:
+                    continue
+                # Check if we already know this peer
+                existing = pm.get_peer(node_id)
+                if existing:
+                    # Update last_seen but don't overwrite trust
+                    pm.update_peer_seen(node_id)
+                else:
+                    # New peer from gossip - start with low trust
+                    pm.save_peer(PeerRecord(
+                        node_id=node_id,
+                        ip=p.get("ip", ""),
+                        port=p.get("port", 5151),
+                        last_seen=time.time(),
+                        trust_score=min(p.get("trust", 0.3), 0.4),
+                    ))
+                    pm.log_discovery(
+                        event_type="gossip",
+                        node_id=node_id,
+                        ip=p.get("ip", ""),
+                        port=p.get("port", 5151),
+                        details=f"via query response from {source_node[:8]}",
+                    )
+                    self.stats["peers_learned"] += 1
+        except Exception:
+            pass
+
+    def _update_trust(self, peer_answers: List[PeerAnswer], coherence: float):
+        """
+        Update trust scores based on mesh query results.
+
+        Rules:
+        - Peers who responded get a small trust bump (+0.02)
+        - High coherence (>0.5) = extra trust boost (+0.03 * coherence)
+        - Low coherence (<0.3) with local = slight trust decrease (-0.01)
+        - Peers who timed out get trust decrease (handled by caller marking as None)
+        """
+        try:
+            from .persistence import get_persistence_manager
+            pm = get_persistence_manager()
+
+            for peer in peer_answers:
+                # Base reward for responding at all
+                delta = 0.02
+
+                if coherence > 0.5:
+                    # Bonus for agreeing with consensus
+                    delta += 0.03 * coherence
+                elif coherence < 0.3:
+                    # Slight penalty for disagreeing heavily
+                    delta -= 0.01
+
+                # Confidence bonus
+                if peer.confidence > 0.8:
+                    delta += 0.01
+
+                # Fast response bonus
+                if peer.latency_ms < 2000:
+                    delta += 0.01
+
+                pm.update_peer_trust(peer.node_id, delta)
+                self.stats["trust_updates"] += 1
+
+        except Exception:
+            pass
+
+    def _penalize_unresponsive(self, all_peers: list, responsive_ids: set):
+        """Decrease trust for peers that didn't respond."""
+        try:
+            from .persistence import get_persistence_manager
+            pm = get_persistence_manager()
+            for ip, port, node_id in all_peers:
+                if node_id not in responsive_ids:
+                    pm.update_peer_trust(node_id, -0.03)  # Small penalty for being offline
+        except Exception:
+            pass
+
     async def query_mesh(
         self,
         question: str,
         local_answer: str,
         local_source: str = "local",
+        context: str = "",
     ) -> MeshAnswer:
         """
         Fan out question to all known peers and merge with local answer.
@@ -274,6 +484,7 @@ class MeshQuery:
             question: The question to ask
             local_answer: Our local LLM's answer
             local_source: Source of local answer (groq, gemini, local, etc.)
+            context: Conversation context for follow-up questions
 
         Returns:
             MeshAnswer with local + peer answers merged
@@ -281,13 +492,17 @@ class MeshQuery:
         start_time = time.time()
         self.stats["queries_sent"] += 1
 
-        # Get known peers from persistence
+        # Get known peers from persistence, sorted by trust
         peers = []
+        all_peers_info = []
         try:
             from .persistence import get_persistence_manager
             pm = get_persistence_manager()
-            peer_records = pm.get_known_peers(limit=5, max_age_hours=1.0)
-            peers = [(p.ip, p.port) for p in peer_records if p.node_id != self.node_id]
+            peer_records = pm.get_known_peers(limit=5, max_age_hours=1.0, min_trust=0.1)
+            for p in peer_records:
+                if p.node_id != self.node_id:
+                    peers.append((p.ip, p.port))
+                    all_peers_info.append((p.ip, p.port, p.node_id))
         except Exception:
             pass
 
@@ -298,14 +513,16 @@ class MeshQuery:
                 total_time_ms=(time.time() - start_time) * 1000,
             )
 
-        # Fan out to all peers in parallel
-        tasks = [self._query_peer(ip, port, question) for ip, port in peers]
+        # Fan out to all peers in parallel (with context if available)
+        tasks = [self._query_peer(ip, port, question, context) for ip, port in peers]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         peer_answers = [r for r in results if isinstance(r, PeerAnswer)]
         total_time_ms = (time.time() - start_time) * 1000
 
         if not peer_answers:
+            # Penalize all unresponsive peers
+            self._penalize_unresponsive(all_peers_info, set())
             return MeshAnswer(
                 local_answer=local_answer,
                 merged_answer=local_answer,
@@ -314,6 +531,11 @@ class MeshQuery:
 
         # Calculate coherence between local and peer answers
         coherence = self._calculate_coherence(local_answer, peer_answers)
+
+        # Update trust based on response quality
+        responsive_ids = {p.node_id for p in peer_answers}
+        self._update_trust(peer_answers, coherence)
+        self._penalize_unresponsive(all_peers_info, responsive_ids)
 
         # Merge answers
         merged = self._merge_answers(local_answer, local_source, peer_answers, coherence)
@@ -326,6 +548,51 @@ class MeshQuery:
             total_time_ms=total_time_ms,
             coherence=coherence,
         )
+
+    async def gossip_peers(self, target_ip: str, target_port: int):
+        """
+        Exchange peer lists with a specific node.
+
+        Sends our known peers and receives theirs.
+        """
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(target_ip, target_port),
+                timeout=3.0,
+            )
+
+            # Send our peers
+            from .persistence import get_persistence_manager
+            pm = get_persistence_manager()
+            known = pm.get_known_peers(limit=10, max_age_hours=4.0)
+            our_peers = [
+                {"node_id": p.node_id, "ip": p.ip, "port": p.port, "trust": p.trust_score}
+                for p in known
+            ]
+
+            msg = _encode_message("GOSSIP", {
+                "sender": self.node_id,
+                "peers": our_peers,
+            })
+            writer.write(msg)
+            await writer.drain()
+
+            # Read their response
+            header = await asyncio.wait_for(reader.readexactly(9), timeout=5.0)
+            if header[:4] == MESH_HEADER:
+                length = struct.unpack("!I", header[5:9])[0]
+                if length <= MAX_RESPONSE_SIZE:
+                    data = await asyncio.wait_for(reader.readexactly(length), timeout=5.0)
+                    response = json.loads(data.decode("utf-8"))
+
+                    if response.get("type") == "GOSSIP_ACK":
+                        self._ingest_gossip(response.get("peers", []), response.get("node_id", ""))
+
+            writer.close()
+            await writer.wait_closed()
+
+        except Exception:
+            pass
 
     def _calculate_coherence(self, local: str, peers: List[PeerAnswer]) -> float:
         """Calculate phi-coherence between local answer and peer answers."""
@@ -354,7 +621,6 @@ class MeshQuery:
         """Merge local and peer answers into a collective response."""
         if coherence > 0.7:
             # High agreement - local answer is good, just note consensus
-            sources = [local_source] + [p.source for p in peers]
             return f"{local}\n\n[Mesh consensus: {len(peers)+1} nodes agree (coherence: {coherence:.2f})]"
 
         if coherence > 0.4:
@@ -369,7 +635,7 @@ class MeshQuery:
 
         # Low agreement - show local + all unique perspectives
         lines = [local, "", "--- Network perspectives ---"]
-        for i, peer in enumerate(sorted(peers, key=lambda p: p.weighted_score, reverse=True)[:3]):
+        for peer in sorted(peers, key=lambda p: p.weighted_score, reverse=True)[:3]:
             lines.append(f"\nNode {peer.node_id[:8]}... ({peer.source}, {peer.latency_ms:.0f}ms):")
             lines.append(peer.answer)
 
