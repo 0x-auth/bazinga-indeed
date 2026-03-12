@@ -353,13 +353,25 @@ class BazingaApp(App):
                 response_text = str(result)
                 metadata = {'coherence': 0.618, 'source': 'llm'}
 
-            # Mesh query: fan out to discovered peers
+            # Mesh query: fan out to discovered peers (with context for follow-ups)
             if self.mesh_query and not self.agent_mode:
                 try:
+                    # Build context from recent history so peers understand follow-ups
+                    mesh_context = ""
+                    if self.conversation_history:
+                        ctx_lines = []
+                        for turn in self.conversation_history[-4:]:  # Last 2 exchanges
+                            ctx_lines.append(f"User: {turn['user']}")
+                            # Truncate assistant response to save bandwidth
+                            assistant_short = turn['assistant'][:300]
+                            ctx_lines.append(f"Assistant: {assistant_short}")
+                        mesh_context = "\n".join(ctx_lines)
+
                     mesh_result = await self.mesh_query.query_mesh(
                         question=query,
                         local_answer=response_text,
                         local_source=metadata.get('source', 'llm'),
+                        context=mesh_context,
                     )
                     if mesh_result.has_peers:
                         response_text = mesh_result.merged_answer

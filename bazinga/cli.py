@@ -1262,6 +1262,8 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                            help='Custom node ID (default: auto-generated)')
     p2p_group.add_argument('--phi-pulse', action='store_true',
                            help='Start Phi-Pulse discovery (UDP broadcast on port 5150)')
+    p2p_group.add_argument('--mesh', action='store_true',
+                           help='Show mesh network vital signs (peers, trust, health)')
 
     # === INFO ===
     info_group = parser.add_argument_group('Info')
@@ -2311,6 +2313,79 @@ Provide a concise, helpful answer based on the above context. If the context doe
                 await discovery.stop()
 
         await run_global_discovery()
+        return
+
+    # Handle --mesh (mesh network vital signs)
+    if getattr(args, 'mesh', False):
+        print(f"\n{'='*60}")
+        print(f"  BAZINGA MESH VITAL SIGNS")
+        print(f"{'='*60}")
+
+        from .p2p.persistence import get_persistence_manager
+        import os
+        import time
+
+        pm = get_persistence_manager()
+        stats = pm.get_stats()
+
+        # Node identity
+        node_id = pm.get_state('node_id') or 'not initialized'
+        print(f"\n  Node ID: {node_id}")
+        print(f"  DB: {pm.db_path}")
+        print(f"  DB Size: {stats.get('db_size_kb', 0):.1f} KB")
+
+        # Peer stats
+        total_peers = stats.get('total_peers', 0)
+        active_peers = stats.get('active_peers', 0)
+        avg_trust = stats.get('avg_trust', 0)
+        print(f"\n  Peers:")
+        print(f"    Total known: {total_peers}")
+        print(f"    Active (1h): {active_peers}")
+        print(f"    Avg trust:   {avg_trust:.3f}")
+
+        # Top trusted peers
+        top_peers = pm.get_known_peers(limit=5, max_age_hours=24)
+        if top_peers:
+            print(f"\n  Top Trusted Peers:")
+            for p in top_peers:
+                age_min = p.age_seconds() / 60
+                alive = "ONLINE" if p.is_alive(3600) else "offline"
+                print(f"    {p.node_id[:12]}... | {p.ip}:{p.port} | trust={p.trust_score:.3f} | {alive} | {age_min:.0f}m ago")
+        else:
+            print(f"\n  No peers discovered yet.")
+            print(f"  Run: bazinga --phi-pulse  (to discover LAN peers)")
+
+        # DHT stats
+        dht_entries = stats.get('dht_entries', 0)
+        print(f"\n  DHT Entries: {dht_entries}")
+
+        # Discovery log (recent events)
+        recent = pm.get_discovery_log(limit=5)
+        if recent:
+            print(f"\n  Recent Discovery Events:")
+            for evt in recent:
+                ts = time.strftime('%H:%M:%S', time.localtime(evt.get('timestamp', 0)))
+                print(f"    [{ts}] {evt.get('event_type', '?')} - {evt.get('node_id', '?')[:12]}... "
+                      f"at {evt.get('ip', '?')}:{evt.get('port', '?')} {evt.get('details', '')}")
+
+        # Port check
+        import socket
+        p2p_port = getattr(args, 'port', 5151)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.5)
+        try:
+            result = sock.connect_ex(('127.0.0.1', p2p_port))
+            if result == 0:
+                print(f"\n  QueryServer: ONLINE (port {p2p_port} listening)")
+            else:
+                print(f"\n  QueryServer: OFFLINE (port {p2p_port} not listening)")
+                print(f"  Start with: bazinga --chat")
+        except Exception:
+            print(f"\n  QueryServer: UNKNOWN")
+        finally:
+            sock.close()
+
+        print(f"\n{'='*60}")
         return
 
     # Handle --peers
