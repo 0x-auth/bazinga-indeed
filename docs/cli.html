@@ -179,6 +179,36 @@
             text-decoration: underline;
         }
 
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .comparison-table th {
+            background: #161b22;
+            color: #58a6ff;
+            font-weight: 600;
+        }
+
+        .comparison-table tr:hover {
+            background: rgba(88, 166, 255, 0.1);
+        }
+
+        .comparison-table code {
+            background: #0d1117;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #7ee787;
+        }
+
         .nav {
             display: flex;
             justify-content: center;
@@ -219,6 +249,8 @@
             <a href="index.html">Home</a>
             <a href="cli.html">CLI Reference</a>
             <a href="pob.html">Proof-of-Boundary</a>
+            <a href="blockchain.html">Blockchain</a>
+            <a href="carm.html">CARM</a>
             <a href="visual.html">Visualizations</a>
             <a href="https://github.com/0x-auth/bazinga-indeed">GitHub</a>
             <a href="https://pypi.org/project/bazinga-indeed/">PyPI</a>
@@ -634,12 +666,50 @@
 
             <div class="command">
                 <div class="command-header">
+                    <span class="command-name">--phi-pulse</span>
+                    <span class="tag tag-local">NEW v5.7</span>
+                </div>
+                <div class="command-desc">Start Global Discovery (local Phi-Pulse + HF Registry). Discovers peers on your LAN via UDP broadcast AND registers with the global HF Space registry for cross-internet discovery.</div>
+                <div class="command-example">
+                    <code>bazinga --phi-pulse</code>
+                    <div class="command-output">→ Local: UDP broadcast on port 5150<br>→ Global: Registers at bitsabhi-bazinga.hf.space</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
                     <span class="command-name">--join</span>
                 </div>
-                <div class="command-desc">Join the BAZINGA P2P network.</div>
+                <div class="command-desc">Join the BAZINGA P2P network with full Kademlia DHT.</div>
                 <div class="command-example">
                     <code>bazinga --join</code>
-                    <div class="command-output">→ Connects to bootstrap nodes, starts DHT</div>
+                    <div class="command-output">→ Connects to bootstrap nodes, starts DHT, NAT traversal</div>
+                </div>
+                <div class="command-example">
+                    <code>bazinga --join 192.168.1.100:5151</code>
+                    <div class="command-output">→ Join via specific peer address</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--port</span>
+                    <span class="command-alias">default: 5151</span>
+                </div>
+                <div class="command-desc">Set P2P listening port. Use with --join or --phi-pulse.</div>
+                <div class="command-example">
+                    <code>bazinga --phi-pulse --port 5152</code>
+                    <div class="command-output">→ Run on custom port (for multiple instances)</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--node-id</span>
+                </div>
+                <div class="command-desc">Set custom node ID (auto-generated if not provided).</div>
+                <div class="command-example">
+                    <code>bazinga --phi-pulse --node-id mynode123</code>
                 </div>
             </div>
 
@@ -647,9 +717,21 @@
                 <div class="command-header">
                     <span class="command-name">--peers</span>
                 </div>
-                <div class="command-desc">Show connected peers.</div>
+                <div class="command-desc">Show connected peers from local and global registry.</div>
                 <div class="command-example">
                     <code>bazinga --peers</code>
+                    <div class="command-output">→ Shows local node info + HF Registry stats + peer list</div>
+                </div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--nat</span>
+                </div>
+                <div class="command-desc">Run NAT traversal diagnostics. Detects NAT type, public IP, and hole-punch capability.</div>
+                <div class="command-example">
+                    <code>bazinga --nat</code>
+                    <div class="command-output">→ Shows NAT type, public IP, relay eligibility</div>
                 </div>
             </div>
 
@@ -682,6 +764,52 @@
                     <code>bazinga --query-network "distributed consensus algorithms"</code>
                 </div>
             </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">--learn</span>
+                </div>
+                <div class="command-desc">Show federated learning status and configuration.</div>
+                <div class="command-example">
+                    <code>bazinga --learn</code>
+                    <div class="command-output">→ Shows adapter rank, version, φ-weighted aggregation info</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Discovery Layers -->
+        <div class="section" style="border-left: 4px solid #7ee787;">
+            <h2>P2P Discovery Layers</h2>
+            <table class="comparison-table" style="margin: 0; width: 100%;">
+                <tr>
+                    <th>Layer</th>
+                    <th>Method</th>
+                    <th>Scope</th>
+                    <th>Command</th>
+                </tr>
+                <tr>
+                    <td>1. Local</td>
+                    <td>Phi-Pulse UDP (port 5150)</td>
+                    <td>Same network/LAN</td>
+                    <td><code>--phi-pulse</code></td>
+                </tr>
+                <tr>
+                    <td>2. Global</td>
+                    <td>HF Space Registry</td>
+                    <td>Any internet</td>
+                    <td><code>--phi-pulse</code> (auto)</td>
+                </tr>
+                <tr>
+                    <td>3. DHT</td>
+                    <td>Kademlia + NAT</td>
+                    <td>Decentralized</td>
+                    <td><code>--join</code></td>
+                </tr>
+            </table>
+            <p style="margin-top: 15px; color: #8b949e;">
+                <strong>TL;DR:</strong> Use <code>--phi-pulse</code> for quick discovery on LAN + global.
+                Use <code>--join</code> for full P2P with Kademlia DHT and NAT traversal.
+            </p>
         </div>
 
         <!-- Info Commands -->
@@ -695,7 +823,7 @@
                 <div class="command-desc">Show version.</div>
                 <div class="command-example">
                     <code>bazinga --version</code>
-                    <div class="command-output">→ BAZINGA v5.2.4</div>
+                    <div class="command-output">→ BAZINGA v5.7.0</div>
                 </div>
             </div>
 
