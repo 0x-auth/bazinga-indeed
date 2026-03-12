@@ -67,11 +67,12 @@ You operate through φ (golden ratio) coherence and quantum pattern processing."
     def _build_user_prompt(self, question: str, context: Optional[str] = None) -> str:
         """Build user prompt with optional context."""
         if context:
-            return f"""INDEXED KNOWLEDGE (USE AS PRIMARY SOURCE):
+            return f"""CONTEXT:
 {context}
 
-Based on the indexed knowledge above, answer: {question}
-Use the indexed content directly when relevant. Be concise."""
+Question: {question}
+
+Answer concisely. Use the context when relevant, but answer naturally."""
         return question
 
     async def call_groq(self, question: str, context: str = "") -> Optional[str]:
