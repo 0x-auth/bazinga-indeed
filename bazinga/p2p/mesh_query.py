@@ -470,6 +470,82 @@ class MeshQuery:
         except Exception:
             pass
 
+    @staticmethod
+    def _extract_topics(question: str) -> List[str]:
+        """Extract key topics from a question for expert routing."""
+        stopwords = {
+            'what', 'is', 'the', 'a', 'an', 'how', 'why', 'when', 'where',
+            'who', 'which', 'can', 'do', 'does', 'are', 'was', 'were', 'be',
+            'have', 'has', 'had', 'will', 'would', 'could', 'should', 'to',
+            'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from', 'as', 'and',
+            'but', 'or', 'not', 'this', 'that', 'it', 'its', 'i', 'me', 'my',
+            'you', 'your', 'we', 'they', 'them', 'about', 'just', 'also',
+            'than', 'very', 'too', 'so', 'tell', 'explain', 'describe',
+        }
+        words = question.lower().replace('?', '').replace('.', '').replace(',', '').split()
+        topics = [w for w in words if w not in stopwords and len(w) > 2]
+        # Also add bigrams
+        for i in range(len(words) - 1):
+            if words[i] not in stopwords and words[i+1] not in stopwords:
+                if len(words[i]) > 2 and len(words[i+1]) > 2:
+                    topics.append(f"{words[i]} {words[i+1]}")
+        return topics[:5]
+
+    def _get_expert_peers(self, question: str, fallback_limit: int = 5) -> tuple:
+        """
+        Get peers to query, preferring topic experts.
+
+        Returns: (peers_list, all_peers_info, topics)
+        """
+        topics = self._extract_topics(question)
+        peers = []
+        all_peers_info = []
+        seen_ids = set()
+
+        try:
+            from .persistence import get_persistence_manager
+            pm = get_persistence_manager()
+
+            # First: find topic experts
+            for topic in topics:
+                experts = pm.get_experts(topic, limit=3)
+                for exp in experts:
+                    nid = exp["node_id"]
+                    if nid != self.node_id and nid not in seen_ids:
+                        seen_ids.add(nid)
+                        peers.append((exp["ip"], exp["port"]))
+                        all_peers_info.append((exp["ip"], exp["port"], nid))
+
+            # Then: fill remaining slots with general high-trust peers
+            if len(peers) < fallback_limit:
+                remaining = fallback_limit - len(peers)
+                general = pm.get_known_peers(limit=remaining + len(seen_ids), max_age_hours=1.0, min_trust=0.1)
+                for p in general:
+                    if p.node_id != self.node_id and p.node_id not in seen_ids:
+                        seen_ids.add(p.node_id)
+                        peers.append((p.ip, p.port))
+                        all_peers_info.append((p.ip, p.port, p.node_id))
+                        if len(peers) >= fallback_limit:
+                            break
+
+        except Exception:
+            pass
+
+        return peers, all_peers_info, topics
+
+    def _update_expertise(self, peer_answers: List[PeerAnswer], topics: List[str], coherence: float):
+        """Track which peers are experts on which topics."""
+        try:
+            from .persistence import get_persistence_manager
+            pm = get_persistence_manager()
+            good = coherence > 0.4  # Decent answer = good for these topics
+
+            for peer in peer_answers:
+                for topic in topics:
+                    pm.update_expertise(peer.node_id, topic, good)
+        except Exception:
+            pass
+
     async def query_mesh(
         self,
         question: str,
@@ -478,7 +554,10 @@ class MeshQuery:
         context: str = "",
     ) -> MeshAnswer:
         """
-        Fan out question to all known peers and merge with local answer.
+        Fan out question to expert peers and merge with local answer.
+
+        Expert routing: extracts topics from question, queries known experts
+        first, then fills remaining slots with high-trust general peers.
 
         Args:
             question: The question to ask
@@ -492,19 +571,8 @@ class MeshQuery:
         start_time = time.time()
         self.stats["queries_sent"] += 1
 
-        # Get known peers from persistence, sorted by trust
-        peers = []
-        all_peers_info = []
-        try:
-            from .persistence import get_persistence_manager
-            pm = get_persistence_manager()
-            peer_records = pm.get_known_peers(limit=5, max_age_hours=1.0, min_trust=0.1)
-            for p in peer_records:
-                if p.node_id != self.node_id:
-                    peers.append((p.ip, p.port))
-                    all_peers_info.append((p.ip, p.port, p.node_id))
-        except Exception:
-            pass
+        # Get peers using expert routing
+        peers, all_peers_info, topics = self._get_expert_peers(question)
 
         if not peers:
             return MeshAnswer(
@@ -521,7 +589,6 @@ class MeshQuery:
         total_time_ms = (time.time() - start_time) * 1000
 
         if not peer_answers:
-            # Penalize all unresponsive peers
             self._penalize_unresponsive(all_peers_info, set())
             return MeshAnswer(
                 local_answer=local_answer,
@@ -532,9 +599,10 @@ class MeshQuery:
         # Calculate coherence between local and peer answers
         coherence = self._calculate_coherence(local_answer, peer_answers)
 
-        # Update trust based on response quality
+        # Update trust + expertise based on response quality
         responsive_ids = {p.node_id for p in peer_answers}
         self._update_trust(peer_answers, coherence)
+        self._update_expertise(peer_answers, topics, coherence)
         self._penalize_unresponsive(all_peers_info, responsive_ids)
 
         # Merge answers
