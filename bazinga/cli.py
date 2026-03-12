@@ -2385,6 +2385,20 @@ Provide a concise, helpful answer based on the above context. If the context doe
         finally:
             sock.close()
 
+        # Show topic expertise
+        if top_peers:
+            all_topics = set()
+            for p in top_peers:
+                topics = pm.get_peer_topics(p.node_id)
+                if topics:
+                    all_topics.update(t['topic'] for t in topics)
+            if all_topics:
+                print(f"\n  Known Topics ({len(all_topics)}):")
+                for topic in sorted(all_topics):
+                    experts = pm.get_experts(topic, limit=3)
+                    expert_names = [f"{e['node_id'][:8]}({e['expertise_score']:.2f})" for e in experts]
+                    print(f"    {topic}: {', '.join(expert_names)}")
+
         print(f"\n{'='*60}")
         return
 

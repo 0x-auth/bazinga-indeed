@@ -153,10 +153,24 @@ class PersistenceManager:
                 )
             """)
 
+            # Peer expertise - topic specialization tracking
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS peer_expertise (
+                    node_id TEXT NOT NULL,
+                    topic TEXT NOT NULL,
+                    score REAL DEFAULT 0.5,
+                    query_count INTEGER DEFAULT 0,
+                    good_answers INTEGER DEFAULT 0,
+                    last_queried REAL,
+                    PRIMARY KEY (node_id, topic)
+                )
+            """)
+
             # Create indices for faster lookups
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_peers_last_seen ON peers(last_seen)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_peers_trust ON peers(trust_score)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_dht_timestamp ON dht_entries(timestamp)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_expertise_topic ON peer_expertise(topic)")
 
             # Store schema version
             cursor.execute("""
@@ -347,6 +361,99 @@ class PersistenceManager:
                 return cursor.fetchone()[0]
         except Exception:
             return 0
+
+    # ========== EXPERTISE TRACKING ==========
+
+    def update_expertise(self, node_id: str, topic: str, good_answer: bool) -> bool:
+        """
+        Update a peer's expertise score for a topic.
+
+        Called after mesh queries to track which peers are good at what.
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                # Upsert: create or update
+                cursor.execute("""
+                    INSERT INTO peer_expertise (node_id, topic, score, query_count, good_answers, last_queried)
+                    VALUES (?, ?, ?, 1, ?, ?)
+                    ON CONFLICT(node_id, topic) DO UPDATE SET
+                        query_count = query_count + 1,
+                        good_answers = good_answers + ?,
+                        score = CASE
+                            WHEN ? THEN MIN(1.0, score + 0.05 * (1.0 - score))
+                            ELSE MAX(0.1, score - 0.02)
+                        END,
+                        last_queried = ?
+                """, (
+                    node_id, topic.lower(),
+                    0.5 if good_answer else 0.4,  # Initial score
+                    1 if good_answer else 0,       # Initial good_answers
+                    time.time(),
+                    1 if good_answer else 0,       # Increment good_answers
+                    good_answer,                    # For CASE condition
+                    time.time(),
+                ))
+                conn.commit()
+                return True
+        except Exception:
+            return False
+
+    def get_experts(self, topic: str, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Find the best peers for a given topic.
+
+        Returns peers sorted by expertise score, joined with trust score.
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT e.node_id, e.topic, e.score, e.query_count, e.good_answers,
+                           p.ip, p.port, p.trust_score, p.last_seen
+                    FROM peer_expertise e
+                    JOIN peers p ON e.node_id = p.node_id
+                    WHERE e.topic = ?
+                      AND p.last_seen > ?
+                      AND e.score > 0.3
+                    ORDER BY (e.score * p.trust_score) DESC
+                    LIMIT ?
+                """, (topic.lower(), time.time() - 3600, limit))
+
+                results = []
+                for row in cursor.fetchall():
+                    results.append({
+                        "node_id": row[0],
+                        "topic": row[1],
+                        "expertise_score": row[2],
+                        "query_count": row[3],
+                        "good_answers": row[4],
+                        "ip": row[5],
+                        "port": row[6],
+                        "trust_score": row[7],
+                        "combined_score": row[2] * row[7],  # expertise * trust
+                    })
+                return results
+        except Exception:
+            return []
+
+    def get_peer_topics(self, node_id: str) -> List[Dict[str, Any]]:
+        """Get all topics a peer is an expert in."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT topic, score, query_count, good_answers
+                    FROM peer_expertise
+                    WHERE node_id = ? AND score > 0.3
+                    ORDER BY score DESC
+                """, (node_id,))
+                return [
+                    {"topic": r[0], "score": r[1], "queries": r[2], "good": r[3]}
+                    for r in cursor.fetchall()
+                ]
+        except Exception:
+            return []
 
     # ========== DHT STORAGE ==========
 
