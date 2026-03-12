@@ -1324,10 +1324,13 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
     # Start Phi-Pulse automatically for interactive modes
     # unless --no-p2p is specified
     _phi_pulse_instance = None
+    _query_server_instance = None
+    _mesh_query_instance = None
+    _mesh_node_id = None
 
     def _start_background_p2p():
-        """Start Phi-Pulse in background for peer discovery."""
-        nonlocal _phi_pulse_instance
+        """Start Phi-Pulse + QueryServer in background for peer discovery and mesh queries."""
+        nonlocal _phi_pulse_instance, _query_server_instance, _mesh_query_instance, _mesh_node_id
         if getattr(args, 'no_p2p', False):
             return
 
@@ -1349,6 +1352,7 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
         try:
             from .decentralized.peer_discovery import PhiPulse
             from .p2p.persistence import get_persistence_manager
+            from .p2p.mesh_query import QueryServer, MeshQuery
             import hashlib
             import os
 
@@ -1359,6 +1363,7 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                 node_id = hashlib.sha256(os.urandom(32)).hexdigest()[:16]
                 pm.set_state('node_id', node_id)
 
+            _mesh_node_id = node_id
             p2p_port = getattr(args, 'port', 5151)
 
             def on_peer_found(peer_id, ip, port):
@@ -1372,6 +1377,12 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
             )
             _phi_pulse_instance.start()
 
+            # Start QueryServer so peers can ask us questions
+            _query_server_instance = QueryServer(port=p2p_port, node_id=node_id)
+
+            # Create MeshQuery for fan-out queries
+            _mesh_query_instance = MeshQuery(node_id=node_id)
+
             # Load and check known peers from last session
             known_peers = pm.get_known_peers(limit=10, max_age_hours=24)
             if known_peers:
@@ -1381,12 +1392,43 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
             # Silently fail - P2P is optional
             pass
 
+    async def _start_query_server(bazinga_instance):
+        """Start QueryServer with BAZINGA as the handler (must be called from async context)."""
+        nonlocal _query_server_instance
+        if _query_server_instance and bazinga_instance:
+            async def handle_query(question: str) -> dict:
+                try:
+                    result = await bazinga_instance.ask(question, fresh=True)
+                    if isinstance(result, dict):
+                        return {
+                            "answer": result.get("response", str(result)),
+                            "confidence": result.get("coherence", 0.5),
+                            "source": result.get("source", "unknown"),
+                        }
+                    return {"answer": str(result), "confidence": 0.5, "source": "llm"}
+                except Exception as e:
+                    return {"answer": f"Error: {e}", "confidence": 0.0, "source": "error"}
+
+            _query_server_instance.set_handler(handle_query)
+            await _query_server_instance.start()
+
     def _stop_background_p2p():
-        """Stop Phi-Pulse when CLI exits."""
-        nonlocal _phi_pulse_instance
+        """Stop Phi-Pulse and QueryServer when CLI exits."""
+        nonlocal _phi_pulse_instance, _query_server_instance, _mesh_query_instance
         if _phi_pulse_instance:
             _phi_pulse_instance.stop()
             _phi_pulse_instance = None
+        if _query_server_instance:
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    loop.create_task(_query_server_instance.stop())
+                else:
+                    loop.run_until_complete(_query_server_instance.stop())
+            except Exception:
+                pass
+            _query_server_instance = None
+        _mesh_query_instance = None
 
     # Handle extended help options
     if hasattr(args, 'help_all') and args.help_all:
@@ -3230,12 +3272,19 @@ Provide a concise, helpful answer based on the above context. If the context doe
         if args.local:
             bazinga.use_local = True
 
+        # Start QueryServer so peers can query our BAZINGA
+        await _start_query_server(bazinga)
+
         # Try TUI first, fallback to simple chat
         try:
             if not args.simple:
                 try:
                     from .tui import run_tui_async
-                    await run_tui_async(bazinga_instance=bazinga, mode="chat")
+                    await run_tui_async(
+                        bazinga_instance=bazinga,
+                        mode="chat",
+                        mesh_query=_mesh_query_instance,
+                    )
                     return
                 except ImportError:
                     pass  # Fall through to simple mode

@@ -74,6 +74,14 @@ from .hf_registry import (
     RemotePeer,
 )
 
+# Mesh Query (Collective intelligence)
+from .mesh_query import (
+    MeshQuery,
+    QueryServer,
+    MeshAnswer,
+    PeerAnswer,
+)
+
 __all__ = [
     # Unified API (recommended)
     'BAZINGANetwork',
@@ -124,4 +132,9 @@ __all__ = [
     'HFNetworkRegistry',
     'GlobalDiscovery',
     'RemotePeer',
+    # Mesh Query (NEW!)
+    'MeshQuery',
+    'QueryServer',
+    'MeshAnswer',
+    'PeerAnswer',
 ]

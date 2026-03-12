@@ -102,7 +102,7 @@ class BazingaApp(App):
         Binding("escape", "cancel", "Cancel", show=False),
     ]
 
-    def __init__(self, bazinga_instance=None, mode: str = "chat"):
+    def __init__(self, bazinga_instance=None, mode: str = "chat", mesh_query=None):
         super().__init__()
         self.bazinga = bazinga_instance
         self.mode = mode
@@ -110,6 +110,7 @@ class BazingaApp(App):
         self.multi_ai_mode = False
         self.agent_mode = False
         self.agent_loop = None
+        self.mesh_query = mesh_query  # MeshQuery instance for peer fan-out
 
         # Conversation history for multi-turn chat
         self.conversation_history = []
@@ -352,6 +353,22 @@ class BazingaApp(App):
                 response_text = str(result)
                 metadata = {'coherence': 0.618, 'source': 'llm'}
 
+            # Mesh query: fan out to discovered peers
+            if self.mesh_query and not self.agent_mode:
+                try:
+                    mesh_result = await self.mesh_query.query_mesh(
+                        question=query,
+                        local_answer=response_text,
+                        local_source=metadata.get('source', 'llm'),
+                    )
+                    if mesh_result.has_peers:
+                        response_text = mesh_result.merged_answer
+                        metadata['mesh_peers'] = mesh_result.peer_count
+                        metadata['mesh_coherence'] = mesh_result.coherence
+                        metadata['source'] = f"{metadata.get('source', 'llm')}+mesh({mesh_result.peer_count})"
+                except Exception:
+                    pass  # Mesh is optional, don't break chat
+
             # Store in conversation history
             self.conversation_history.append({
                 'user': query,
@@ -482,9 +499,9 @@ def run_tui(bazinga_instance=None, mode: str = "chat"):
     app.run()
 
 
-async def run_tui_async(bazinga_instance=None, mode: str = "chat"):
+async def run_tui_async(bazinga_instance=None, mode: str = "chat", mesh_query=None):
     """Run the BAZINGA TUI application (async)."""
-    app = BazingaApp(bazinga_instance=bazinga_instance, mode=mode)
+    app = BazingaApp(bazinga_instance=bazinga_instance, mode=mode, mesh_query=mesh_query)
     await app.run_async()
 
 
