@@ -82,6 +82,142 @@ class FederatedConfig:
     model_chunk_size: int = 1024 * 1024  # 1MB chunks
     broadcast_timeout: float = 60.0
 
+    # Resonance Window settings (φ-weighted adaptive timing)
+    resonance_base_timeout: float = 60.0  # Base timeout in seconds
+    resonance_phi_multiplier: bool = True  # Use φ-scaling
+    resonance_adaptive: bool = True  # Adapt based on network health
+    resonance_history_size: int = 3  # Number of rounds to average
+
+
+class ResonanceWindow:
+    """
+    φ-weighted Resonance Window for federated round timing.
+
+    Instead of fixed timeouts, uses φ (golden ratio) to calculate
+    adaptive wait windows based on network health.
+
+    Formula: T_window = T_base × φ^k
+
+    Where k is adjusted based on:
+    - Average response time of last N rounds
+    - Number of responsive peers
+    - Network stability
+
+    This creates natural "breathing" - expand when slow, contract when fast.
+    Prevents the "straggler problem" where one slow node holds up the mesh.
+
+    "Time flows in golden spirals." - BAZINGA
+    """
+
+    def __init__(
+        self,
+        base_timeout: float = 60.0,
+        history_size: int = 3,
+        phi_multiplier: bool = True,
+    ):
+        """
+        Initialize Resonance Window.
+
+        Args:
+            base_timeout: Base timeout in seconds
+            history_size: Number of rounds to track for adaptation
+            phi_multiplier: Whether to use φ-scaling
+        """
+        self.base_timeout = base_timeout
+        self.history_size = history_size
+        self.phi_multiplier = phi_multiplier
+
+        # Response time history (seconds)
+        self.response_times: List[float] = []
+
+        # Network health metrics
+        self.responsive_ratio_history: List[float] = []
+
+        # Current multiplier
+        self.current_k: float = 1.0  # φ^1 = φ
+
+    def record_round(
+        self,
+        response_time: float,
+        expected_participants: int,
+        actual_participants: int,
+    ):
+        """
+        Record metrics from a completed round.
+
+        Args:
+            response_time: How long the round took (seconds)
+            expected_participants: How many nodes were expected
+            actual_participants: How many actually responded
+        """
+        # Track response time
+        self.response_times.append(response_time)
+        if len(self.response_times) > self.history_size:
+            self.response_times.pop(0)
+
+        # Track responsiveness
+        ratio = actual_participants / max(1, expected_participants)
+        self.responsive_ratio_history.append(ratio)
+        if len(self.responsive_ratio_history) > self.history_size:
+            self.responsive_ratio_history.pop(0)
+
+        # Adapt k based on performance
+        self._adapt_k()
+
+    def _adapt_k(self):
+        """Adapt the φ exponent based on network health."""
+        if len(self.response_times) < 2:
+            return  # Not enough data
+
+        avg_response = sum(self.response_times) / len(self.response_times)
+        avg_responsive = sum(self.responsive_ratio_history) / len(self.responsive_ratio_history)
+
+        # Calculate health score: 0 = bad, 1 = good
+        # Fast response = good, high responsiveness = good
+        time_health = max(0, 1 - (avg_response / self.base_timeout))
+        responsive_health = avg_responsive
+
+        # Combined health (φ-weighted average)
+        health = (time_health + responsive_health * PHI) / (1 + PHI)
+
+        # Map health to k: high health -> lower k (tighter), low health -> higher k (looser)
+        # k ranges from 0.5 (very healthy) to 2.0 (unhealthy)
+        target_k = 2.0 - health * 1.5
+
+        # Smooth adaptation (exponential moving average)
+        self.current_k = self.current_k * 0.7 + target_k * 0.3
+
+    def get_timeout(self) -> float:
+        """
+        Get the current resonance window timeout.
+
+        Returns:
+            Timeout in seconds, φ-scaled based on network health
+        """
+        if not self.phi_multiplier:
+            return self.base_timeout
+
+        # T = T_base × φ^k
+        timeout = self.base_timeout * (PHI ** self.current_k)
+
+        return timeout
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get resonance window statistics."""
+        return {
+            'base_timeout': self.base_timeout,
+            'current_k': round(self.current_k, 3),
+            'current_timeout': round(self.get_timeout(), 2),
+            'phi_multiplier': self.phi_multiplier,
+            'avg_response_time': round(
+                sum(self.response_times) / max(1, len(self.response_times)), 2
+            ),
+            'avg_responsive_ratio': round(
+                sum(self.responsive_ratio_history) / max(1, len(self.responsive_ratio_history)), 3
+            ),
+            'history_size': len(self.response_times),
+        }
+
     def to_dict(self) -> Dict:
         return asdict(self)
 
