@@ -646,6 +646,298 @@ class BootstrapFreeDiscovery:
         self.peer_discovery.on_peer_lost = on_lost
 
 
+# ============================================================
+# PHI-PULSE: UDP Broadcast Discovery
+# ============================================================
+
+# Phi-Pulse constants
+PHI_PULSE_PORT = 5150  # The "Beating Heart" port
+PHI_PULSE_MAGIC = b"BZNG"  # Magic bytes to identify BAZINGA packets
+PHI_PULSE_VERSION = 1
+PHI_PULSE_INTERVAL = PHI * 8  # ~13 seconds between pulses
+
+
+@dataclass
+class PhiPulsePacket:
+    """
+    Phi-Pulse discovery packet.
+
+    Compact binary format for UDP broadcast:
+    - 4 bytes: Magic (BZNG)
+    - 1 byte: Version
+    - 16 bytes: Node ID (truncated SHA256)
+    - 2 bytes: Listening port (big-endian)
+    - 8 bytes: Temporal seed (φ-based timestamp)
+    - 4 bytes: Capabilities flags
+    """
+    node_id: str
+    port: int
+    temporal_seed: float
+    capabilities: int = 0  # Bitflags for capabilities
+
+    PACKET_SIZE = 4 + 1 + 16 + 2 + 8 + 4  # 35 bytes
+
+    def to_bytes(self) -> bytes:
+        """Serialize to compact binary format."""
+        # Truncate node_id to 16 bytes
+        node_bytes = self.node_id.encode()[:16].ljust(16, b'\x00')
+
+        return (
+            PHI_PULSE_MAGIC +
+            bytes([PHI_PULSE_VERSION]) +
+            node_bytes +
+            struct.pack(">H", self.port) +
+            struct.pack(">d", self.temporal_seed) +
+            struct.pack(">I", self.capabilities)
+        )
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> Optional['PhiPulsePacket']:
+        """Deserialize from binary format."""
+        if len(data) < cls.PACKET_SIZE:
+            return None
+
+        if data[:4] != PHI_PULSE_MAGIC:
+            return None
+
+        version = data[4]
+        if version != PHI_PULSE_VERSION:
+            return None
+
+        node_id = data[5:21].rstrip(b'\x00').decode()
+        port = struct.unpack(">H", data[21:23])[0]
+        temporal_seed = struct.unpack(">d", data[23:31])[0]
+        capabilities = struct.unpack(">I", data[31:35])[0]
+
+        return cls(
+            node_id=node_id,
+            port=port,
+            temporal_seed=temporal_seed,
+            capabilities=capabilities
+        )
+
+    def verify_temporal_seed(self, max_drift: float = 300.0) -> bool:
+        """Verify temporal seed is recent (within max_drift seconds)."""
+        now = time.time()
+        # Temporal seed is φ-scaled timestamp, convert back to check age
+        packet_time = self.temporal_seed / PHI
+        age = abs(now - packet_time)
+        return age < max_drift
+
+
+class PhiPulse:
+    """
+    Phi-Pulse: UDP Broadcast Discovery Service.
+
+    The "Beating Heart" of BAZINGA P2P network.
+
+    Sends periodic UDP broadcasts to discover peers on local network.
+    More reliable than mDNS on some routers/networks.
+
+    Features:
+    - Broadcasts every φ×8 (~13) seconds
+    - Compact 35-byte packets
+    - Temporal seed for freshness verification
+    - Integrates with PersistenceManager for peer storage
+
+    Usage:
+        pulse = PhiPulse(node_id="0x-auth", port=5151)
+        await pulse.start()
+        # Peers discovered automatically
+        pulse.stop()
+    """
+
+    def __init__(
+        self,
+        node_id: str,
+        listen_port: int = 5151,
+        broadcast_port: int = PHI_PULSE_PORT,
+        on_peer_found: Optional[Callable[[str, str, int], None]] = None,
+    ):
+        """
+        Initialize Phi-Pulse.
+
+        Args:
+            node_id: This node's unique identifier
+            listen_port: Port this node listens on for P2P connections
+            broadcast_port: UDP port for Phi-Pulse broadcasts
+            on_peer_found: Callback(node_id, ip, port) when peer discovered
+        """
+        self.node_id = node_id
+        self.listen_port = listen_port
+        self.broadcast_port = broadcast_port
+        self.on_peer_found = on_peer_found
+
+        # Sockets
+        self._send_sock: Optional[socket.socket] = None
+        self._recv_sock: Optional[socket.socket] = None
+
+        # State
+        self.running = False
+        self._send_thread: Optional[threading.Thread] = None
+        self._recv_thread: Optional[threading.Thread] = None
+
+        # Stats
+        self.pulses_sent = 0
+        self.pulses_received = 0
+        self.peers_discovered = 0
+
+        # Persistence integration
+        self._persistence = None
+        try:
+            from ..p2p.persistence import get_persistence_manager, PeerRecord
+            self._persistence = get_persistence_manager()
+            self._PeerRecord = PeerRecord
+        except ImportError:
+            pass
+
+    def start(self):
+        """Start Phi-Pulse discovery (non-blocking)."""
+        if self.running:
+            return
+
+        self.running = True
+
+        # Create broadcast socket
+        self._send_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._send_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self._send_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # Create receive socket
+        self._recv_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._recv_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            self._recv_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        except AttributeError:
+            pass
+        self._recv_sock.bind(('', self.broadcast_port))
+        self._recv_sock.settimeout(1.0)
+
+        # Start threads
+        self._send_thread = threading.Thread(target=self._send_loop, daemon=True)
+        self._recv_thread = threading.Thread(target=self._recv_loop, daemon=True)
+
+        self._send_thread.start()
+        self._recv_thread.start()
+
+        print(f"⚡ Phi-Pulse started: node={self.node_id[:8]}... port={self.broadcast_port}")
+
+    def stop(self):
+        """Stop Phi-Pulse discovery."""
+        self.running = False
+
+        if self._send_sock:
+            self._send_sock.close()
+        if self._recv_sock:
+            self._recv_sock.close()
+
+        print(f"⚡ Phi-Pulse stopped: sent={self.pulses_sent} received={self.pulses_received}")
+
+    def _send_loop(self):
+        """Background thread: send periodic pulses."""
+        while self.running:
+            try:
+                self._send_pulse()
+                self.pulses_sent += 1
+            except Exception as e:
+                if self.running:
+                    print(f"Phi-Pulse send error: {e}")
+
+            # φ-scaled interval with jitter
+            interval = PHI_PULSE_INTERVAL + (random.random() - 0.5) * 2
+            time.sleep(interval)
+
+    def _send_pulse(self):
+        """Send a single Phi-Pulse broadcast."""
+        packet = PhiPulsePacket(
+            node_id=self.node_id,
+            port=self.listen_port,
+            temporal_seed=time.time() * PHI,
+            capabilities=0  # TODO: Add capability flags
+        )
+
+        data = packet.to_bytes()
+
+        # Broadcast to 255.255.255.255
+        self._send_sock.sendto(data, ('255.255.255.255', self.broadcast_port))
+
+        # Also try common local network broadcasts
+        for subnet in ['192.168.1.255', '192.168.0.255', '10.0.0.255', '172.16.0.255']:
+            try:
+                self._send_sock.sendto(data, (subnet, self.broadcast_port))
+            except Exception:
+                pass
+
+    def _recv_loop(self):
+        """Background thread: receive pulses from other nodes."""
+        while self.running:
+            try:
+                data, addr = self._recv_sock.recvfrom(1024)
+                self._handle_pulse(data, addr)
+            except socket.timeout:
+                continue
+            except Exception as e:
+                if self.running:
+                    print(f"Phi-Pulse recv error: {e}")
+
+    def _handle_pulse(self, data: bytes, addr: Tuple[str, int]):
+        """Handle received Phi-Pulse packet."""
+        packet = PhiPulsePacket.from_bytes(data)
+        if not packet:
+            return
+
+        # Ignore our own packets
+        if packet.node_id == self.node_id or packet.node_id.startswith(self.node_id[:8]):
+            return
+
+        # Verify temporal freshness
+        if not packet.verify_temporal_seed():
+            return
+
+        self.pulses_received += 1
+
+        ip = addr[0]
+        port = packet.port
+
+        # Log discovery
+        print(f"⚡ Found peer: {packet.node_id[:12]}... at {ip}:{port}")
+
+        # Save to persistence
+        if self._persistence:
+            peer_record = self._PeerRecord(
+                node_id=packet.node_id,
+                ip=ip,
+                port=port,
+                last_seen=time.time(),
+                trust_score=0.5,  # Default trust
+            )
+            self._persistence.save_peer(peer_record)
+            self._persistence.log_discovery(
+                event_type="phi_pulse",
+                node_id=packet.node_id,
+                ip=ip,
+                port=port
+            )
+            self.peers_discovered += 1
+
+        # Callback
+        if self.on_peer_found:
+            self.on_peer_found(packet.node_id, ip, port)
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get Phi-Pulse statistics."""
+        return {
+            'running': self.running,
+            'node_id': self.node_id,
+            'broadcast_port': self.broadcast_port,
+            'listen_port': self.listen_port,
+            'pulses_sent': self.pulses_sent,
+            'pulses_received': self.pulses_received,
+            'peers_discovered': self.peers_discovered,
+            'pulse_interval': PHI_PULSE_INTERVAL,
+        }
+
+
 # Test
 if __name__ == "__main__":
     print("=" * 60)
