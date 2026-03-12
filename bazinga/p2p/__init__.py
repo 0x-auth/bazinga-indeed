@@ -59,6 +59,21 @@ from .gradient_sharing import (
     AggregatedGradient,
 )
 
+# Persistence (SQLite-backed storage)
+from .persistence import (
+    PersistenceManager,
+    PeerRecord,
+    DHTEntry,
+    get_persistence_manager,
+)
+
+# HF Registry (Global peer discovery)
+from .hf_registry import (
+    HFNetworkRegistry,
+    GlobalDiscovery,
+    RemotePeer,
+)
+
 __all__ = [
     # Unified API (recommended)
     'BAZINGANetwork',
@@ -100,4 +115,13 @@ __all__ = [
     'AlphaSeedNetwork',
     'is_alpha_seed',
     'BAZINGA_DHT',
+    # Persistence (NEW!)
+    'PersistenceManager',
+    'PeerRecord',
+    'DHTEntry',
+    'get_persistence_manager',
+    # HF Registry (NEW!)
+    'HFNetworkRegistry',
+    'GlobalDiscovery',
+    'RemotePeer',
 ]

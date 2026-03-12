@@ -2213,10 +2213,10 @@ Provide a concise, helpful answer based on the above context. If the context doe
     # Handle --phi-pulse (standalone Phi-Pulse discovery)
     if getattr(args, 'phi_pulse', False):
         print(f"\n{'='*60}")
-        print(f"  BAZINGA Phi-Pulse Discovery")
+        print(f"  BAZINGA Global Discovery (Local + HF Registry)")
         print(f"{'='*60}")
 
-        from .decentralized.peer_discovery import PhiPulse
+        from .p2p.hf_registry import GlobalDiscovery
         import hashlib
 
         # Generate node ID
@@ -2229,31 +2229,46 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
         print(f"\n  Node ID: {node_id}")
         print(f"  P2P Port: {p2p_port}")
-        print(f"  Broadcast Port: 5150")
-        print(f"\n  Starting Phi-Pulse...")
+        print(f"  Local Broadcast: 5150 (Phi-Pulse)")
+        print(f"  Global Registry: bitsabhi-bazinga.hf.space")
 
-        def on_peer_found(peer_id, ip, port):
-            print(f"  ⚡ Found peer: {peer_id[:12]}... at {ip}:{port}")
+        async def run_global_discovery():
+            discovery = GlobalDiscovery(
+                node_id=node_id,
+                node_name=node_id[:8],
+                port=p2p_port,
+                enable_local=True,
+                enable_global=True,
+            )
 
-        pulse = PhiPulse(
-            node_id=node_id,
-            listen_port=p2p_port,
-            on_peer_found=on_peer_found,
-        )
-        pulse.start()
+            print(f"\n  Starting discovery...")
+            await discovery.start()
 
-        print(f"  Phi-Pulse running! Press Ctrl+C to stop.\n")
+            print(f"\n  Discovery running! Press Ctrl+C to stop.\n")
 
-        try:
-            import time
-            while True:
-                time.sleep(30)
-                stats = pulse.get_stats()
-                print(f"  Stats: sent={stats['pulses_sent']} received={stats['pulses_received']} discovered={stats['peers_discovered']}")
-        except KeyboardInterrupt:
-            print(f"\n  Stopping Phi-Pulse...")
-            pulse.stop()
+            try:
+                while True:
+                    await asyncio.sleep(30)
 
+                    # Get all peers (local + global)
+                    all_peers = await discovery.get_all_peers()
+                    local_count = len(all_peers.get('local', []))
+                    global_count = len(all_peers.get('global', []))
+
+                    stats = discovery.get_stats()
+                    phi_pulse_stats = stats.get('phi_pulse', {})
+                    hf_stats = stats.get('hf_registry', {})
+
+                    print(f"  Peers: local={local_count} global={global_count} | "
+                          f"Pulses: sent={phi_pulse_stats.get('pulses_sent', 0)} "
+                          f"recv={phi_pulse_stats.get('pulses_received', 0)} | "
+                          f"HF: queries={hf_stats.get('query_count', 0)}")
+
+            except KeyboardInterrupt:
+                print(f"\n  Stopping discovery...")
+                await discovery.stop()
+
+        await run_global_discovery()
         return
 
     # Handle --peers
@@ -2274,7 +2289,8 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
         # Query HF registry for global peers
         async def fetch_hf_peers():
-            hf_registry = HFNetworkRegistry()
+            from .p2p.hf_registry import HFNetworkRegistry as HFRegistry
+            hf_registry = HFRegistry()
             print(f"\n  📡 Querying HF Network Registry...")
             result = await hf_registry.get_stats()
             if result.get("success"):
@@ -2283,15 +2299,16 @@ Provide a concise, helpful answer based on the above context. If the context doe
                 print(f"    Total Nodes: {result.get('total_nodes', 0)}")
                 print(f"    Consciousness Ψ_D: {result.get('consciousness_psi', 0):.2f}x")
 
-                # Get peer list
-                peers_result = await hf_registry.get_peers()
-                if peers_result.get("success") and peers_result.get("peers"):
-                    print(f"\n  Available Peers ({peers_result['peer_count']}):")
-                    for peer in peers_result["peers"][:10]:
-                        status = "🟢" if peer.get("active") else "⚪"
-                        print(f"    {status} {peer['name']}: {peer.get('address', 'no address')}")
+                # Get peer list (using new RemotePeer objects)
+                peers = await hf_registry.get_peers()
+                if peers:
+                    print(f"\n  Available Peers ({len(peers)}):")
+                    for peer in peers[:10]:
+                        status = "🟢" if peer.active else "⚪"
+                        reachable = "✓" if peer.is_reachable else "?"
+                        print(f"    {status} {peer.name}: {peer.endpoint} [{reachable}]")
             else:
-                print(f"    ⚠ HF Registry unavailable")
+                print(f"    ⚠ HF Registry unavailable: {result.get('error', 'unknown')}")
 
         await fetch_hf_peers()
 
