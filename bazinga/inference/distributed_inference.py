@@ -564,6 +564,40 @@ class DistributedInference:
             'pipeline_cache_size': len(self.pipeline_cache),
         }
 
+    def get_redundant_pipeline(self, model_id: str, num_layers: int) -> List[List[str]]:
+        """
+        Build a pipeline with backup nodes for each segment.
+
+        Ensures fault tolerance - if primary node fails, backups are ready.
+
+        Args:
+            model_id: The model to build pipeline for
+            num_layers: Total layers in the model
+
+        Returns:
+            List of [primary, backup1, backup2] for each pipeline segment
+        """
+        import asyncio
+        pipeline = asyncio.get_event_loop().run_until_complete(
+            self.build_pipeline(model_id, num_layers)
+        )
+        redundant_pipeline = []
+
+        for node_id in pipeline:
+            # Get top 2 backups for each layer segment
+            cap = self.capabilities.get(node_id)
+            if cap:
+                backups = [
+                    n_id for n_id, c in self.capabilities.items()
+                    if c.layer_start <= cap.layer_start and c.layer_end >= cap.layer_end
+                    and n_id != node_id
+                ][:2]
+                redundant_pipeline.append([node_id] + backups)
+            else:
+                redundant_pipeline.append([node_id])
+
+        return redundant_pipeline
+
 
 # Test
 if __name__ == "__main__":

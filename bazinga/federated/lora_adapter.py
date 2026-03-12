@@ -370,6 +370,29 @@ if TORCH_AVAILABLE:
                 'phi_scaling': self.config.phi_scaling,
             }
 
+        def apply_to_model(self):
+            """
+            Monkey-patch the base model to use LoRA layers.
+
+            This injects LoRA hooks into the forward pass of target modules,
+            making the LoRA adaptation actually execute during inference/training.
+            """
+            for name, module in self.base_model.named_modules():
+                lora_key = name.replace('.', '_')
+                if lora_key in self.lora_layers:
+                    # Store original forward
+                    original_forward = module.forward
+                    lora_layer = self.lora_layers[lora_key]
+
+                    def make_new_forward(m, ll, orig):
+                        def new_forward(x):
+                            return ll(x, orig(x))
+                        return new_forward
+
+                    module.forward = make_new_forward(module, lora_layer, original_forward)
+
+            print("🚀 LoRA Hooks injected into Base Model.")
+
 
     def create_lora_model(
         base_model: nn.Module,

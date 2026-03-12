@@ -755,6 +755,28 @@ Be specific and actionable in your feedback.""",
 
         return stats
 
+    def add_local_provider(self, port: int = 8080):
+        """
+        Add local BAZINGA node as highest priority provider.
+
+        This enables "local-first" inference - always try the user's
+        own node before falling back to cloud APIs.
+
+        Args:
+            port: Port where local BAZINGA inference server is running
+        """
+        local = LLMProvider(
+            name="BazingaLocal",
+            base_url=f"http://localhost:{port}/v1",
+            api_key_env="LOCAL_NODE_KEY",  # Usually 'dummy' for local
+            model="bazinga-lora-3b",
+            is_free=True,
+            requests_per_minute=1000,
+            priority=0,  # Highest priority - always try local first
+        )
+        self.providers["BazingaLocal"] = local
+        print(f"🏠 Local Node added to orchestrator on port {port}")
+
 
 # Convenience function for simple usage
 async def ask_bazinga(
@@ -810,3 +832,4 @@ if __name__ == "__main__":
         print(f"\n\nStats: {json.dumps(orchestrator.get_stats(), indent=2)}")
 
     asyncio.run(test())
+
