@@ -1256,6 +1256,12 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                            help='Publish to DHT')
     p2p_group.add_argument('--query-network', type=str, metavar='Q',
                            help='Query network')
+    p2p_group.add_argument('--port', type=int, default=5151,
+                           help='P2P listening port (default: 5151, allows multi-instance testing)')
+    p2p_group.add_argument('--node-id', type=str, default=None,
+                           help='Custom node ID (default: auto-generated)')
+    p2p_group.add_argument('--phi-pulse', action='store_true',
+                           help='Start Phi-Pulse discovery (UDP broadcast on port 5150)')
 
     # === INFO ===
     info_group = parser.add_argument_group('Info')
@@ -1308,8 +1314,79 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
     parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--demo', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--generate', type=str, help=argparse.SUPPRESS)
+    parser.add_argument('--no-p2p', action='store_true', help=argparse.SUPPRESS)  # Disable auto P2P
 
     args = parser.parse_args()
+
+    # =====================================================
+    # AUTO-START PHI-PULSE (Background P2P Discovery)
+    # =====================================================
+    # Start Phi-Pulse automatically for interactive modes
+    # unless --no-p2p is specified
+    _phi_pulse_instance = None
+
+    def _start_background_p2p():
+        """Start Phi-Pulse in background for peer discovery."""
+        nonlocal _phi_pulse_instance
+        if getattr(args, 'no_p2p', False):
+            return
+
+        # Only start for interactive modes or explicit P2P commands
+        is_interactive = (
+            getattr(args, 'chat', False) or
+            getattr(args, 'join', None) is not None or
+            (args.question is None and not any([
+                getattr(args, 'ask', None),
+                getattr(args, 'version', False),
+                getattr(args, 'check', False),
+                getattr(args, 'help_all', False),
+            ]))
+        )
+
+        if not is_interactive:
+            return
+
+        try:
+            from .decentralized.peer_discovery import PhiPulse
+            from .p2p.persistence import get_persistence_manager
+            import hashlib
+            import os
+
+            # Generate or load node ID
+            pm = get_persistence_manager()
+            node_id = pm.get_state('node_id')
+            if not node_id:
+                node_id = hashlib.sha256(os.urandom(32)).hexdigest()[:16]
+                pm.set_state('node_id', node_id)
+
+            p2p_port = getattr(args, 'port', 5151)
+
+            def on_peer_found(peer_id, ip, port):
+                # Silently save to persistence
+                pass  # Already saved by PhiPulse internally
+
+            _phi_pulse_instance = PhiPulse(
+                node_id=node_id,
+                listen_port=p2p_port,
+                on_peer_found=on_peer_found,
+            )
+            _phi_pulse_instance.start()
+
+            # Load and check known peers from last session
+            known_peers = pm.get_known_peers(limit=10, max_age_hours=24)
+            if known_peers:
+                print(f"  📡 Loaded {len(known_peers)} known peers from last session")
+
+        except Exception as e:
+            # Silently fail - P2P is optional
+            pass
+
+    def _stop_background_p2p():
+        """Stop Phi-Pulse when CLI exits."""
+        nonlocal _phi_pulse_instance
+        if _phi_pulse_instance:
+            _phi_pulse_instance.stop()
+            _phi_pulse_instance = None
 
     # Handle extended help options
     if hasattr(args, 'help_all') and args.help_all:
@@ -2050,12 +2127,19 @@ Provide a concise, helpful answer based on the above context. If the context doe
                 print(f"    PoB invalid, using anyway for testing")
 
             # Create DHT bridge with PoB identity
+            p2p_port = getattr(args, 'port', 5151)
+            custom_node_id = getattr(args, 'node_id', None)
+
             bridge = DHTBridge(
                 alpha=pob.alpha,
                 omega=pob.omega,
-                port=5150,
+                port=p2p_port,
                 uses_local_model=uses_local_model,
             )
+
+            if custom_node_id:
+                bridge.node_id = custom_node_id
+                print(f"  Using custom node ID: {custom_node_id[:16]}...")
 
             # Start DHT node
             await bridge.start()
@@ -2124,6 +2208,52 @@ Provide a concise, helpful answer based on the above context. If the context doe
                 await bridge.stop()
 
         await join_network()
+        return
+
+    # Handle --phi-pulse (standalone Phi-Pulse discovery)
+    if getattr(args, 'phi_pulse', False):
+        print(f"\n{'='*60}")
+        print(f"  BAZINGA Phi-Pulse Discovery")
+        print(f"{'='*60}")
+
+        from .decentralized.peer_discovery import PhiPulse
+        import hashlib
+
+        # Generate node ID
+        node_id = getattr(args, 'node_id', None)
+        if not node_id:
+            import os
+            node_id = hashlib.sha256(os.urandom(32)).hexdigest()[:16]
+
+        p2p_port = getattr(args, 'port', 5151)
+
+        print(f"\n  Node ID: {node_id}")
+        print(f"  P2P Port: {p2p_port}")
+        print(f"  Broadcast Port: 5150")
+        print(f"\n  Starting Phi-Pulse...")
+
+        def on_peer_found(peer_id, ip, port):
+            print(f"  ⚡ Found peer: {peer_id[:12]}... at {ip}:{port}")
+
+        pulse = PhiPulse(
+            node_id=node_id,
+            listen_port=p2p_port,
+            on_peer_found=on_peer_found,
+        )
+        pulse.start()
+
+        print(f"  Phi-Pulse running! Press Ctrl+C to stop.\n")
+
+        try:
+            import time
+            while True:
+                time.sleep(30)
+                stats = pulse.get_stats()
+                print(f"  Stats: sent={stats['pulses_sent']} received={stats['pulses_received']} discovered={stats['peers_discovered']}")
+        except KeyboardInterrupt:
+            print(f"\n  Stopping Phi-Pulse...")
+            pulse.stop()
+
         return
 
     # Handle --peers
@@ -3076,20 +3206,27 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --chat (interactive chat with memory)
     if args.chat:
+        # Start background P2P discovery
+        _start_background_p2p()
+
         bazinga = BAZINGA(verbose=args.verbose)
         if args.local:
             bazinga.use_local = True
 
         # Try TUI first, fallback to simple chat
-        if not args.simple:
-            try:
-                from .tui import run_tui_async
-                await run_tui_async(bazinga_instance=bazinga, mode="chat")
-                return
-            except ImportError:
-                pass  # Fall through to simple mode
+        try:
+            if not args.simple:
+                try:
+                    from .tui import run_tui_async
+                    await run_tui_async(bazinga_instance=bazinga, mode="chat")
+                    return
+                except ImportError:
+                    pass  # Fall through to simple mode
 
-        await bazinga.chat_interactive()
+            await bazinga.chat_interactive()
+        finally:
+            # Clean up P2P on exit
+            _stop_background_p2p()
         return
 
     # Handle ask (--ask or positional question)
