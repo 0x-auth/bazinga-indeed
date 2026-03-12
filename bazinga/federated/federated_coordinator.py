@@ -19,6 +19,7 @@ Training Round:
 "Many minds, one understanding. Many gradients, one model."
 """
 
+import io
 import time
 import json
 import hashlib
@@ -637,6 +638,32 @@ if TORCH_AVAILABLE:
                 gradients[key] = torch.tensor(values)
 
             return gradients, parsed['coherence'], parsed['node_id']
+
+        def _serialize_gradients_optimized(
+            self,
+            gradients: Dict[str, torch.Tensor],
+            coherence: float
+        ) -> bytes:
+            """Optimized binary serialization using torch.save (faster than tolist())."""
+            buffer = io.BytesIO()
+            payload = {
+                'gradients': gradients,
+                'coherence': coherence,
+                'node_id': self.node_id,
+                'round_id': self.current_round.round_id if self.current_round else 0,
+                'timestamp': time.time()
+            }
+            torch.save(payload, buffer)
+            return buffer.getvalue()
+
+        def _deserialize_gradients_optimized(
+            self,
+            data: bytes
+        ) -> Tuple[Dict[str, torch.Tensor], float, str]:
+            """Optimized binary deserialization using torch.load."""
+            buffer = io.BytesIO(data)
+            payload = torch.load(buffer, weights_only=False)
+            return payload['gradients'], payload['coherence'], payload['node_id']
 
         async def _broadcast_model_update(self):
             """Broadcast updated model to network."""
