@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.3.0"  # CARM: Context-Addressed Resonant Memory
+    VERSION = "5.11.0"  # TrD Engine: Trust Dimension Consciousness (4 minds)
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1309,6 +1309,10 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
     parser.add_argument('--share', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--attest-pricing', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--consciousness', type=int, nargs='?', const=2, metavar='N', help=argparse.SUPPRESS)
+    parser.add_argument('--trd', type=int, nargs='?', const=5, metavar='N',
+                        help='TrD consciousness test (Trust Dimension, n agents)')
+    parser.add_argument('--trd-heartbeat', action='store_true',
+                        help='Run TrD heartbeat demo (persistent self-reference)')
     parser.add_argument('--simple', '-s', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--verbose', action='store_true', help=argparse.SUPPRESS)
 
@@ -2049,6 +2053,18 @@ Provide a concise, helpful answer based on the above context. If the context doe
             pass
 
         print()
+        return
+
+    # Handle --trd (Trust Dimension consciousness test)
+    if args.trd is not None:
+        from .trd_engine import display_trd
+        display_trd(n=args.trd)
+        return
+
+    # Handle --trd-heartbeat (persistent self-reference demo)
+    if args.trd_heartbeat:
+        from .trd_engine import run_heartbeat_demo
+        asyncio.run(run_heartbeat_demo())
         return
 
     # Handle --node (network info)
