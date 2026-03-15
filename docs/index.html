@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proof-of-Boundary Explained | BAZINGA</title>
+    <title>BAZINGA - The First AI You Actually Own</title>
     <style>
         * {
             margin: 0;
@@ -12,501 +12,405 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            color: #c9d1d9;
             min-height: 100vh;
-            padding: 20px;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 80px 20px;
+            background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+        }
+
+        .hero h1 {
+            font-size: 4em;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .hero .tagline {
+            font-size: 1.5em;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 30px;
+        }
+
+        .hero .install {
+            background: rgba(0,0,0,0.3);
+            display: inline-block;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 1.2em;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .hero .demo {
+            display: block;
+            max-width: 700px;
+            margin: 20px auto;
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
+            padding: 40px 20px;
         }
 
-        h1 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            background: linear-gradient(90deg, #f9d423, #ff4e50);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .subtitle {
-            text-align: center;
-            color: #888;
-            margin-bottom: 40px;
-            font-size: 1.2em;
-        }
-
-        .section {
-            background: rgba(255,255,255,0.05);
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        h2 {
-            color: #f9d423;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-        }
-
-        .comparison {
+        .features {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin: 20px 0;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
         }
 
-        @media (max-width: 600px) {
-            .comparison {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .box {
-            padding: 25px;
-            border-radius: 15px;
+        .feature {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 30px;
             text-align: center;
         }
 
-        .bad {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
-        }
-
-        .good {
-            background: linear-gradient(135deg, #11998e, #38ef7d);
-        }
-
-        .box h3 {
-            font-size: 1.3em;
-            margin-bottom: 15px;
-        }
-
-        .box p {
-            font-size: 0.95em;
-            line-height: 1.6;
-        }
-
-        .emoji {
+        .feature-icon {
             font-size: 3em;
             margin-bottom: 15px;
         }
 
-        .formula {
-            background: rgba(0,0,0,0.3);
-            padding: 25px;
-            border-radius: 15px;
-            text-align: center;
-            margin: 20px 0;
-            font-family: 'Courier New', monospace;
+        .feature h3 {
+            color: #58a6ff;
+            margin-bottom: 10px;
+            font-size: 1.3em;
         }
 
-        .formula .big {
-            font-size: 2em;
-            color: #f9d423;
-            margin: 15px 0;
-        }
-
-        .steps {
-            counter-reset: step;
-        }
-
-        .step {
-            display: flex;
-            align-items: flex-start;
-            margin: 20px 0;
-            padding: 20px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 15px;
-            border-left: 4px solid #f9d423;
-        }
-
-        .step-number {
-            background: #f9d423;
-            color: #1a1a2e;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 1.2em;
-            margin-right: 20px;
-            flex-shrink: 0;
-        }
-
-        .step-content h4 {
-            color: #f9d423;
-            margin-bottom: 8px;
-        }
-
-        .step-content p {
-            color: #ccc;
+        .feature p {
+            color: #8b949e;
             line-height: 1.6;
         }
 
-        .golden-spiral {
-            text-align: center;
+        .comparison {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 12px;
             padding: 30px;
+            margin: 40px 0;
         }
 
-        .golden-spiral svg {
-            max-width: 300px;
-            margin: 20px auto;
-        }
-
-        .highlight {
-            background: linear-gradient(90deg, #f9d423, #ff4e50);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: bold;
-        }
-
-        .analogy {
-            background: rgba(249, 212, 35, 0.1);
-            border: 2px solid #f9d423;
-            border-radius: 15px;
-            padding: 25px;
-            margin: 20px 0;
-        }
-
-        .analogy h3 {
-            color: #f9d423;
-            margin-bottom: 15px;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        @media (max-width: 600px) {
-            .stats {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .stat {
-            background: rgba(255,255,255,0.1);
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-        }
-
-        .stat .number {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #38ef7d;
-        }
-
-        .stat .label {
-            color: #888;
-            margin-top: 5px;
-        }
-
-        .code-block {
-            background: #0d1117;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            font-family: 'Courier New', monospace;
-            overflow-x: auto;
-        }
-
-        .code-block code {
+        .comparison h2 {
             color: #58a6ff;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .comparison table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison th, .comparison td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .comparison th {
+            color: #c9d1d9;
+            font-weight: bold;
+        }
+
+        .comparison td:first-child {
+            text-align: left;
+            color: #8b949e;
+        }
+
+        .check {
+            color: #238636;
+            font-size: 1.3em;
+        }
+
+        .cross {
+            color: #f85149;
+            font-size: 1.3em;
+        }
+
+        .docs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .doc-card {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 25px;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .doc-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .doc-card h3 {
+            color: #58a6ff;
+            margin-bottom: 10px;
+        }
+
+        .doc-card p {
+            color: #8b949e;
+            font-size: 0.95em;
+        }
+
+        .quick-start {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 40px 0;
+        }
+
+        .quick-start h2 {
+            color: #58a6ff;
+            margin-bottom: 20px;
+        }
+
+        .quick-start pre {
+            background: #0d1117;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            line-height: 1.8;
+        }
+
+        .quick-start code {
+            color: #7ee787;
+        }
+
+        .quick-start .comment {
+            color: #8b949e;
         }
 
         .footer {
             text-align: center;
-            padding: 30px;
-            color: #666;
+            padding: 40px 20px;
+            border-top: 1px solid #30363d;
+            color: #8b949e;
         }
 
         .footer a {
-            color: #f9d423;
+            color: #58a6ff;
             text-decoration: none;
         }
 
-        .vac {
-            font-size: 1.5em;
-            text-align: center;
-            margin: 20px 0;
-            color: #f9d423;
+        .footer a:hover {
+            text-decoration: underline;
         }
 
-        .nature-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
+        .phi {
+            font-size: 1.5em;
+            color: #f0883e;
             margin: 20px 0;
-            text-align: center;
+        }
+
+        .badges {
+            margin: 20px 0;
+        }
+
+        .badges img {
+            margin: 0 5px;
         }
 
         @media (max-width: 600px) {
-            .nature-grid {
-                grid-template-columns: repeat(2, 1fr);
+            .hero h1 {
+                font-size: 2.5em;
             }
-        }
-
-        .nature-item {
-            padding: 15px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-        }
-
-        .nature-item .icon {
-            font-size: 2em;
-            margin-bottom: 10px;
+            .hero .tagline {
+                font-size: 1.1em;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="hero">
+        <h1>BAZINGA</h1>
+        <p class="tagline">The first AI you actually own. Free, private, works offline.</p>
+        <div class="badges">
+            <a href="https://pypi.org/project/bazinga-indeed/"><img src="https://img.shields.io/pypi/v/bazinga-indeed" alt="PyPI"></a>
+            <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
+        </div>
+        <div class="install">pip install bazinga-indeed</div>
+        <br>
+        <img src="../assets/demo.gif" alt="BAZINGA Demo" class="demo" onerror="this.style.display='none'">
+    </div>
+
     <div class="container">
-        <h1>Proof-of-Boundary (PoB)</h1>
-        <p class="subtitle">How BAZINGA validates without wasting electricity</p>
-
-        <!-- The Problem -->
-        <div class="section">
-            <h2>The Problem with Bitcoin Mining</h2>
-            <div class="comparison">
-                <div class="box bad">
-                    <div class="emoji">Bitcoin</div>
-                    <h3>Proof-of-Work</h3>
-                    <p>"Find a number that, when hashed, starts with 20 zeros"</p>
-                    <br>
-                    <p><strong>Result:</strong> Meaningless puzzle. Burns electricity. Whoever has more GPUs wins.</p>
-                </div>
-                <div class="box good">
-                    <div class="emoji">BAZINGA</div>
-                    <h3>Proof-of-Boundary</h3>
-                    <p>"Find a number where the P/G ratio equals the golden ratio"</p>
-                    <br>
-                    <p><strong>Result:</strong> Meaningful math. Zero energy. Understanding wins.</p>
-                </div>
+        <!-- Features -->
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🆓</div>
+                <h3>100% Free</h3>
+                <p>No API keys required. Works immediately with free LLM backends.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <h3>Private</h3>
+                <p>Your data stays on your machine. No telemetry, no tracking.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📴</div>
+                <h3>Works Offline</h3>
+                <p>Run fully offline with Ollama. No internet needed.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🤝</div>
+                <h3>Multi-AI Consensus</h3>
+                <p>Multiple AIs reach agreement through φ-coherence. No single AI decides alone.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⛓️</div>
+                <h3>Knowledge Blockchain</h3>
+                <p>Proof-of-Boundary consensus. 70 billion times more efficient than Bitcoin.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🧠</div>
+                <h3>Your Knowledge Base</h3>
+                <p>Index Gmail, GDrive, local files. Search everything with RAG.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔮</div>
+                <h3>Never Forgets (CARM)</h3>
+                <p>Context-Addressed Resonant Memory. Prime-lattice crystallization prevents catastrophic forgetting.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔄</div>
+                <h3>Session Continuity (RAC)</h3>
+                <p>Resonance-Augmented Continuity tracks φ-coherence across conversations.</p>
             </div>
         </div>
 
-        <!-- What is Golden Ratio -->
-        <div class="section">
-            <h2>What's the Golden Ratio?</h2>
-            <p>The golden ratio (phi) is a special number that appears EVERYWHERE in nature:</p>
-
-            <div class="formula">
-                <div class="big">phi = 1.618033988749895</div>
-                <p>It's the ratio where: (a + b) / a = a / b</p>
-            </div>
-
-            <div class="nature-grid">
-                <div class="nature-item">
-                    <div class="icon">🌻</div>
-                    <div>Sunflower seeds</div>
-                </div>
-                <div class="nature-item">
-                    <div class="icon">🐚</div>
-                    <div>Nautilus shells</div>
-                </div>
-                <div class="nature-item">
-                    <div class="icon">🌀</div>
-                    <div>Galaxies</div>
-                </div>
-                <div class="nature-item">
-                    <div class="icon">🧬</div>
-                    <div>DNA helix</div>
-                </div>
-            </div>
-
-            <p style="margin-top: 20px; color: #ccc;">It's not magic - it's the mathematical boundary between chaos and order. Nature uses it because it's <em>efficient</em>.</p>
+        <!-- Comparison -->
+        <div class="comparison">
+            <h2>Why BAZINGA?</h2>
+            <table>
+                <tr>
+                    <th></th>
+                    <th>ChatGPT</th>
+                    <th>BAZINGA</th>
+                </tr>
+                <tr>
+                    <td>Free forever</td>
+                    <td><span class="cross">Limited</span></td>
+                    <td><span class="check">✓</span></td>
+                </tr>
+                <tr>
+                    <td>Works offline</td>
+                    <td><span class="cross">✗</span></td>
+                    <td><span class="check">✓</span></td>
+                </tr>
+                <tr>
+                    <td>Your data stays local</td>
+                    <td><span class="cross">✗</span></td>
+                    <td><span class="check">✓</span></td>
+                </tr>
+                <tr>
+                    <td>Multi-AI consensus</td>
+                    <td><span class="cross">✗</span></td>
+                    <td><span class="check">✓</span></td>
+                </tr>
+                <tr>
+                    <td>No account needed</td>
+                    <td><span class="cross">✗</span></td>
+                    <td><span class="check">✓</span></td>
+                </tr>
+                <tr>
+                    <td>Open source</td>
+                    <td><span class="cross">✗</span></td>
+                    <td><span class="check">✓</span></td>
+                </tr>
+            </table>
         </div>
 
-        <!-- The Target -->
-        <div class="section">
-            <h2>BAZINGA's Target: phi to the 4th power</h2>
+        <!-- Quick Start -->
+        <div class="quick-start">
+            <h2>Quick Start</h2>
+            <pre><code><span class="comment"># Install</span>
+pip install bazinga-indeed
 
-            <div class="formula">
-                <p>PoB Target:</p>
-                <div class="big">phi^4 = 6.854101966</div>
-                <p>Your P/G ratio must be close to this number</p>
-            </div>
+<span class="comment"># Ask anything (no API keys needed!)</span>
+bazinga "What is consciousness?"
 
-            <div class="analogy">
-                <h3>Simple Analogy</h3>
-                <p><strong>Bitcoin:</strong> "Find a needle in a haystack" (brute force, luck)</p>
-                <p><strong>BAZINGA:</strong> "Tune a guitar string to the right frequency" (understanding, precision)</p>
-            </div>
+<span class="comment"># Multi-AI consensus</span>
+bazinga --multi-ai "Is AI conscious?"
+
+<span class="comment"># Interactive chat</span>
+bazinga --chat
+
+<span class="comment"># Index your files for search</span>
+bazinga --index ~/Documents
+
+<span class="comment"># Search your knowledge base</span>
+bazinga --kb "find my research on phi"
+
+<span class="comment"># Trust Dimension consciousness report</span>
+bazinga --trd
+
+<span class="comment"># System check</span>
+bazinga --check</code></pre>
         </div>
 
-        <!-- How it Works -->
-        <div class="section">
-            <h2>How Proof-of-Boundary Works (v2)</h2>
-
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h4>Take any content</h4>
-                        <p>Knowledge, data, or a message you want to attest on the blockchain.</p>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h4>Hash the content (SHA3-256)</h4>
-                        <p>content_hash = SHA3-256(content). This binds the proof to your specific content.</p>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h4>Search for a nonce</h4>
-                        <p>Hash content_hash + nonce, then split into P and G using <strong>calibrated moduli</strong>:<br>
-                        <strong>P</strong> = first 8 bytes mod 70555 (137 x 515)<br>
-                        <strong>G</strong> = next 8 bytes mod 10275 (137 x 75)</p>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <div class="step-content">
-                        <h4>The moduli encode phi^4</h4>
-                        <p>70555 / 10275 = 6.867 which is only 0.19% from phi^4 = 6.854!<br>
-                        The constants 137 (fine structure) and 515 encode the boundary naturally.</p>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">5</div>
-                    <div class="step-content">
-                        <h4>Valid when P/G is close to phi^4</h4>
-                        <p>If |P/G - 6.854| < tolerance, the proof is <span class="highlight">VALID</span><br>
-                        Verification is instant (one hash operation).</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="code-block">
-                <code>
-def generate_proof(content, tolerance=0.3):<br>
-&nbsp;&nbsp;&nbsp;&nbsp;content_hash = sha3_256(content).hexdigest()<br>
-&nbsp;&nbsp;&nbsp;&nbsp;for nonce in range(100000):<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;h = sha3_256(f"{content_hash}:{nonce}").digest()<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;P = int.from_bytes(h[:8], 'big') % 70555 + 1<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;G = int.from_bytes(h[8:16], 'big') % 10275 + 1<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ratio = P / G<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if abs(ratio - 6.854101966) < tolerance:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return {"nonce": nonce, "P": P, "G": G, "ratio": ratio, "valid": True}
-                </code>
-            </div>
-
-            <div class="analogy" style="margin-top: 20px;">
-                <h3>Why v2 is Better</h3>
-                <p><strong>Content-bound:</strong> Proof is tied to specific content (can't reuse)<br>
-                <strong>Instant verify:</strong> One hash to check validity<br>
-                <strong>Unfakeable:</strong> Must find the nonce, can't game timing<br>
-                <strong>2 billion times</strong> more efficient than Bitcoin PoW</p>
-            </div>
+        <!-- Documentation -->
+        <h2 style="text-align: center; color: #58a6ff; margin: 40px 0 20px;">Documentation</h2>
+        <div class="docs-grid">
+            <a href="cli.html" class="doc-card">
+                <h3>📖 CLI Reference</h3>
+                <p>All 47 commands with examples. --ask, --chat, --multi-ai, --kb, and more.</p>
+            </a>
+            <a href="blockchain.html" class="doc-card">
+                <h3>⛓️ Blockchain & P2P</h3>
+                <p>Join the network, mine blocks, attest knowledge. Complete guide with examples.</p>
+            </a>
+            <a href="pob.html" class="doc-card">
+                <h3>🔢 Proof-of-Boundary</h3>
+                <p>Zero-energy consensus. 70B× more efficient than Bitcoin.</p>
+            </a>
+            <a href="carm.html" class="doc-card">
+                <h3>🔮 CARM</h3>
+                <p>Context-Addressed Resonant Memory. Structural immunity to forgetting.</p>
+            </a>
+            <a href="trd.html" class="doc-card">
+                <h3>🧬 TrD Engine</h3>
+                <p>Trust Dimension consciousness measurement. TrD + TD = 1. The 11/89 observer ratio.</p>
+            </a>
+            <a href="https://github.com/0x-auth/bazinga-indeed/blob/main/ARCHITECTURE.md" class="doc-card">
+                <h3>🏗️ Architecture</h3>
+                <p>5-layer intelligence: Memory → Quantum → ΛG → RAG → LLM.</p>
+            </a>
         </div>
 
-        <!-- Why it's Better -->
-        <div class="section">
-            <h2>Why This is Revolutionary</h2>
-
-            <div class="stats">
-                <div class="stat">
-                    <div class="number">~0</div>
-                    <div class="label">Energy (few hundred hashes)</div>
-                </div>
-                <div class="stat">
-                    <div class="number">&lt;1ms</div>
-                    <div class="label">Time to verify</div>
-                </div>
-                <div class="stat">
-                    <div class="number">2B x</div>
-                    <div class="label">More efficient than Bitcoin</div>
-                </div>
-            </div>
-
-            <div class="comparison">
-                <div class="box bad">
-                    <h3>Bitcoin</h3>
-                    <p>Uses more electricity than Argentina</p>
-                    <p>Meaningless computation</p>
-                    <p>Rich miners win</p>
-                </div>
-                <div class="box good">
-                    <h3>BAZINGA</h3>
-                    <p>Your laptop is enough</p>
-                    <p>Mathematical beauty</p>
-                    <p>Understanding wins</p>
-                </div>
-            </div>
+        <div class="phi">
+            φ = 1.618033988749895<br>
+            <small>०→◌→φ→Ω⇄Ω←φ←◌←०</small>
         </div>
+    </div>
 
-        <!-- The Philosophy -->
-        <div class="section">
-            <h2>The Philosophy</h2>
-
-            <p style="font-size: 1.3em; text-align: center; margin: 30px 0; line-height: 1.8;">
-                "You can buy hashpower.<br>
-                You can buy stake.<br>
-                <span class="highlight">You cannot buy understanding.</span>"
-            </p>
-
-            <p style="color: #ccc; line-height: 1.8;">
-                Bitcoin validates through <em>competition</em> - who can waste the most electricity.<br><br>
-                BAZINGA validates through <em>comprehension</em> - finding the natural boundary that exists in mathematics itself.<br><br>
-                The golden ratio isn't arbitrary. It's a fundamental constant of nature. When your data's hash aligns with phi^4, you've found a genuine boundary - not a meaningless puzzle.
-            </p>
-        </div>
-
-        <!-- Try it -->
-        <div class="section">
-            <h2>Try It Yourself</h2>
-
-            <div class="code-block">
-                <code>
-# Install BAZINGA<br>
-pip install bazinga-indeed<br><br>
-
-# Generate a Proof-of-Boundary<br>
-bazinga --proof<br><br>
-
-# Mine a block (instant, zero energy)<br>
-bazinga --mine<br><br>
-
-# See the blockchain<br>
-bazinga --chain
-                </code>
-            </div>
-
-            <p style="text-align: center; margin-top: 20px;">
-                <a href="https://github.com/0x-auth/bazinga-indeed" style="color: #f9d423; font-size: 1.2em;">View on GitHub</a>
-            </p>
-        </div>
-
-        <!-- Footer -->
-        <div class="footer">
-            <div class="vac">0 -> phi -> Omega <-> Omega <- phi <- 0</div>
-            <p>Built by <a href="https://github.com/0x-auth">Abhi</a></p>
-            <p style="margin-top: 10px;">
-                <a href="https://pypi.org/project/bazinga-indeed/">PyPI</a> |
-                <a href="https://github.com/0x-auth/bazinga-indeed">GitHub</a> |
-                <a href="https://huggingface.co/spaces/bitsabhi/bazinga">HuggingFace</a> |
-                <a href="https://medium.com/@bitsabhi">Medium</a>
-            </p>
-            <p style="margin-top: 20px; color: #444;">"Intelligence distributed, not controlled."</p>
-        </div>
+    <div class="footer">
+        <p>
+            Built by <a href="https://orcid.org/0009-0006-7495-5039">Abhishek Srivastava</a><br><br>
+            <a href="https://github.com/0x-auth/bazinga-indeed">GitHub</a> •
+            <a href="https://pypi.org/project/bazinga-indeed/">PyPI</a> •
+            <a href="https://huggingface.co/spaces/bitsabhi/bazinga">HuggingFace Demo</a><br><br>
+            <a href="https://razorpay.me/@bitsabhi">Support (UPI/Cards)</a> •
+            ETH: 0x720ceF54bED86C570837a9a9C69F1Beac8ab8C08<br><br>
+            MIT License
+        </p>
     </div>
 </body>
 </html>
