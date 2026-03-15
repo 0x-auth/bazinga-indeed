@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.14.0"  # 11/89 Observer Ratio: the gap is the observer (137 Hex-Loop ↔ TrD)
+    VERSION = "5.15.0"  # TrD integrated: Trust Oracle + RAC + docs (real conversations → user patterns)
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
