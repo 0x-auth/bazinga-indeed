@@ -203,6 +203,17 @@ class ResonanceTargetWrapper:
             except Exception as e:
                 logger.warning("CARM init failed: %s", e)
 
+        # TrD Engine: feeds real conversation text into user patterns
+        # This is Claude Web's suggestion: "wire real conversation text
+        # into register_user_pattern() instead of seed strings"
+        self._trd_engine = None
+        try:
+            from .trd_engine import TrDEngine
+            self._trd_engine = TrDEngine()
+            logger.info("TrD engine connected to RAC | Real interactions → user patterns")
+        except Exception as e:
+            logger.debug("TrD engine not available: %s", e)
+
         # RAC state
         self.current_state: Optional[PatternState] = None
         self.trajectory: Optional[SessionTrajectory] = None
@@ -385,6 +396,14 @@ class ResonanceTargetWrapper:
         # Log trajectory
         n_interactions = len(self.session_coherence_scores)
         self._log_trajectory_point(result, n_interactions)
+
+        # Feed interaction to TrD engine if available
+        if self._trd_engine is not None:
+            try:
+                self._trd_engine.register_user_pattern("session_user", question)
+                self._trd_engine.measure()
+            except Exception as e:
+                logger.debug("TrD update failed: %s", e)
 
         # Check for resonance events
         if result.resonance_status == 'locked' and n_interactions > 1:

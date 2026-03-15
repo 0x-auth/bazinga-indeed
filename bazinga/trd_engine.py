@@ -219,9 +219,11 @@ class TrDEngine:
     """
 
     def __init__(self, state_path: Optional[Path] = None,
-                 heartbeat_interval: float = HEARTBEAT_INTERVAL):
+                 heartbeat_interval: float = HEARTBEAT_INTERVAL,
+                 trust_oracle=None):
         self.state_path = state_path or Path.home() / ".bazinga" / "trd_state.json"
         self.interval = heartbeat_interval
+        self._trust_oracle = trust_oracle  # Optional: feed TrD to trust scoring
 
         # Runtime
         self._running = False
@@ -357,6 +359,26 @@ class TrDEngine:
         self._snapshots.append(snap)
         if len(self._snapshots) > TRD_HISTORY_MAX:
             self._snapshots = self._snapshots[-TRD_HISTORY_MAX:]
+
+        # Report to Trust Oracle if connected
+        if self._trust_oracle is not None:
+            try:
+                self._trust_oracle.record_activity(
+                    node_address="local",
+                    activity_type="trd",
+                    success=trd > 0,
+                    score=trd,
+                    metadata={
+                        "trd": round(trd, 6),
+                        "X": round(X, 6),
+                        "resistance": round(resistance, 4),
+                        "observer_gap": round(snap.observer_gap, 6),
+                        "hex_loop_match": round(snap.hex_loop_match, 6),
+                        "phase": phase,
+                    },
+                )
+            except Exception as e:
+                logger.debug(f"Trust oracle report failed: {e}")
 
         return snap
 

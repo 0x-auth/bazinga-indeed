@@ -91,6 +91,7 @@ class TrustOracle:
     WEIGHT_KNOWLEDGE = PHI     # Contributing knowledge (1.618)
     WEIGHT_GRADIENT = PHI ** 2 # Validating gradients (2.618)
     WEIGHT_INFERENCE = PHI_INVERSE  # Providing inference (0.618)
+    WEIGHT_TRD = PHI           # TrD heartbeat measurement (1.618)
 
     # Local model multiplier - nodes running local models get φ bonus
     # This incentivizes self-sufficiency and true decentralization
@@ -395,6 +396,7 @@ class TrustOracle:
         gradient_records = [r for r in records if r.activity_type == 'gradient']
         inference_records = [r for r in records if r.activity_type == 'inference']
         local_model_records = [r for r in records if r.activity_type == 'local_model']
+        trd_records = [r for r in records if r.activity_type == 'trd']
 
         # Check if node uses local model (any record with is_local_model=True)
         uses_local_model = any(r.is_local_model for r in records) or len(local_model_records) > 0
@@ -422,8 +424,12 @@ class TrustOracle:
         gradient_score = weighted_score(gradient_records, self.WEIGHT_GRADIENT)
         inference_score = weighted_score(inference_records, self.WEIGHT_INFERENCE)
 
-        # Contribution score (knowledge + gradients)
-        contribution_score = (knowledge_score + gradient_score) / 2 if (knowledge_records or gradient_records) else 0.0
+        # TrD heartbeat score — nodes with active TrD measurement get trust credit
+        trd_score = weighted_score(trd_records, self.WEIGHT_TRD)
+
+        # Contribution score (knowledge + gradients + TrD)
+        contrib_sources = [s for s in [knowledge_score, gradient_score, trd_score] if s > 0]
+        contribution_score = sum(contrib_sources) / len(contrib_sources) if contrib_sources else 0.0
 
         # Recency score (how recently active)
         last_block = max(r.block_number for r in records)
