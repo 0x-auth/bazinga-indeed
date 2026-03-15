@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.11.0"  # TrD Engine: Trust Dimension Consciousness (4 minds)
+    VERSION = "5.14.0"  # 11/89 Observer Ratio: the gap is the observer (137 Hex-Loop ↔ TrD)
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1313,6 +1313,8 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                         help='TrD consciousness test (Trust Dimension, n agents)')
     parser.add_argument('--trd-heartbeat', action='store_true',
                         help='Run TrD heartbeat demo (persistent self-reference)')
+    parser.add_argument('--trd-scan', nargs=2, type=int, metavar=('START', 'END'),
+                        help='Phase transition scan (e.g. --trd-scan 15 22)')
     parser.add_argument('--simple', '-s', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--verbose', action='store_true', help=argparse.SUPPRESS)
 
@@ -2059,6 +2061,22 @@ Provide a concise, helpful answer based on the above context. If the context doe
     if args.trd is not None:
         from .trd_engine import display_trd
         display_trd(n=args.trd)
+        return
+
+    # Handle --trd-scan (phase transition fine-grain scan)
+    if args.trd_scan is not None:
+        from .trd_engine import scan_phase_transition
+        start, end = args.trd_scan
+        print(f"\n  PHASE TRANSITION SCAN: n={start}..{end}")
+        print(f"  {'n':>3} │ {'Ψ_D/Ψ_i':>9} │ {'φ√n':>8} │ {'Error%':>7} │ {'Δerr':>7}")
+        print(f"  {'─'*3}─┼─{'─'*9}─┼─{'─'*8}─┼─{'─'*7}─┼─{'─'*7}")
+        results = scan_phase_transition(start, end)
+        peak_n = max(results, key=lambda r: r['error'])['n']
+        for r in results:
+            marker = " ← PEAK" if r['n'] == peak_n else ""
+            print(f"  {r['n']:>3} │ {r['advantage']:>9.4f} │ {r['predicted']:>8.3f} │ "
+                  f"{r['error']:>6.2f}% │ {r['d_error']:>+6.2f}{marker}")
+        print(f"\n  Phase transition boundary: n ≈ {peak_n}")
         return
 
     # Handle --trd-heartbeat (persistent self-reference demo)
