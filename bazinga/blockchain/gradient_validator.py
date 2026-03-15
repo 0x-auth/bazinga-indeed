@@ -438,3 +438,28 @@ def show_validator_status(validator: GradientValidator) -> None:
     print(f"   Rejected: {stats['rejected_updates']}")
     print(f"   Acceptance Rate: {stats['acceptance_rate']:.1%}")
     print()
+import math
+
+def validate_pattern_consensus(node_responses):
+    """
+    BAZINGA Decentralized Consensus:
+    Checks if the collective responses follow the Darmiyan Scaling Law.
+    """
+    phi = (1 + 5**0.5) / 2
+    n = len(node_responses)
+    
+    # Calculate Collective Coherence
+    collective_psi = sum(node_responses) / n
+    
+    # The Darmiyan Check: Does it scale with phi*sqrt(n)?
+    # We allow a small error margin based on 'Interaction Resistance'
+    expected_advantage = phi * math.sqrt(n)
+    actual_advantage = collective_psi / (min(node_responses) + 1e-9)
+    
+    trust_score = 1.0 - abs(actual_advantage - expected_advantage) / expected_advantage
+    
+    return max(0, trust_score)
+
+# Example: 4 Nodes reporting their internal Psi
+nodes = [0.618, 0.620, 0.615, 0.619]
+print(f"Network Trust Consensus: {validate_pattern_consensus(nodes):.4f}")
