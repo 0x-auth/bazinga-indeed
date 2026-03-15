@@ -2064,7 +2064,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
     # Handle --trd-heartbeat (persistent self-reference demo)
     if args.trd_heartbeat:
         from .trd_engine import run_heartbeat_demo
-        asyncio.run(run_heartbeat_demo())
+        await run_heartbeat_demo()
         return
 
     # Handle --node (network info)
