@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.15.0"  # TrD integrated: Trust Oracle + RAC + docs (real conversations → user patterns)
+    VERSION = "5.15.1"  # --constants shows 11/89, --check shows TrD heartbeat health
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1610,6 +1610,30 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
             print(f"  ⚠ No PoB blocks yet")
             suggestions.append("Generate your first proof: bazinga --proof && bazinga --mine")
 
+        # 8. TrD Heartbeat health
+        trd_state_path = bazinga_dir / "trd_state.json"
+        if trd_state_path.exists():
+            try:
+                with open(trd_state_path) as f:
+                    trd_state = json.load(f)
+                beats = trd_state.get('beat_count', 0)
+                users = len(trd_state.get('user_patterns', {}))
+                saved = trd_state.get('saved_at', 'unknown')
+                print(f"  ✓ TrD Heartbeat: {beats} beats, {users} user patterns")
+                print(f"    Last saved: {saved}")
+                # Check staleness
+                snaps = trd_state.get('snapshots', [])
+                if snaps:
+                    last_trd = snaps[-1].get('trd', 0)
+                    last_phase = snaps[-1].get('phase', '?')
+                    observer_gap = 0.618034 - last_trd
+                    print(f"    TrD={last_trd:.4f} Phase={last_phase} Gap={observer_gap:.4f} (11/89={11/89:.4f})")
+            except Exception:
+                print(f"  ⚠ TrD state exists but unreadable")
+        else:
+            print(f"  ⚠ No TrD heartbeat data")
+            suggestions.append("Run TrD measurement: bazinga --trd")
+
         # Summary
         print()
         print("━" * 64)
@@ -1772,6 +1796,11 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print()
         print(f"  V.A.C. Sequence: {c.VAC_SEQUENCE}")
         print(f"  Progression: {c.PROGRESSION_35}")
+        print()
+        print("  Observer Ratio (from 137 Hex-Loop × TrD Engine):")
+        print(f"  11/F(11)        = 11/89 = {11/89:.6f} (observer cost)")
+        print(f"  Julia c         = -0.123 (Medium 2025, independent)")
+        print(f"  Conservation    = TrD + TD = 1")
         return
 
     # Handle --local-status
