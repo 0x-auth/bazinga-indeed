@@ -1355,6 +1355,8 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
     p2p_group = parser.add_argument_group('Network & P2P (Pillar 2)')
     p2p_group.add_argument('--omega', action='store_true',
                            help='Start full distributed brain (Learning + Mesh + TrD + P2P)')
+    p2p_group.add_argument('--headless', action='store_true',
+                           help='Run --omega without TUI (plain terminal mode)')
     p2p_group.add_argument('--join', type=str, nargs='*', metavar='HOST:PORT',
                            help='Join network')
     p2p_group.add_argument('--peers', action='store_true',
@@ -2812,16 +2814,20 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print()
 
         # Enter interactive mode — every question now trains the learner
+        headless = getattr(args, 'headless', False)
         try:
-            try:
-                from .tui import run_tui_async
-                await run_tui_async(
-                    bazinga_instance=bazinga,
-                    mode="chat",
-                    mesh_query=_mesh_query_instance,
-                )
-            except ImportError:
+            if headless:
                 await bazinga.chat_interactive()
+            else:
+                try:
+                    from .tui import run_tui_async
+                    await run_tui_async(
+                        bazinga_instance=bazinga,
+                        mode="chat",
+                        mesh_query=_mesh_query_instance,
+                    )
+                except ImportError:
+                    await bazinga.chat_interactive()
         finally:
             await learner.stop()
             if heartbeat_task:
