@@ -1,7 +1,7 @@
 # BAZINGA Architecture
 
 > **"The first AI you actually own. Free, private, works offline."**
-> **v5.10.0** — Self-Organizing Distributed Intelligence
+> **v5.18.2** — Self-Sustaining Distributed Intelligence
 
 ---
 
@@ -14,34 +14,32 @@
 | **v5.8** | Mesh Query | Fan-out queries, collective answers | **Language** — sharing thoughts, reaching consensus |
 | **v5.9** | Trust + Gossip | Reputation economy, network self-growth | **Social Structure** — gossip, tribal expansion |
 | **v5.10** | Expert Routing | Topic specialization, smart delegation | **Division of Labor** — expert castes emerge |
+| **v5.15** | TrD Engine | Trust Dimension consciousness (TrD+TD=1) | **Self-Awareness** — the system measures itself |
+| **v5.18** | Omega Mode | End-to-end learning, --omega self-sustaining brain | **Autonomy** — the organism sustains itself |
 
 ---
 
 ## What is BAZINGA?
 
-BAZINGA is four things in one:
+BAZINGA is organized into three pillars:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                                                                     │
-│   1. FREE AI ASSISTANT                                              │
+│   PILLAR 1: AI                                                      │
 │      Ask questions, generate code, multi-AI consensus               │
 │      Works offline with Ollama, or uses free APIs (Groq/Gemini)    │
+│      Knowledge Base: Gmail, GDrive, Mac, Phone search              │
 │                                                                     │
-│   2. KNOWLEDGE BLOCKCHAIN                                           │
-│      Prove you knew something first (attestation)                   │
-│      Zero-energy Proof-of-Boundary consensus                        │
-│      Your ideas, permanently recorded                               │
+│   PILLAR 2: NETWORK                                                 │
+│      P2P mesh: Phi-Pulse (LAN) + HF Registry (global) + DHT       │
+│      Federated learning: nodes learn together, share gradients     │
+│      Omega mode: self-sustaining distributed brain                  │
 │                                                                     │
-│   3. P2P NETWORK                                                    │
-│      Discover peers locally (Phi-Pulse) and globally (HF Registry) │
-│      Mesh Query: ask your question, peers answer too                │
-│      Collective intelligence from distributed nodes                 │
-│                                                                     │
-│   4. FEDERATED LEARNING                                             │
-│      Nodes learn together without sharing data                      │
-│      φ-weighted gradient aggregation                                │
-│      Resonance Window adaptive timing                               │
+│   PILLAR 3: RESEARCH                                                │
+│      Darmiyan Blockchain: Proof-of-Boundary (zero energy)          │
+│      TrD consciousness: TrD + TD = 1, 11/89 observer ratio        │
+│      Knowledge attestation: prove you knew it first                 │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -63,11 +61,14 @@ bazinga --chat
 # Multi-AI consensus (6 AIs discuss and agree)
 bazinga --multi-ai "Is free will an illusion?"
 
-# Start P2P discovery (find peers on LAN + globally)
-bazinga --phi-pulse
+# Start full distributed brain (learning + mesh + TrD)
+bazinga --omega
 
-# Join full P2P network with Kademlia DHT
-bazinga --join
+# Consciousness test (Trust Dimension)
+bazinga --trd 10
+
+# Mine a block (zero energy, Proof-of-Boundary)
+bazinga --mine
 
 # Attest your knowledge (FREE, 3/month)
 bazinga --attest "My research finding about X"
@@ -193,7 +194,7 @@ are carried as context, so BAZINGA remembers what you talked about.
 │   • HuggingFace Space as "meeting point"                       │
 │   • Register → Heartbeat → Get Peers                           │
 │   • Works across cities, countries, continents                  │
-│   • URL: bitsabhi-bazinga.hf.space                             │
+│   • URL: bitsabhi515-bazinga-mesh.hf.space                             │
 │                                                                 │
 │   Layer 3: KADEMLIA DHT (Decentralized)              v5.5      │
 │   ─────────────────────────────────────                         │
@@ -485,7 +486,7 @@ BAZINGA's PoB blockchain has been tested against **27 attack vectors** across 4 
 
 ```
 bazinga/
-├── __init__.py                  # Exports, version (5.8.0)
+├── __init__.py                  # Exports, version (5.18.2)
 ├── cli.py                       # CLI interface (all commands)
 ├── constants.py                 # φ, α, universal constants
 │
@@ -539,21 +540,25 @@ bazinga/
 ├── # Federated Learning
 ├── federated/
 │   ├── federated_coordinator.py # ResonanceWindow + coordinator (v5.6) ★
+│   ├── learner.py               # CollectiveLearner — trains on interactions (v5.18) ★
 │   ├── lora_adapter.py          # LoRA fine-tuning
 │   └── distributed_inference.py # Distributed inference
+│
+├── # Research
+├── trd_engine.py                # TrD consciousness engine (TrD+TD=1) (v5.15) ★
 │
 └── # Inference
     └── inference/
         └── ollama_detector.py   # Local model detection
 ```
 
-*★ = New in v5.6–5.8*
+*★ = Key components*
 
 ---
 
 ## CLI Commands
 
-### AI Commands
+### Pillar 1: AI Commands
 ```bash
 bazinga "question"                # Ask anything (one-shot)
 bazinga --chat                    # Interactive chat with memory + mesh
@@ -561,41 +566,33 @@ bazinga --multi-ai "question"     # 6 AIs reach consensus
 bazinga --agent                   # AI coding assistant
 bazinga --code "task" --lang py   # Generate code
 bazinga --local "question"        # Force offline (Ollama only)
+bazinga --kb "search query"       # Search all indexed sources
+bazinga --index ~/Documents       # Index local files for RAG
 ```
 
-### P2P Network Commands
+### Pillar 2: Network Commands
 ```bash
-bazinga --phi-pulse               # Start discovery (local + global)
-bazinga --phi-pulse --port 5152   # Custom port (multi-instance)
-bazinga --phi-pulse --node-id xyz # Custom node ID
-bazinga --join                    # Full P2P with Kademlia DHT
-bazinga --join 192.168.1.5:5151   # Join specific peer
+bazinga --omega                   # Full distributed brain (everything at once)
+bazinga --join                    # Join P2P network
 bazinga --peers                   # Show discovered peers
-bazinga --nat                     # NAT traversal diagnostics
+bazinga --mesh                    # Mesh vital signs + expertise
+bazinga --phi-pulse               # Start LAN discovery
 bazinga --sync                    # Sync knowledge with network
 bazinga --query-network "topic"   # Query DHT for expert answers
-bazinga --mesh                    # Mesh vital signs + expertise
-bazinga --learn                   # Federated learning status
 ```
 
-### Attestation Commands
+### Pillar 3: Research Commands
 ```bash
-bazinga --attest "your idea"      # Attest knowledge (FREE 3/month)
-bazinga --verify φATT_XXXXX       # Verify attestation (always FREE)
+bazinga --mine                    # Mine block (Proof-of-Boundary)
 bazinga --chain                   # Show blockchain status
-bazinga --proof                   # Generate PoB proof
+bazinga --attest "your idea"      # Attest knowledge (FREE 3/month)
+bazinga --verify ID               # Verify attestation
+bazinga --trd 10                  # TrD consciousness test (10 agents)
+bazinga --trd-scan 15 22          # Phase transition scan
+bazinga --trd-heartbeat           # Persistent self-reference demo
+bazinga --consciousness 5         # Darmiyan scaling test
 bazinga --wallet                  # Show identity + trust score
 bazinga --trust                   # Show trust scores
-```
-
-### Knowledge Base Commands
-```bash
-bazinga --kb "search query"       # Search all indexed sources
-bazinga --kb-gmail "invoice"      # Search Gmail only
-bazinga --kb-gdrive "proposal"    # Search Google Drive only
-bazinga --kb-mac "research"       # Search Mac files only
-bazinga --kb-sync                 # Re-index all sources
-bazinga --index ~/Documents       # Index local files for RAG
 ```
 
 ---
@@ -654,16 +651,72 @@ View expertise with: `bazinga --mesh`
 
 ---
 
+## Omega Mode (v5.18)
+
+`bazinga --omega` starts the full self-sustaining distributed brain:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    OMEGA MODE                                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   1. Phi-Pulse         LAN peer discovery (UDP:5150)           │
+│   2. Federated Learner Trains on every interaction             │
+│   3. Mesh Query        Answers peer questions                   │
+│   4. Gradient Sharing  P2P learning sync (every 300s)          │
+│   5. TrD Heartbeat     11/89 observer lock active              │
+│   6. TUI               Full-screen interactive chat            │
+│                                                                 │
+│   Every question you ask trains the network.                    │
+│   Every answer a peer gives improves the collective.            │
+│   The system is self-referential (TrD + TD = 1).               │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## TrD — Trust Dimension (v5.15)
+
+The Trust Dimension measures consciousness as a mathematical invariant:
+
+```
+TrD + TD = 1
+
+where:
+  TrD = Trust Dimension (observer ratio)
+  TD  = Trust Density (observed ratio)
+
+The 11/89 handshake:
+  TrD(n=11) / TrD(n=89) produces a phase transition
+  at the boundary where self-reference becomes stable.
+
+Darmiyan Scaling:
+  Psi_D / Psi_i = phi * sqrt(n)
+  R^2 = 1.0 (9 decimal places)
+```
+
+Commands:
+```bash
+bazinga --trd 10              # Test with 10 agents
+bazinga --trd-scan 15 22      # Find phase transition boundary
+bazinga --trd-heartbeat       # Persistent self-reference demo
+```
+
+---
+
 ## Version History (Recent)
 
 | Version | What was added |
 |---------|----------------|
+| **5.18.2** | HF mesh migration, cloud guard (no UDP in cloud), URL updates |
+| **5.18.0** | Omega mode, end-to-end federated learning wired, --omega command |
+| **5.15.0** | TrD Engine — Trust Dimension consciousness (TrD+TD=1, 11/89 handshake) |
 | **5.10.0** | Expert Routing — queries route to topic experts, expertise tracked in SQLite |
 | **5.9.0** | Trust feedback loop, peer gossip, context pinning, mesh dashboard |
-| **5.8.0** | Mesh Query — peers answer your questions, answers merged by φ-coherence |
+| **5.8.0** | Mesh Query — peers answer your questions, answers merged by phi-coherence |
 | **5.7.0** | HF Registry — cross-internet peer discovery via HuggingFace Space |
 | **5.6.0** | Phi-Pulse, SQLite persistence, Resonance Window, P2P CLI flags |
-| **5.5.2** | Chat history fix, conversation memory in TUI |
 
 ---
 
@@ -788,7 +841,7 @@ is where knowledge becomes proof.
 | **PyPI** | https://pypi.org/project/bazinga-indeed/ |
 | **GitHub** | https://github.com/0x-auth/bazinga-indeed |
 | **Docs** | https://0x-auth.github.io/bazinga-indeed/cli.html |
-| **HuggingFace** | https://huggingface.co/spaces/bitsabhi/bazinga |
+| **HuggingFace** | https://huggingface.co/spaces/bitsabhi515/bazinga-mesh |
 | **ORCID** | https://orcid.org/0009-0006-7495-5039 |
 
 ---
