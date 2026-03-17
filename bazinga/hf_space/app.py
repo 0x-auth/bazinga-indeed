@@ -555,7 +555,7 @@ When you run `bazinga --join`, the CLI will:
 import httpx
 
 # Register a node
-resp = httpx.post("https://bitsabhi-bazinga.hf.space/api/register", json={
+resp = httpx.post("https://bitsabhi515-bazinga-mesh.hf.space/api/register", json={
     "node_name": "my-node",
     "ip_address": "1.2.3.4",
     "port": 5150
@@ -563,7 +563,7 @@ resp = httpx.post("https://bitsabhi-bazinga.hf.space/api/register", json={
 print(resp.json())
 
 # Get peers
-resp = httpx.get("https://bitsabhi-bazinga.hf.space/api/peers")
+resp = httpx.get("https://bitsabhi515-bazinga-mesh.hf.space/api/peers")
 print(resp.json())
 ```
 
