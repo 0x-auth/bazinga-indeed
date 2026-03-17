@@ -1342,6 +1342,8 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
     index_group = parser.add_argument_group('Indexing')
     index_group.add_argument('--index', '-i', nargs='+', metavar='PATH',
                              help='Index directories for RAG')
+    index_group.add_argument('--deindex', type=str, nargs='+', metavar='PATH',
+                             help='Remove indexed files from a directory (undo --index)')
     index_group.add_argument('--index-public', type=str, metavar='SOURCE',
                              choices=['wikipedia', 'arxiv', 'gutenberg'],
                              help='Index public knowledge')
@@ -3563,6 +3565,41 @@ Provide a concise, helpful answer based on the above context. If the context doe
     if args.index:
         bazinga = BAZINGA(verbose=args.verbose)
         await bazinga.index(args.index)
+        return
+
+    # Handle --deindex (remove indexed files by path prefix)
+    if getattr(args, 'deindex', None):
+        from pathlib import Path as _Path
+        bazinga = BAZINGA(verbose=args.verbose)
+        collection = bazinga.ai.collection
+        if not collection:
+            print("No vector database found.")
+            return
+
+        total_removed = 0
+        for path_str in args.deindex:
+            prefix = str(_Path(path_str).expanduser().resolve())
+            # Get all docs and filter by source_file prefix
+            all_data = collection.get(include=['metadatas'])
+            ids_to_remove = []
+            for doc_id, meta in zip(all_data['ids'], all_data['metadatas']):
+                source = meta.get('source_file', '')
+                if source.startswith(prefix):
+                    ids_to_remove.append(doc_id)
+
+            if ids_to_remove:
+                # ChromaDB delete has batch limits, chunk into 5000
+                for i in range(0, len(ids_to_remove), 5000):
+                    batch = ids_to_remove[i:i+5000]
+                    collection.delete(ids=batch)
+                total_removed += len(ids_to_remove)
+                print(f"  Removed {len(ids_to_remove)} chunks from: {prefix}")
+            else:
+                print(f"  No indexed chunks found from: {prefix}")
+
+        print(f"\n  Total removed: {total_removed} chunks")
+        remaining = collection.count()
+        print(f"  Remaining in index: {remaining} chunks")
         return
 
     # Handle --index-public (Wikipedia, arXiv, etc.)
