@@ -10,6 +10,6 @@ Takes over terminal for interactive modes:
 All other flags work normally without TUI.
 """
 
-from .app import BazingaApp, run_tui, run_tui_async
+from .app import BazingaApp, ChatInput, run_tui, run_tui_async
 
-__all__ = ['BazingaApp', 'run_tui', 'run_tui_async']
+__all__ = ['BazingaApp', 'ChatInput', 'run_tui', 'run_tui_async']
