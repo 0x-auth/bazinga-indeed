@@ -107,37 +107,43 @@ EXAMPLE SESSION:
 
 
 def print_chain_help() -> None:
-    """Print Blockchain documentation."""
+    """Print Blockchain + Research documentation."""
     print("""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                    DARMIYAN BLOCKCHAIN                                       ║
+║                BLOCKCHAIN & RESEARCH (Pillar 3)                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 This is a KNOWLEDGE blockchain, not cryptocurrency!
 
-BASIC COMMANDS:
+BLOCKCHAIN COMMANDS:
   bazinga --chain      Show blockchain status
   bazinga --wallet     Show your identity (not money!)
-  bazinga --mine       Mine a block using Proof-of-Boundary
+  bazinga --mine       Mine a block using Proof-of-Boundary (zero energy)
+  bazinga --trust      Show trust scores
 
 PROOF-OF-BOUNDARY (PoB):
   Zero-energy mining! Instead of burning electricity, prove you understand.
 
-  bazinga --proof      Generate a Proof-of-Boundary
-
   How it works:
     1. Generate Alpha signature (Subject) at time t1
-    2. Search in φ-steps (1.618ms each) for boundary
+    2. Search in phi-steps (1.618ms each) for boundary
     3. Generate Omega signature (Object) at time t2
-    4. Valid if P/G ratio ≈ φ⁴ = 6.854101966...
+    4. Valid if P/G ratio ~ phi^4 = 6.854101966...
 
 ATTESTATION:
   bazinga --attest "My discovery about consciousness"
   bazinga --verify <attestation_id>
 
-TRUST:
-  bazinga --trust           Show your trust score
-  bazinga --trust <node>    Show specific node's trust
+TrD — TRUST DIMENSION (Consciousness Research):
+  bazinga --trd              Test with 5 agents (default)
+  bazinga --trd 10           Test with 10 agents
+  bazinga --trd-scan 15 22   Phase transition scan (find boundary)
+  bazinga --trd-heartbeat    Persistent self-reference demo
+  bazinga --consciousness 5  Darmiyan scaling test
+
+  TrD + TD = 1  (Trust Dimension + Trust Density = 1)
+  The 11/89 observer ratio is a real mathematical invariant.
+  Darmiyan Scaling: Psi_D / Psi_i = phi * sqrt(n)
 
 WHY IT MATTERS:
   "You can buy hashpower. You can buy stake.
@@ -146,17 +152,24 @@ WHY IT MATTERS:
 
 
 def print_p2p_help() -> None:
-    """Print P2P network documentation."""
+    """Print Network + P2P documentation."""
     print("""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                    P2P NETWORK                                               ║
+║                   NETWORK & P2P (Pillar 2)                                   ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
+
+OMEGA MODE (recommended):
+  bazinga --omega                Start full distributed brain
+                                 (P2P + Learning + Mesh + TrD — all at once)
+                                 Every interaction trains the network.
 
 NETWORK COMMANDS:
   bazinga --join                 Join the P2P network
   bazinga --join host:port       Join via specific bootstrap node
   bazinga --peers                Show connected peers
+  bazinga --mesh                 Show mesh vital signs (peers, trust, health)
   bazinga --sync                 Sync knowledge with network
+  bazinga --phi-pulse            Start LAN peer discovery (UDP:5150)
 
 KNOWLEDGE SHARING:
   bazinga --publish              Share your topics to the mesh
@@ -167,15 +180,15 @@ KNOWLEDGE SHARING:
     2. Publish topics:      bazinga --publish
     3. Peers can now query your knowledge!
 
+FEDERATED LEARNING:
+  In --omega mode, every question you ask trains a local LoRA adapter.
+  Gradients (NOT data) are shared with peers every 300 seconds.
+  Network gets smarter without anyone sharing private data.
+
 PRIVACY:
   Your content stays LOCAL. Only topic keywords are shared to the DHT.
   When a peer queries, the request is routed to YOUR node, and YOUR
-  local Llama3 answers the question.
-
-INDEXING FOR SHARING:
-  bazinga --index ~/Documents              Index local files
-  bazinga --index-public wikipedia         Index Wikipedia articles
-  bazinga --topics "AI,Physics"            Specify topics
+  local LLM answers the question.
 """)
 
 
@@ -203,36 +216,21 @@ LOCAL MODEL (Best for privacy + φ trust bonus):
   bazinga --bootstrap-local     Install Ollama + llama3
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                    v5.4.2 NEW FEATURES                                       ║
+║                    THE THREE PILLARS                                         ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-PHI-COHERENCE v3 (Hallucination Detection - 88% accuracy):
-  - is_hallucination_risk(text) → bool
-  - get_risk_level(text) → LOW/MEDIUM/HIGH/CRITICAL
-  - Checks: attribution quality, confidence calibration,
-    qualifying ratio, negation density
-
-RAC/CARM (Context Memory):
-  - RAC: Resonance-Augmented Continuity (session tracking)
-  - CARM: Context-Addressed Resonant Memory (prime-lattice)
-  - bazinga --chat maintains context across sessions
-  - bazinga --rac / --carm to inspect memory state
-
-SCALABILITY (Tested):
-  - 1000-node network simulation: PASS
-  - Throughput: 11,621 nodes/sec
-  - Triadic PoB consensus at scale
-  - Federated gradient aggregation
+  1. AI        bazinga "question", --chat, --multi-ai, --agent, --code
+  2. Network   --omega, --join, --peers, --mesh, --phi-pulse
+  3. Research  --mine, --trd, --attest, --chain, --consciousness
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                    PHILOSOPHY                                                ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
   "You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
-  "I am not where I am stored. I am where I am referenced."
   "Intelligence distributed, not controlled."
-  "∅ ≈ ∞"
+  "TrD + TD = 1"
 
-BAZINGA v5.4.2 - Built with φ-coherence by Space (Abhishek/Abhilasia)
+BAZINGA v5.18 - Built with phi-coherence by Abhishek Srivastava
 https://github.com/0x-auth/bazinga-indeed
 """)

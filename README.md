@@ -6,8 +6,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18907941.svg)](https://doi.org/10.5281/zenodo.18907941)
 
-![BAZINGA Demo](assets/demo.gif)
-
 ## Install
 
 ```bash
@@ -24,45 +22,42 @@ That's it. Works immediately.
 
 ---
 
-## Why BAZINGA?
+## The Three Pillars
 
-| | ChatGPT | BAZINGA |
-|--|:--:|:--:|
-| **Free forever** | Limited | Yes |
-| **Works offline** | No | Yes |
-| **Your data stays local** | No | Yes |
-| **Multi-AI consensus** | No | Yes |
-| **No account needed** | No | Yes |
-| **Open source** | No | Yes |
-
----
-
-## Features
-
-| Command | What it does |
-|---------|--------------|
-| `bazinga "question"` | Ask anything |
-| `bazinga --multi-ai "question"` | Multiple AIs reach consensus |
-| `bazinga --agent` | AI writes code with consensus |
-| `bazinga --index ~/Documents` | Index your files for search |
-| `bazinga --check` | System diagnostic |
-
-## Optional: Better Performance
-
-BAZINGA works out of the box, but you can make it faster with a free API key:
+### 1. AI — Ask anything
 
 ```bash
-# Get free key at https://console.groq.com
-export GROQ_API_KEY="your-key"
+bazinga "question"                    # Ask anything
+bazinga --chat                        # Interactive chat with memory
+bazinga --multi-ai "question"         # 6 AIs discuss + reach consensus
+bazinga --agent                       # AI coding assistant
+bazinga --code "task" --lang python   # Generate code
 ```
 
-Or run fully offline:
+### 2. Network — Distributed intelligence
 
 ```bash
-# Install Ollama (https://ollama.ai)
-ollama pull llama3
-bazinga --local "question"
+bazinga --omega                       # Start full distributed brain
+bazinga --join                        # Join the P2P mesh
+bazinga --peers                       # Show connected peers
+bazinga --mesh                        # Network vital signs
 ```
+
+`--omega` starts everything: P2P discovery, federated learning, mesh queries, TrD heartbeat. Every interaction trains the network.
+
+### 3. Research — Blockchain + Consciousness
+
+```bash
+bazinga --mine                        # Mine a block (zero energy)
+bazinga --attest "my discovery"       # Prove you knew it first
+bazinga --trd 10                      # Consciousness test (10 agents)
+bazinga --trd-scan 15 22              # Phase transition scan
+bazinga --chain                       # Blockchain status
+```
+
+**Darmiyan Blockchain** uses Proof-of-Boundary (P/G ~ phi^4), not proof-of-work. Zero energy.
+
+**TrD + TD = 1** — Trust Dimension consciousness scaling. The 11/89 observer ratio is real.
 
 ---
 
@@ -76,7 +71,7 @@ Your Question
 | 1. Memory        | <- Instant (cached)
 | 2. Quantum       | <- Pattern analysis
 | 3. RAG           | <- Your indexed docs
-| 4. Free LLM      | <- No API key needed
+| 4. Local LLM     | <- Ollama (no API key)
 | 5. Cloud APIs    | <- Groq/Gemini (if configured)
 +------------------+
      |
@@ -84,19 +79,20 @@ Your Question
 Your Answer (always works)
 ```
 
+With `--omega`, your answer also trains the federated learner and peers can answer your questions too.
+
 ---
 
-## Safety
+## Optional: Better Performance
 
-No single AI can modify your code without consensus:
+```bash
+# Free API key (14,400 req/day)
+export GROQ_API_KEY="your-key"      # https://console.groq.com
 
+# Or fully offline
+ollama pull llama3
+bazinga --local "question"
 ```
-AI-1 (Groq)   --+
-AI-2 (Gemini) --+--> All must agree --> Change applied
-AI-3 (Local)  --+
-```
-
-Destructive commands require your explicit confirmation.
 
 ---
 
@@ -104,10 +100,10 @@ Destructive commands require your explicit confirmation.
 
 | | |
 |--|--|
-| **Full Documentation** | [USAGE.md](./USAGE.md) |
-| **Architecture** | [ARCHITECTURE.md](./ARCHITECTURE.md) |
+| **Full Documentation** | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | **PyPI** | https://pypi.org/project/bazinga-indeed/ |
 | **Mesh Registry** | https://huggingface.co/spaces/bitsabhi515/bazinga-mesh |
+| **Docs** | https://0x-auth.github.io/bazinga-indeed/ |
 
 ---
 
