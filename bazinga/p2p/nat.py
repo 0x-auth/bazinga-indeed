@@ -45,7 +45,7 @@ PUBLIC_STUN_SERVERS = [
 ]
 
 # HuggingFace Space as BAZINGA-native STUN
-HF_STUN_ENDPOINT = "bitsabhi-bazinga.hf.space"
+HF_STUN_ENDPOINT = "calm-purpose-production-2031.up.railway.app"
 
 
 class NATType(Enum):
