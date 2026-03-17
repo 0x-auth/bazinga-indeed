@@ -206,7 +206,7 @@ except ImportError:
     HTTPX_AVAILABLE = False
 
 # HuggingFace Space API URL (network registry)
-HF_SPACE_URL = "https://bitsabhi-bazinga.hf.space"
+HF_SPACE_URL = "https://calm-purpose-production-2031.up.railway.app"
 
 
 class HFNetworkRegistry:

@@ -5,7 +5,7 @@ BAZINGA Federated Mesh Bridge (v5.5.0 MAINNET)
 Connects to HF Space + Local Zeroconf for peer discovery.
 
 Two-layer discovery:
-1. HF Space API (global registry) - https://bitsabhi-bazinga.hf.space
+1. HF Space API (global registry) - https://calm-purpose-production-2031.up.railway.app
 2. Zeroconf (local network) - mDNS discovery
 
 Author: Abhishek (Space)
@@ -29,7 +29,7 @@ except ImportError:
 from bazinga.carm import CARMMemory
 
 # HF Space API
-HF_SPACE_URL = "https://bitsabhi-bazinga.hf.space"
+HF_SPACE_URL = "https://calm-purpose-production-2031.up.railway.app"
 
 
 class BazingaMeshNode:
