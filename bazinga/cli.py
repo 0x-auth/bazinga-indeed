@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.18.5"  # ChatGPT provider + Claude-first + --headless
+    VERSION = "5.18.6"  # --deindex + RAG conversation filter + --headless
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
