@@ -26,29 +26,35 @@ class LLMProviders:
     """
     Unified LLM provider interface.
 
-    Supports: Groq, Claude, Gemini, OpenRouter, LLM7 (free), Local (Ollama).
+    Supports: Claude, ChatGPT, Groq, Gemini, OpenRouter, LLM7 (free), Local (Ollama).
+
+    Priority: Claude > ChatGPT > Groq > Gemini > Local > FreeLLM
     """
 
-    VERSION = "5.4.1"
+    VERSION = "5.18.4"
 
     def __init__(
         self,
         groq_key: Optional[str] = None,
         anthropic_key: Optional[str] = None,
+        openai_key: Optional[str] = None,
         gemini_key: Optional[str] = None,
         openrouter_key: Optional[str] = None,
         groq_model: str = "llama-3.3-70b-versatile",
         claude_model: str = "claude-3-5-haiku-20241022",
+        openai_model: str = "gpt-4o-mini",
         gemini_model: str = "gemini-1.5-flash",
     ):
         """Initialize LLM providers with API keys."""
         self.groq_key = groq_key or os.environ.get("GROQ_API_KEY")
         self.anthropic_key = anthropic_key or os.environ.get("ANTHROPIC_API_KEY")
+        self.openai_key = openai_key or os.environ.get("OPENAI_API_KEY")
         self.gemini_key = gemini_key or os.environ.get("GEMINI_API_KEY")
         self.openrouter_key = openrouter_key or os.environ.get("OPENROUTER_API_KEY")
 
         self.groq_model = groq_model
         self.claude_model = claude_model
+        self.openai_model = openai_model
         self.gemini_model = gemini_model
 
         self.local_llm = None
@@ -137,6 +143,38 @@ Answer concisely. Use the context when relevant, but answer naturally."""
 
         return None
 
+    async def call_openai(self, question: str, context: str = "") -> Optional[str]:
+        """Call OpenAI ChatGPT API for response."""
+        if not self.openai_key or not HTTPX_AVAILABLE:
+            return None
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.openai_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": self.openai_model,
+                        "messages": [
+                            {"role": "system", "content": self._build_system_prompt(context)},
+                            {"role": "user", "content": self._build_user_prompt(question, context)}
+                        ],
+                        "temperature": 0.7,
+                        "max_tokens": 500,
+                    }
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    return data["choices"][0]["message"]["content"]
+        except Exception:
+            pass
+
+        return None
+
     async def call_gemini(self, question: str, context: str = "") -> Optional[str]:
         """Call Google Gemini API for response."""
         if not self.gemini_key or not HTTPX_AVAILABLE:
@@ -220,37 +258,43 @@ Answer concisely. Use the context when relevant, but answer naturally."""
 
         Returns: (response, source_name)
         """
-        # Priority order (configurable)
+        # Priority: Local (if preferred) > Claude > ChatGPT > Groq > Gemini > Local > FreeLLM
         if prefer_local and LOCAL_LLM_AVAILABLE:
             result = self.call_local(question, context)
             if result:
                 return result, "local"
 
-        # Try Groq (fastest free option)
-        if self.groq_key:
-            result = await self.call_groq(question, context)
-            if result:
-                return result, "groq"
-
-        # Try Gemini (free tier)
-        if self.gemini_key:
-            result = await self.call_gemini(question, context)
-            if result:
-                return result, "gemini"
-
-        # Try Claude (paid)
+        # 1. Claude (best quality)
         if self.anthropic_key:
             result = await self.call_claude(question, context)
             if result:
                 return result, "claude"
 
-        # Try local if not preferred earlier
+        # 2. ChatGPT (OpenAI)
+        if self.openai_key:
+            result = await self.call_openai(question, context)
+            if result:
+                return result, "chatgpt"
+
+        # 3. Groq (fastest free)
+        if self.groq_key:
+            result = await self.call_groq(question, context)
+            if result:
+                return result, "groq"
+
+        # 4. Gemini (free tier)
+        if self.gemini_key:
+            result = await self.call_gemini(question, context)
+            if result:
+                return result, "gemini"
+
+        # 5. Local (Ollama)
         if not prefer_local and LOCAL_LLM_AVAILABLE:
             result = self.call_local(question, context)
             if result:
                 return result, "local"
 
-        # Try free LLM (no API key needed)
+        # 6. Free LLM (no API key needed)
         result = await self.call_free_llm(question, context)
         if result:
             return result, "llm7"
@@ -260,8 +304,9 @@ Answer concisely. Use the context when relevant, but answer naturally."""
     def get_available_providers(self) -> Dict[str, bool]:
         """Get status of all providers."""
         return {
-            "groq": bool(self.groq_key),
             "claude": bool(self.anthropic_key),
+            "chatgpt": bool(self.openai_key),
+            "groq": bool(self.groq_key),
             "gemini": bool(self.gemini_key),
             "openrouter": bool(self.openrouter_key),
             "local": LOCAL_LLM_AVAILABLE,
