@@ -298,6 +298,11 @@ class MulticastDiscovery:
 
     async def start(self):
         """Start multicast discovery."""
+        # Guard: disable UDP multicast in cloud environments
+        if PhiPulse._is_cloud_environment():
+            print("  ○ Multicast: disabled (cloud environment detected)")
+            return
+
         self.running = True
 
         # Create multicast socket
