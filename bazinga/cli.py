@@ -658,9 +658,24 @@ class BAZINGA:
         if not results:
             return ""
 
+        # Skip conversation exports and raw JSON dumps — they pollute LLM context
+        skip_patterns = ('conversations', 'chat_export', 'symbol_index')
+
         parts = []
-        for r in results[:3]:
-            parts.append(f"[{Path(r.chunk.source_file).name}]\n{r.chunk.content[:500]}")
+        for r in results[:5]:  # check more since we may skip some
+            source = Path(r.chunk.source_file).name.lower()
+            content = r.chunk.content[:500]
+
+            # Skip conversation/chat JSON exports
+            if any(p in source for p in skip_patterns):
+                continue
+            # Skip chunks that look like raw JSON with conversation metadata
+            if '"source": "claude"' in content or '"symbol_sequence"' in content:
+                continue
+
+            parts.append(f"[{Path(r.chunk.source_file).name}]\n{content}")
+            if len(parts) >= 3:
+                break
 
         return "\n\n---\n\n".join(parts)
 
@@ -671,11 +686,18 @@ class BAZINGA:
                 return "No info found. Set GROQ_API_KEY for AI answers."
             return "I don't have relevant information for this question."
 
-        top = results[0].chunk
-        content = top.content[:500].strip()
-        source = Path(top.source_file).name
+        # Find first non-conversation result
+        skip_patterns = ('conversations', 'chat_export', 'symbol_index')
+        for r in results:
+            source = Path(r.chunk.source_file).name
+            content = r.chunk.content[:500].strip()
+            if any(p in source.lower() for p in skip_patterns):
+                continue
+            if '"source": "claude"' in content or '"symbol_sequence"' in content:
+                continue
+            return f"{content}\n\n[Source: {source}]"
 
-        return f"{content}\n\n[Source: {source}]"
+        return "I don't have relevant information for this question."
 
     async def _call_groq(self, question: str, context: str) -> Optional[str]:
         """Call Groq API for LLM response."""
