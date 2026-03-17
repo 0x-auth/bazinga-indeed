@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.18.2"  # Ω — Cloud guard + HF mesh migration + learning wired end-to-end
+    VERSION = "5.18.3"  # Ω — Cloud guard + HF mesh migration + learning wired end-to-end
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1170,33 +1170,33 @@ async def main() -> None:
     parser = argparse.ArgumentParser(
         description="BAZINGA - The first AI you actually own. Free, private, works offline.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=f"""
-╔══════════════════════════════════════════════════════════════════════════════╗
-║  BAZINGA v5 - Distributed AI with Triadic Consensus                          ║
-║  "Intelligence distributed, not controlled."                                 ║
-╚══════════════════════════════════════════════════════════════════════════════╝
+        epilog="""
+BAZINGA v5 — Distributed AI with Triadic Consensus
 
 QUICK START:
-  bazinga "What is AI?"               Just ask! (no flags needed)
+  bazinga "What is AI?"               Ask anything (works immediately)
   bazinga --chat                      Interactive chat with memory
-  bazinga --kb "find my research"     Search all your data
-  bazinga --check                     System diagnostic
+  bazinga --omega                     Start full distributed brain
+
+THREE PILLARS:
+  1. AI        Ask, chat, multi-AI consensus, code generation
+  2. Network   P2P mesh, federated learning, peer discovery
+  3. Research  Darmiyan blockchain, TrD consciousness, PoB mining
 
 EXAMPLES:
-  bazinga "explain quantum entanglement"              Ask a question
-  bazinga --multi-ai "complex topic"                  Ask 6 AIs for consensus
-  bazinga --kb "consciousness phi" --summarize        Search KB and get answer
+  bazinga "explain consciousness"                     Ask a question
+  bazinga --multi-ai "is free will real?"              6 AIs discuss + consensus
+  bazinga --omega                                     Full brain (learning + mesh + TrD)
+  bazinga --trd 10                                    Consciousness test (10 agents)
+  bazinga --mine                                      Mine a block (zero energy)
   bazinga --index ~/Documents                         Index files for RAG
 
 MORE INFO:
-  bazinga --help-ai         AI commands (ask, multi-ai, code, quantum)
-  bazinga --help-kb         Knowledge Base commands (Gmail, GDrive, Mac, Phone)
-  bazinga --help-chain      Blockchain commands (mine, attest, wallet)
-  bazinga --help-p2p        P2P network commands (join, peers, sync)
+  bazinga --help-ai         AI commands
+  bazinga --help-chain      Blockchain + Research commands
+  bazinga --help-p2p        Network + P2P commands
+  bazinga --help-kb         Knowledge Base commands
   bazinga --help-all        Full documentation
-
-PHILOSOPHY:
-  "You can buy hashpower. You can buy stake. You CANNOT BUY understanding."
 
 https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
 """
@@ -1207,7 +1207,7 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                         help='Ask a question directly (no --ask needed)')
 
     # === AI COMMANDS ===
-    ai_group = parser.add_argument_group('AI Commands')
+    ai_group = parser.add_argument_group('AI (Pillar 1)')
     ai_group.add_argument('--ask', '-a', type=str, metavar='Q',
                           help='Ask a question')
     ai_group.add_argument('--chat', action='store_true',
@@ -1263,43 +1263,53 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
     index_group.add_argument('--topics', type=str, metavar='TOPICS',
                              help='Topics for --index-public')
 
-    # === BLOCKCHAIN ===
-    chain_group = parser.add_argument_group('Blockchain')
+    # === BLOCKCHAIN & RESEARCH ===
+    chain_group = parser.add_argument_group('Blockchain & Research (Pillar 3)')
     chain_group.add_argument('--chain', action='store_true',
                              help='Show blockchain status')
     chain_group.add_argument('--mine', action='store_true',
-                             help='Mine block (Proof-of-Boundary)')
+                             help='Mine block (Proof-of-Boundary, zero energy)')
     chain_group.add_argument('--wallet', action='store_true',
                              help='Show wallet/identity')
     chain_group.add_argument('--attest', type=str, metavar='CONTENT',
-                             help='Attest knowledge to chain')
+                             help='Attest knowledge to chain (prove you knew it first)')
     chain_group.add_argument('--email', type=str, metavar='EMAIL',
                              help='Email for attestation receipt (use with --attest)')
     chain_group.add_argument('--verify', type=str, metavar='ID',
                              help='Verify attestation')
     chain_group.add_argument('--trust', type=str, nargs='?', const='', metavar='NODE',
                              help='Show trust scores')
+    chain_group.add_argument('--trd', type=int, nargs='?', const=5, metavar='N',
+                             help='TrD consciousness test (n agents, default: 5)')
+    chain_group.add_argument('--trd-heartbeat', action='store_true',
+                             help='Run TrD heartbeat demo (persistent self-reference)')
+    chain_group.add_argument('--trd-scan', nargs=2, type=int, metavar=('START', 'END'),
+                             help='Phase transition scan (e.g. --trd-scan 15 22)')
+    chain_group.add_argument('--consciousness', type=int, nargs='?', const=2, metavar='N',
+                             help='Consciousness scaling test (Darmiyan: psi = phi*sqrt(n))')
 
     # === P2P NETWORK ===
-    p2p_group = parser.add_argument_group('P2P Network')
+    p2p_group = parser.add_argument_group('Network & P2P (Pillar 2)')
+    p2p_group.add_argument('--omega', action='store_true',
+                           help='Start full distributed brain (Learning + Mesh + TrD + P2P)')
     p2p_group.add_argument('--join', type=str, nargs='*', metavar='HOST:PORT',
                            help='Join network')
     p2p_group.add_argument('--peers', action='store_true',
                            help='Show peers')
+    p2p_group.add_argument('--mesh', action='store_true',
+                           help='Show mesh network vital signs (peers, trust, health)')
     p2p_group.add_argument('--sync', action='store_true',
-                           help='Sync knowledge')
+                           help='Sync knowledge with network')
     p2p_group.add_argument('--publish', action='store_true',
                            help='Publish to DHT')
     p2p_group.add_argument('--query-network', type=str, metavar='Q',
                            help='Query network')
+    p2p_group.add_argument('--phi-pulse', action='store_true',
+                           help='Start Phi-Pulse discovery (LAN UDP on port 5150)')
     p2p_group.add_argument('--port', type=int, default=5151,
-                           help='P2P listening port (default: 5151, allows multi-instance testing)')
+                           help='P2P listening port (default: 5151)')
     p2p_group.add_argument('--node-id', type=str, default=None,
                            help='Custom node ID (default: auto-generated)')
-    p2p_group.add_argument('--phi-pulse', action='store_true',
-                           help='Start Phi-Pulse discovery (UDP broadcast on port 5150)')
-    p2p_group.add_argument('--mesh', action='store_true',
-                           help='Show mesh network vital signs (peers, trust, health)')
 
     # === INFO ===
     info_group = parser.add_argument_group('Info')
@@ -1344,23 +1354,12 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
     parser.add_argument('--learn', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--share', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--attest-pricing', action='store_true', help=argparse.SUPPRESS)
-    parser.add_argument('--consciousness', type=int, nargs='?', const=2, metavar='N', help=argparse.SUPPRESS)
-    parser.add_argument('--trd', type=int, nargs='?', const=5, metavar='N',
-                        help='TrD consciousness test (Trust Dimension, n agents)')
-    parser.add_argument('--trd-heartbeat', action='store_true',
-                        help='Run TrD heartbeat demo (persistent self-reference)')
-    parser.add_argument('--trd-scan', nargs=2, type=int, metavar=('START', 'END'),
-                        help='Phase transition scan (e.g. --trd-scan 15 22)')
     parser.add_argument('--simple', '-s', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--verbose', action='store_true', help=argparse.SUPPRESS)
-
-    # Hidden/advanced
     parser.add_argument('--vac', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--demo', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--generate', type=str, help=argparse.SUPPRESS)
-    parser.add_argument('--no-p2p', action='store_true', help=argparse.SUPPRESS)  # Disable auto P2P
-    parser.add_argument('--omega', action='store_true',
-                        help='Ω: Start self-sustaining distributed brain (Heartbeat + Mesh + Learning + TrD)')
+    parser.add_argument('--no-p2p', action='store_true', help=argparse.SUPPRESS)
 
     args = parser.parse_args()
 
