@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.18.6"  # --deindex + RAG conversation filter + --headless
+    VERSION = "5.18.7"  # Full UDP cloud guard on all discovery paths
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
