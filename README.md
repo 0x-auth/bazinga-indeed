@@ -107,7 +107,7 @@ Destructive commands require your explicit confirmation.
 | **Full Documentation** | [USAGE.md](./USAGE.md) |
 | **Architecture** | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | **PyPI** | https://pypi.org/project/bazinga-indeed/ |
-| **HuggingFace Demo** | https://huggingface.co/spaces/bitsabhi/bazinga |
+| **Mesh Registry** | https://huggingface.co/spaces/bitsabhi515/bazinga-mesh |
 
 ---
 

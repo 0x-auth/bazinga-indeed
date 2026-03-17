@@ -62,7 +62,7 @@ This HuggingFace Space provides REST API for CLI integration:
 import httpx
 
 # Register a node
-resp = httpx.post("https://bitsabhi-bazinga.hf.space/api/register", json={
+resp = httpx.post("https://bitsabhi515-bazinga-mesh.hf.space/api/register", json={
     "node_name": "my-node",
     "ip_address": "1.2.3.4",
     "port": 5150
@@ -71,7 +71,7 @@ print(resp.json())
 # {"success": true, "node_id": "abc123...", "credits": 1.0}
 
 # Get network stats
-resp = httpx.get("https://bitsabhi-bazinga.hf.space/api/stats")
+resp = httpx.get("https://bitsabhi515-bazinga-mesh.hf.space/api/stats")
 print(resp.json())
 # {"active_nodes": 5, "consciousness_psi": 3.62, ...}
 ```

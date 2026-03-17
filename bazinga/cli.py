@@ -206,7 +206,7 @@ except ImportError:
     HTTPX_AVAILABLE = False
 
 # HuggingFace Space API URL (network registry)
-HF_SPACE_URL = "https://calm-purpose-production-2031.up.railway.app"
+HF_SPACE_URL = "https://bitsabhi515-bazinga-mesh.hf.space"
 
 
 class HFNetworkRegistry:
@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.18.0"  # Ω — Learning wired end-to-end, --omega self-sustaining brain
+    VERSION = "5.18.2"  # Ω — Cloud guard + HF mesh migration + learning wired end-to-end
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -2375,7 +2375,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print(f"\n  Node ID: {node_id}")
         print(f"  P2P Port: {p2p_port}")
         print(f"  Local Broadcast: 5150 (Phi-Pulse)")
-        print(f"  Global Registry: bitsabhi-bazinga.hf.space")
+        print(f"  Global Registry: bitsabhi515-bazinga-mesh.hf.space")
 
         async def run_global_discovery():
             discovery = GlobalDiscovery(

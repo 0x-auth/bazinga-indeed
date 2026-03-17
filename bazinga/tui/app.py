@@ -6,9 +6,11 @@ Full-screen terminal interface like Claude Code.
 
 from textual.app import App, ComposeResult
 from textual.containers import Container, Vertical, ScrollableContainer
-from textual.widgets import Header, Footer, Static, Input, RichLog, Rule
+from textual.widgets import Header, Footer, Static, Input, RichLog, Rule, TextArea
 from textual.binding import Binding
 from textual.reactive import reactive
+from textual.message import Message
+from textual.events import Key
 
 from rich.text import Text
 from rich.panel import Panel
@@ -23,6 +25,43 @@ try:
     AGENT_AVAILABLE = True
 except ImportError:
     AGENT_AVAILABLE = False
+
+
+class ChatInput(TextArea):
+    """Multi-line input that submits on Enter, newline on Shift+Enter."""
+
+    BINDINGS = [
+        Binding("enter", "submit", "Send", show=False),
+    ]
+
+    class Submitted(Message):
+        """Posted when user presses Enter to submit."""
+        def __init__(self, value: str) -> None:
+            super().__init__()
+            self.value = value
+
+    def __init__(self, **kwargs):
+        super().__init__(
+            language=None,
+            show_line_numbers=False,
+            soft_wrap=True,
+            tab_behavior="indent",
+            **kwargs,
+        )
+
+    def _on_key(self, event: Key) -> None:
+        # Enter = submit, Shift+Enter = newline (Textual sends "shift+enter" as key name)
+        if event.key == "enter":
+            event.prevent_default()
+            event.stop()
+            value = self.text.strip()
+            if value:
+                self.post_message(self.Submitted(value))
+                self.clear()
+
+    def action_submit(self) -> None:
+        """Fallback for binding — real logic is in _on_key."""
+        pass
 
 
 class StatusBar(Static):
@@ -79,16 +118,22 @@ class BazingaApp(App):
 
     #input-box {
         dock: bottom;
-        height: 3;
+        height: auto;
+        min-height: 3;
+        max-height: 10;
         padding: 0 1;
         background: #161b22;
     }
 
-    Input {
+    ChatInput {
         border: tall #30363d;
+        background: #0d1117;
+        height: auto;
+        min-height: 1;
+        max-height: 8;
     }
 
-    Input:focus {
+    ChatInput:focus {
         border: tall #58a6ff;
     }
     """
@@ -125,7 +170,7 @@ class BazingaApp(App):
     def compose(self) -> ComposeResult:
         """Create child widgets."""
         yield Static(
-            "[bold]BAZINGA[/bold] v5.4.1 │ The first AI you actually own │"
+            "[bold]BAZINGA[/bold] v5.16.0 │ The first AI you actually own │"
             "[dim]Ctrl+K: KB │ Ctrl+M: Multi-AI │ Ctrl+A: Agent │ Ctrl+C: Quit[/dim]",
             id="header-bar"
         )
@@ -134,16 +179,13 @@ class BazingaApp(App):
 
         yield StatusBar(id="status-bar")
 
-        yield Input(
-            placeholder="Ask anything... (Enter to send)",
-            id="input-box"
-        )
+        yield ChatInput(id="input-box")
 
         yield Footer()
 
     def on_mount(self) -> None:
         """Called when app is mounted."""
-        self.query_one("#input-box", Input).focus()
+        self.query_one("#input-box", ChatInput).focus()
 
         # Welcome message
         log = self.query_one("#chat-log", RichLog)
@@ -153,13 +195,14 @@ class BazingaApp(App):
             "and LLMs to find the best answer.\n\n"
             "[bold cyan]Agent Mode (Ctrl+A):[/bold cyan] I can read/edit files and run commands!\n"
             "Try: 'Check my script.py and fix the bug on line 10'\n\n"
+            "[dim]Enter: send │ Shift+Enter: new line │ Paste multi-line text freely[/dim]\n"
             "[dim]Shortcuts: Ctrl+K (KB) │ Ctrl+M (Multi-AI) │ Ctrl+A (Agent) │ Ctrl+L (Clear)[/dim]",
             title="[yellow]φ = 1.618033988749895[/yellow]",
             border_style="green"
         ))
 
-    async def on_input_submitted(self, event: Input.Submitted) -> None:
-        """Handle user input submission."""
+    async def on_chat_input_submitted(self, event: ChatInput.Submitted) -> None:
+        """Handle user input submission (multi-line supported)."""
         if self.is_processing:
             return
 
@@ -167,13 +210,14 @@ class BazingaApp(App):
         if not query:
             return
 
-        # Clear input
-        input_box = self.query_one("#input-box", Input)
-        input_box.value = ""
-
-        # Add user message
+        # Add user message (show multi-line nicely)
         log = self.query_one("#chat-log", RichLog)
-        log.write(f"\n[bold cyan]You:[/bold cyan] {query}")
+        if "\n" in query:
+            log.write(f"\n[bold cyan]You:[/bold cyan]")
+            for line in query.split("\n"):
+                log.write(f"  {line}")
+        else:
+            log.write(f"\n[bold cyan]You:[/bold cyan] {query}")
 
         # Handle special commands
         if query.startswith("/"):
@@ -442,9 +486,11 @@ class BazingaApp(App):
 
     def action_kb_search(self) -> None:
         """Trigger KB search mode."""
-        input_box = self.query_one("#input-box", Input)
-        if not input_box.value.startswith("/kb "):
-            input_box.value = "/kb " + input_box.value
+        input_box = self.query_one("#input-box", ChatInput)
+        current = input_box.text
+        if not current.startswith("/kb "):
+            input_box.clear()
+            input_box.insert("/kb " + current)
         input_box.focus()
 
     def action_multi_ai(self) -> None:

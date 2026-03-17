@@ -28,7 +28,7 @@ except ImportError:
 
 # BAZINGA constants
 PHI = 1.618033988749895
-HF_SPACE_URL = "https://calm-purpose-production-2031.up.railway.app"
+HF_SPACE_URL = "https://bitsabhi515-bazinga-mesh.hf.space"
 REGISTRY_TIMEOUT = 10.0
 
 

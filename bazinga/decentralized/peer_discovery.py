@@ -791,9 +791,30 @@ class PhiPulse:
         except ImportError:
             pass
 
+    @staticmethod
+    def _is_cloud_environment() -> bool:
+        """Detect if running in a cloud container where UDP broadcast is forbidden."""
+        import os
+        cloud_markers = [
+            'SPACE_ID',           # HuggingFace Spaces
+            'RAILWAY_ENVIRONMENT',# Railway
+            'DYNO',              # Heroku
+            'FLY_APP_NAME',      # Fly.io
+            'RENDER_SERVICE_ID', # Render
+            'K_SERVICE',         # Cloud Run / Knative
+            'AWS_LAMBDA_FUNCTION_NAME',  # AWS Lambda
+            'VERCEL',            # Vercel
+        ]
+        return any(os.environ.get(k) for k in cloud_markers)
+
     def start(self):
         """Start Phi-Pulse discovery (non-blocking)."""
         if self.running:
+            return
+
+        # Guard: disable UDP broadcast in cloud environments
+        if self._is_cloud_environment():
+            print("  ○ Phi-Pulse: disabled (cloud environment detected, UDP broadcast not safe)")
             return
 
         self.running = True
