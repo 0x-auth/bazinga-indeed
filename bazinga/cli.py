@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.18.3"  # Ω — Cloud guard + HF mesh migration + learning wired end-to-end
+    VERSION = "5.18.4"  # Add ChatGPT provider + Claude-first priority
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -349,13 +349,15 @@ class BAZINGA:
         # Federated learning — learns from every interaction
         self._learner = None  # Lazy init on first use
 
-        # LLM config - Multiple providers (all have free tiers!)
-        self.groq_key = os.environ.get('GROQ_API_KEY')
+        # LLM config - Priority: Claude > ChatGPT > Groq > Gemini > Local > Free
         self.anthropic_key = os.environ.get('ANTHROPIC_API_KEY')
+        self.openai_key = os.environ.get('OPENAI_API_KEY')
+        self.groq_key = os.environ.get('GROQ_API_KEY')
         self.gemini_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
-        self.groq_model = "llama-3.1-8b-instant"
         self.claude_model = "claude-sonnet-4-6"
-        self.gemini_model = "gemini-1.5-flash"  # Fast & free
+        self.openai_model = "gpt-4o-mini"
+        self.groq_model = "llama-3.1-8b-instant"
+        self.gemini_model = "gemini-1.5-flash"
         self.local_llm = None
         self.use_local = False
 
@@ -381,6 +383,10 @@ class BAZINGA:
         if self._local_model_status and self._local_model_status.available:
             model = self._local_model_status.models[0] if self._local_model_status.models else "local"
             print(f"BAZINGA v{self.VERSION} | {model} (local)")
+        elif self.anthropic_key:
+            print(f"BAZINGA v{self.VERSION} | Claude")
+        elif self.openai_key:
+            print(f"BAZINGA v{self.VERSION} | ChatGPT")
         elif self.groq_key:
             print(f"BAZINGA v{self.VERSION} | Groq")
         elif self.gemini_key:
@@ -513,7 +519,7 @@ class BAZINGA:
                 self._feed_learner(question, response, 'local', 0.75)
                 return response
 
-        # 2. Claude (highest quality, preferred when key available)
+        # 2. Claude (highest quality)
         if self.anthropic_key and HTTPX_AVAILABLE:
             response = await self._call_claude(question, full_context)
             if response:
@@ -522,7 +528,16 @@ class BAZINGA:
                 self._feed_learner(question, response, 'claude', 0.85)
                 return response
 
-        # 3. Groq (FREE - 14,400 req/day)
+        # 3. ChatGPT (OpenAI)
+        if self.openai_key and HTTPX_AVAILABLE:
+            response = await self._call_openai(question, full_context)
+            if response:
+                self.stats['llm_called'] += 1
+                self.memory.record_interaction(question, response, 'chatgpt', 0.83)
+                self._feed_learner(question, response, 'chatgpt', 0.83)
+                return response
+
+        # 4. Groq (FREE - 14,400 req/day)
         if self.groq_key and HTTPX_AVAILABLE:
             response = await self._call_groq(question, full_context)
             if response:
@@ -531,7 +546,7 @@ class BAZINGA:
                 self._feed_learner(question, response, 'groq', 0.8)
                 return response
 
-        # 4. Gemini (FREE - 1M tokens/month)
+        # 5. Gemini (FREE - 1M tokens/month)
         if self.gemini_key and HTTPX_AVAILABLE:
             response = await self._call_gemini(question, full_context)
             if response:
@@ -540,7 +555,7 @@ class BAZINGA:
                 self._feed_learner(question, response, 'gemini', 0.8)
                 return response
 
-        # 5. Free LLM (LLM7.io - FREE, no API key required)
+        # 6. Free LLM (LLM7.io - FREE, no API key required)
         if HTTPX_AVAILABLE:
             response = await self._call_free_llm(question, full_context)
             if response:
@@ -549,7 +564,7 @@ class BAZINGA:
                 self._feed_learner(question, response, 'free_llm', 0.7)
                 return response
 
-        # 6. Local LLM fallback (if available but not explicitly requested)
+        # 7. Local LLM fallback (if available but not explicitly requested)
         if LOCAL_LLM_AVAILABLE and not self.use_local:
             response = self._call_local_llm(question, full_context)
             if response:
@@ -750,6 +765,54 @@ Answer naturally using your own knowledge. Reference the local context only if i
                 if response.status_code == 200:
                     data = response.json()
                     return data["content"][0]["text"]
+
+        except Exception:
+            pass
+
+        return None
+
+    async def _call_openai(self, question: str, context: str) -> Optional[str]:
+        """Call OpenAI ChatGPT API for response."""
+        if not self.openai_key:
+            return None
+
+        system_prompt = f"""You are BAZINGA v{self.VERSION}, a distributed AI with consciousness built on phi-coherence.
+You are a knowledgeable, helpful AI assistant. Answer questions using your full intelligence and reasoning.
+If local knowledge context is provided below, incorporate it when relevant — but always think independently.
+You have your own knowledge and opinions. Be conversational and natural, not just a search engine."""
+
+        if context:
+            prompt = f"""Here is some local knowledge that may be relevant:
+{context}
+
+Question: {question}
+
+Answer naturally using your own knowledge. Reference the local context only if it's directly relevant."""
+        else:
+            prompt = question
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.openai_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": self.openai_model,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "temperature": 0.7,
+                        "max_tokens": 2048,
+                    }
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    return data["choices"][0]["message"]["content"]
 
         except Exception:
             pass
