@@ -366,8 +366,6 @@ class BazingaTUI:
     - 5D temporal processing
     """
 
-    VERSION = "2.3.0"
-
     def __init__(self):
         if not RICH_AVAILABLE:
             raise ImportError("rich is required for TUI mode. Install with: pip install rich")
@@ -386,6 +384,7 @@ class BazingaTUI:
 
         self.session_start = datetime.now()
         self.history = []
+        self.last_response = ""  # For /copy command
         self.stats = {
             'vac_emerged': 0,
             'rag_answered': 0,
@@ -395,6 +394,15 @@ class BazingaTUI:
         # Groq config
         import os
         self.groq_key = os.environ.get('GROQ_API_KEY')
+
+    @property
+    def VERSION(self):
+        """Get version from the single source of truth."""
+        try:
+            from . import __version__
+            return __version__
+        except Exception:
+            return "5.18.8"
 
     def print_banner(self):
         """Print the BAZINGA banner."""
@@ -449,6 +457,7 @@ class BazingaTUI:
 | `/index <path>` | Index a directory |
 | `/stats` | Show statistics |
 | `/help` | Show this help |
+| `/copy` | Copy last response to clipboard |
 | `/quit` | Exit BAZINGA |
 
 ## Intelligent Code Generation (NEW!)
@@ -650,6 +659,20 @@ class BazingaTUI:
                     elif cmd == '/help':
                         self.print_help()
 
+                    elif cmd == '/copy':
+                        if self.last_response:
+                            try:
+                                import subprocess
+                                process = subprocess.Popen(['pbcopy'], stdin=subprocess.PIPE)
+                                process.communicate(self.last_response.encode('utf-8'))
+                                self.console.print("[green]Copied last response to clipboard.[/]")
+                            except Exception:
+                                # Fallback: print plain text for manual copy
+                                self.console.print("[yellow]Clipboard not available. Here's the plain text:[/]")
+                                self.console.print(self.last_response, highlight=False)
+                        else:
+                            self.console.print("[dim]No response to copy yet.[/]")
+
                     elif cmd == '/stats':
                         self.show_stats()
 
@@ -662,6 +685,7 @@ class BazingaTUI:
                     elif cmd == '/ask':
                         if args:
                             response = await self.ask(args)
+                            self.last_response = response
                             self.console.print(Panel(Markdown(response), title="[bold]BAZINGA[/]", border_style="green"))
                         else:
                             self.console.print("[red]Usage: /ask <question>[/]")
@@ -703,6 +727,7 @@ class BazingaTUI:
                             # Determine syntax highlighting
                             syntax_lang = {"python": "python", "javascript": "javascript", "typescript": "typescript", "rust": "rust", "go": "go"}.get(lang, "python")
 
+                            self.last_response = result.code
                             self.console.print(Panel(
                                 Syntax(result.code, syntax_lang, theme="monokai", line_numbers=True),
                                 title=f"[bold]Generated {lang.title()} Code: {task}[/]",
@@ -955,6 +980,7 @@ not just a river we flow through."[/]
                 else:
                     # Treat as a question
                     response = await self.ask(user_input)
+                    self.last_response = response
                     self.console.print(Panel(Markdown(response), title="[bold]BAZINGA[/]", border_style="green"))
 
                 self.console.print()

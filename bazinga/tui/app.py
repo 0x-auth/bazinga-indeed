@@ -159,6 +159,7 @@ class BazingaApp(App):
 
         # Conversation history for multi-turn chat
         self.conversation_history = []
+        self.last_response = ""  # For /copy command
 
         # Initialize agent if available
         if AGENT_AVAILABLE:
@@ -169,8 +170,13 @@ class BazingaApp(App):
 
     def compose(self) -> ComposeResult:
         """Create child widgets."""
+        try:
+            from .. import __version__
+            version = __version__
+        except Exception:
+            version = "5.18.8"
         yield Static(
-            "[bold]BAZINGA[/bold] v5.16.0 │ The first AI you actually own │"
+            f"[bold]BAZINGA[/bold] v{version} │ The first AI you actually own │"
             "[dim]Ctrl+K: KB │ Ctrl+M: Multi-AI │ Ctrl+A: Agent │ Ctrl+C: Quit[/dim]",
             id="header-bar"
         )
@@ -233,6 +239,7 @@ class BazingaApp(App):
             response, metadata = await self._process_query(query)
 
             # Display response
+            self.last_response = response
             log.write(f"\n[bold green]BAZINGA:[/bold green] {response}")
             if metadata:
                 coherence = metadata.get('coherence', 0)
@@ -265,6 +272,7 @@ class BazingaApp(App):
                 "  /kb <query>    - Search knowledge base\n"
                 "  /multi <query> - Multi-AI consensus\n"
                 "  /chain         - Show blockchain status\n"
+                "  /copy          - Copy last response to clipboard\n"
                 "  /stats         - Show session stats\n"
                 "  /clear         - Clear chat\n"
                 "  /quit          - Exit BAZINGA\n\n"
@@ -272,10 +280,35 @@ class BazingaApp(App):
                 "  Ctrl+A - Toggle Agent mode\n"
                 "  Ctrl+K - KB search prefix\n"
                 "  Ctrl+M - Toggle Multi-AI\n"
-                "  Ctrl+L - Clear chat",
+                "  Ctrl+L - Clear chat\n\n"
+                "[bold]Copy text:[/bold]\n"
+                "  /copy          - Copy last response to clipboard\n"
+                "  Hold Option and drag to select text (macOS terminal)",
                 title="Help",
                 border_style="blue"
             ))
+        elif command == "/copy":
+            if self.last_response:
+                try:
+                    import subprocess
+                    # Strip Rich markup for clean clipboard text
+                    import re
+                    clean = re.sub(r'\[/?[^\]]*\]', '', self.last_response)
+                    process = subprocess.Popen(['pbcopy'], stdin=subprocess.PIPE)
+                    process.communicate(clean.encode('utf-8'))
+                    log.write("[green]Copied last response to clipboard.[/green]")
+                except FileNotFoundError:
+                    # Not macOS — try xclip
+                    try:
+                        process = subprocess.Popen(['xclip', '-selection', 'clipboard'], stdin=subprocess.PIPE)
+                        process.communicate(clean.encode('utf-8'))
+                        log.write("[green]Copied last response to clipboard.[/green]")
+                    except Exception:
+                        log.write(f"[yellow]Clipboard not available. Response:[/yellow]\n{clean}")
+                except Exception as e:
+                    log.write(f"[yellow]Copy failed: {e}[/yellow]")
+            else:
+                log.write("[dim]No response to copy yet.[/dim]")
         elif command == "/clear":
             log.clear()
             self.conversation_history = []
