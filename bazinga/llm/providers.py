@@ -31,7 +31,7 @@ class LLMProviders:
     Priority: Claude > ChatGPT > Groq > Gemini > Local > FreeLLM
     """
 
-    VERSION = "5.19.0"
+    VERSION = "5.19.1"
 
     def __init__(
         self,
