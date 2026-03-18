@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.19.2"  # TUI version fix + /copy command
+    VERSION = "5.19.3"  # TUI version fix + /copy command
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -494,9 +494,18 @@ class BAZINGA:
         )
 
         # Layer 3: Local RAG - search knowledge base for relevant context
-        search_terms = self._extract_search_terms(question, quantum_essence)
-        results = self.ai.search(search_terms, limit=5)
-        best_similarity = results[0].similarity if results else 0
+        # Skip RAG for very short/greeting queries — they match random noise
+        _greetings = {'hi', 'hello', 'hey', 'sup', 'yo', 'hola', 'namaste', 'thanks', 'bye', 'ok', 'okay'}
+        _q_words = set(question.lower().split())
+        _skip_rag = len(_q_words) <= 2 and bool(_q_words & _greetings)
+
+        if _skip_rag:
+            results = []
+            best_similarity = 0
+        else:
+            search_terms = self._extract_search_terms(question, quantum_essence)
+            results = self.ai.search(search_terms, limit=5)
+            best_similarity = results[0].similarity if results else 0
 
         # Layer 3.5: KB DNA manifests — breadth context from scanned knowledge
         kb_context = ""
