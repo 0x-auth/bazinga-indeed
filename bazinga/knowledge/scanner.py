@@ -556,19 +556,27 @@ class KBScanner:
 
         Returns a string suitable for injection into LLM context.
         """
+        # Skip KB context for short/greeting messages
+        GREETINGS = {'hi', 'hello', 'hey', 'sup', 'yo', 'hola', 'namaste', 'thanks', 'thank', 'bye', 'ok', 'okay'}
+        question_lower = question.lower().strip()
+        question_words = set(question_lower.split())
+        if len(question_words) <= 2 and question_words & GREETINGS:
+            return ""
+        # Need at least one substantive word (>3 chars) to search
+        substantive_words = {w for w in question_words if len(w) > 3}
+        if not substantive_words:
+            return ""
+
         manifest = self._load_manifest()
         if not manifest:
             return ""
-
-        question_lower = question.lower()
-        question_words = set(question_lower.split())
 
         context_parts = []
 
         # 1. Project-level summaries (always include — they're small)
         projects = manifest.get('projects', [])
         if projects:
-            context_parts.append("[Knowledge Base Overview]")
+            context_parts.append("[USER'S KNOWLEDGE BASE — use as background context, do NOT describe these files directly]")
             for proj in projects[:20]:  # Top 20 projects
                 path = proj['path']
                 files = proj['files']
@@ -588,17 +596,13 @@ class KBScanner:
             score = 0
             # Topic match
             file_topics = set(t.lower() for t in data.get('topics', []))
-            score += len(question_words & file_topics) * 3
+            score += len(substantive_words & file_topics) * 3
             # Summary keyword match
             summary = data.get('summary', '').lower()
-            score += sum(1 for w in question_words if len(w) > 3 and w in summary)
+            score += sum(1 for w in substantive_words if w in summary)
             # Quote match
             for quote in data.get('quotes', []):
-                score += sum(1 for w in question_words if len(w) > 3 and w in quote.lower())
-            # Boost consciousness/complex files
-            gene = data.get('gene', '◌')
-            if gene in ('Ω', 'Σ', 'Δ'):
-                score += 1
+                score += sum(1 for w in substantive_words if w in quote.lower())
 
             if score > 0:
                 relevant.append((score, filepath, data))
@@ -607,14 +611,14 @@ class KBScanner:
         relevant.sort(key=lambda x: x[0], reverse=True)
 
         if relevant:
-            context_parts.append("[Relevant Files from KB]")
+            context_parts.append("[Relevant files from user's KB — reference naturally, don't list raw paths]")
             chars_used = sum(len(p) for p in context_parts)
 
             for score, filepath, data in relevant[:15]:
                 rel_path = filepath.replace(str(Path.home()), '~')
                 summary = data.get('summary', '')[:200]
                 gene = data.get('gene', '◌')
-                entry = f"  {gene} {rel_path}: {summary}"
+                entry = f"  {rel_path}: {summary}"
 
                 if chars_used + len(entry) > max_tokens * 4:  # ~4 chars per token
                     break
