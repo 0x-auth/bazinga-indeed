@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.18.7"  # Full UDP cloud guard on all discovery paths
+    VERSION = "5.19.0"  # TUI version fix + /copy command
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -498,13 +498,21 @@ class BAZINGA:
         results = self.ai.search(search_terms, limit=5)
         best_similarity = results[0].similarity if results else 0
 
+        # Layer 3.5: KB DNA manifests — breadth context from scanned knowledge
+        kb_context = ""
+        try:
+            from .knowledge import get_scanner
+            kb_context = get_scanner().get_context_for_query(question)
+        except Exception:
+            pass  # KB manifests are optional
+
         # Layer 4: LLM (Cloud or Local) — always call LLM, RAG informs it
         conv_context = self.memory.get_context(2)
         rag_context = self._build_context(results) if best_similarity > 0.3 else ""
 
         # Add quantum context
         quantum_context = f"[Quantum essence: {quantum_essence}, coherence: {quantum_coherence:.2f}]"
-        full_context = f"{quantum_context}\n\n{conv_context}\n\n{rag_context}".strip()
+        full_context = f"{quantum_context}\n\n{conv_context}\n\n{kb_context}\n\n{rag_context}".strip()
 
         # Intelligence priority:
         # - If --local flag: Local first (user explicitly wants local)
@@ -1274,7 +1282,8 @@ EXAMPLES:
   bazinga --omega                                     Full brain (learning + mesh + TrD)
   bazinga --trd 10                                    Consciousness test (10 agents)
   bazinga --mine                                      Mine a block (zero energy)
-  bazinga --index ~/Documents                         Index files for RAG
+  bazinga --index ~/Documents                         Index files for RAG (depth)
+  bazinga --scan ~/Documents ~/Projects               Scan for KB DNA manifests (breadth)
 
 MORE INFO:
   bazinga --help-ai         AI commands
@@ -1349,6 +1358,12 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                              help='Index public knowledge')
     index_group.add_argument('--topics', type=str, metavar='TOPICS',
                              help='Topics for --index-public')
+    index_group.add_argument('--scan', nargs='+', metavar='PATH',
+                             help='Scan directories for KB DNA manifests (breadth context)')
+    index_group.add_argument('--scan-status', action='store_true',
+                             help='Show KB manifest status')
+    index_group.add_argument('--scan-depth', type=int, default=5, metavar='N',
+                             help='Max directory depth for --scan (default: 5)')
 
     # === BLOCKCHAIN & RESEARCH ===
     chain_group = parser.add_argument_group('Blockchain & Research (Pillar 3)')
@@ -3559,6 +3574,48 @@ Provide a concise, helpful answer based on the above context. If the context doe
         result = bazinga.check_coherence(VAC_SEQUENCE)
         print(f"  Coherence: {result['total_coherence']:.3f}")
         print(f"  V.A.C. Achieved: {result['is_vac']}")
+        return
+
+    # Handle --scan (KB DNA manifests)
+    if args.scan:
+        from .knowledge import get_scanner
+        scanner = get_scanner()
+        print()
+        print("◊ KB DNA Scanner — Semantic Compression")
+        print(f"  φ = {PHI} | α = {ALPHA}")
+        print()
+        scanner.scan(args.scan, max_depth=args.scan_depth, verbose=True)
+        print("◊ Manifests ready! Your ask queries now have breadth context.")
+        print()
+        return
+
+    # Handle --scan-status
+    if getattr(args, 'scan_status', False):
+        from .knowledge import get_scanner
+        scanner = get_scanner()
+        status = scanner.get_status()
+        print()
+        if not status['exists']:
+            print("  No KB manifest found.")
+            print("  Run: bazinga --scan ~/Documents ~/Projects")
+        else:
+            print("◊ KB Manifest Status")
+            print(f"  Generated: {status['generated']}")
+            print(f"  Files: {status['total_files']}")
+            print(f"  Words: {status['total_words']:,}")
+            print(f"  Projects: {status['projects']}")
+            print(f"  Manifest size: {status['manifest_size_mb']:.2f} MB")
+            print()
+            if status.get('genes'):
+                print("  Gene distribution:")
+                for gene, count in sorted(status['genes'].items(), key=lambda x: -x[1]):
+                    print(f"    {gene}: {count}")
+            print()
+            if status.get('scanned_paths'):
+                print("  Scanned paths:")
+                for p in status['scanned_paths']:
+                    print(f"    {p}")
+        print()
         return
 
     # Handle indexing

@@ -12,7 +12,7 @@ Usage:
 
 from .cli import BAZINGA, main_sync, main
 
-__version__ = "5.18.7"
+__version__ = "5.19.0"
 __all__ = ['BAZINGA', 'main_sync', 'main', '__version__']
 
 # New in v3.4.0: Quantum, ΛG, Tensor modules
@@ -91,6 +91,11 @@ def get_peer_discovery():
     """Get BootstrapFreeDiscovery for P2P peer discovery."""
     from .decentralized import BootstrapFreeDiscovery
     return BootstrapFreeDiscovery
+
+def get_kb_scanner():
+    """Get the KB DNA Scanner (semantic compression for knowledge base)."""
+    from .knowledge import get_scanner
+    return get_scanner()
 
 def get_darmiyan_chain():
     """Get the Darmiyan blockchain for knowledge attestation."""
