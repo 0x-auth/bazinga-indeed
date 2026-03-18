@@ -395,7 +395,7 @@ class RealAI:
         verbose: bool = True,
         max_files: Optional[int] = None
     ) -> Dict[str, int]:
-        """Index all files in a directory."""
+        """Index all files in a directory, or a single file."""
         if not self.embedder or not self.collection:
             return {'error': 'Dependencies not available'}
 
@@ -412,6 +412,28 @@ class RealAI:
             'alpha_seeds': 0,
             'errors': 0
         }
+
+        # Handle single file path
+        if directory.is_file():
+            stats['files_scanned'] = 1
+            try:
+                chunks = self.index_file(str(directory))
+                if chunks > 0:
+                    stats['files_indexed'] = 1
+                    stats['chunks_created'] = chunks
+                    if verbose:
+                        print(f"  ✓ Indexed: {directory.name} ({chunks} chunks)")
+            except Exception as e:
+                stats['errors'] = 1
+                if verbose:
+                    print(f"  ✗ Error: {e}")
+            stats['alpha_seeds'] = self.stats['alpha_seeds']
+            if verbose:
+                print()
+                print(f"✓ Files indexed: {stats['files_indexed']}")
+                print(f"✓ Chunks created: {stats['chunks_created']}")
+                print()
+            return stats
 
         try:
             for entry in directory.rglob('*'):
