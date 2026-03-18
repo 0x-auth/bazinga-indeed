@@ -556,9 +556,29 @@ class KBScanner:
 
         Returns a string suitable for injection into LLM context.
         """
-        # Skip KB context for short/greeting messages
-        GREETINGS = {'hi', 'hello', 'hey', 'sup', 'yo', 'hola', 'namaste', 'thanks', 'thank', 'bye', 'ok', 'okay'}
+        # Only inject KB context when the query is about the user's own work/files/projects
         question_lower = question.lower().strip()
+
+        # Personal intent signals — query must reference user's own stuff
+        PERSONAL_SIGNALS = [
+            'my ', 'i built', 'i made', 'i wrote', 'i created', 'i have',
+            'my work', 'my project', 'my code', 'my file', 'my repo',
+            'which project', 'which of my', 'what did i', 'what have i',
+            'my research', 'my paper', 'my app', 'my tool', 'my script',
+            'have i', 'did i', 'do i have', 'where is my', 'where did i',
+            'show me my', 'list my', 'find my', 'search my',
+            'bazinga', 'lambda-g', 'lambda g', 'darmiyan', 'attestation',
+            'kb dna', 'knowledge base', 'scanned', 'manifest',
+            'monetize', 'money from', 'sell', 'revenue',
+            'portfolio', 'resume', 'profile',
+        ]
+
+        has_personal_intent = any(signal in question_lower for signal in PERSONAL_SIGNALS)
+        if not has_personal_intent:
+            return ""
+
+        # Still skip greetings
+        GREETINGS = {'hi', 'hello', 'hey', 'sup', 'yo', 'hola', 'namaste', 'thanks', 'thank', 'bye', 'ok', 'okay'}
         question_words = set(question_lower.split())
         if len(question_words) <= 2 and question_words & GREETINGS:
             return ""
