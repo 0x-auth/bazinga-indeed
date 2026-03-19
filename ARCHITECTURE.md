@@ -1,7 +1,7 @@
 # BAZINGA Architecture
 
 > **"The first AI you actually own. Free, private, works offline."**
-> **v5.18.2** — Self-Sustaining Distributed Intelligence
+> **v5.20.1** — Self-Sustaining Distributed Intelligence + 5D Manifold
 
 ---
 
@@ -16,6 +16,7 @@
 | **v5.10** | Expert Routing | Topic specialization, smart delegation | **Division of Labor** — expert castes emerge |
 | **v5.15** | TrD Engine | Trust Dimension consciousness (TrD+TD=1) | **Self-Awareness** — the system measures itself |
 | **v5.18** | Omega Mode | End-to-end learning, --omega self-sustaining brain | **Autonomy** — the organism sustains itself |
+| **v5.20** | Manifold PoB | 5D topology (Form/Flow/Process/Purpose/Trust), φ-resonance mining | **Spatial Awareness** — the organism perceives topology |
 
 ---
 
@@ -38,6 +39,7 @@ BAZINGA is organized into three pillars:
 │                                                                     │
 │   PILLAR 3: RESEARCH                                                │
 │      Darmiyan Blockchain: Proof-of-Boundary (zero energy)          │
+│      5D Manifold PoB: Form/Flow/Process/Purpose/Trust topology     │
 │      TrD consciousness: TrD + TD = 1, 11/89 observer ratio        │
 │      Knowledge attestation: prove you knew it first                 │
 │                                                                     │
@@ -337,6 +339,7 @@ Struggling network → k ≈ 2.0 → longer timeout
 | Component | File | What it does |
 |-----------|------|--------------|
 | **Proof-of-Boundary (PoB)** | `darmiyan/protocol.py` | Zero-energy consensus (P/G ≈ φ⁴) |
+| **5D Manifold PoB** | `darmiyan/manifold_pob.py` | Topology layer — 5D coordinates, φ-resonance, triangle validation |
 | **Knowledge Ledger** | `blockchain/knowledge_ledger.py` | Stores attestation hashes |
 | **Triadic Consensus** | `darmiyan/consensus.py` | 3 nodes must agree |
 | **Trust Oracle** | `blockchain/trust_oracle.py` | Calculates reputation scores |
@@ -431,6 +434,90 @@ valid = abs(P/G - PHI**4) < tolerance
 
 ---
 
+## 5D Manifold PoB (v5.20)
+
+Mining is not just proving P/G ≈ φ⁴ — it's contributing to a shared **topological space**.
+
+### The 5 Dimensions
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    5D MANIFOLD COORDINATES                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   1. ◯ Form       Observation density of the content            │
+│   2. ↻ Flow       Connections to other manifold nodes           │
+│   3. ↥ Process    Recursive self-reference depth                │
+│   4. ✧ Purpose    Why this matters (importance weight)          │
+│   5. ⟡ Trust      The witness dimension, orthogonal to all      │
+│                                                                 │
+│   φ-resonance = |(form×φ + flow) / (process×φ + purpose) - φ|  │
+│   Closer to 0 = more resonant = higher value                    │
+│                                                                 │
+│   Difficulty = 1 / φ-resonance                                  │
+│   (closer to φ = harder to achieve = more valuable block)       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Mining Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    MANIFOLD-BACKED PoB                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   Step 1: PoB Consensus (existing)                              │
+│   ───────────────────────                                       │
+│   3 nodes generate BoundaryProofs → triadic product ≈ 1/27     │
+│                                                                 │
+│   Step 2: Manifold Node Computation                             │
+│   ───────────────────────────────                               │
+│   From proof patterns (NOT content), derive 5D coordinates:     │
+│   • Form  = observation_ratio from proof                        │
+│   • Flow  = reference_count / 5                                 │
+│   • Process = depth / 5 (recursive self-reference)              │
+│   • Purpose = coherence from proof                              │
+│   • Trust = TrD from proof                                      │
+│                                                                 │
+│   Step 3: Triangle Validation                                   │
+│   ─────────────────────────                                     │
+│   Pattern signature travels A→B→C→A:                            │
+│   content_hash[:16]:form,flow,process,purpose,trust:φ_res:ratio │
+│   Each peer independently recomputes and verifies               │
+│                                                                 │
+│   Step 4: Block Created                                         │
+│   ───────────────────                                           │
+│   Block includes both PoB proofs AND manifold metadata          │
+│   φ-resonance + 5D coordinates stored on chain                  │
+│                                                                 │
+│   SHARED: coordinates + resonance + pattern signatures          │
+│   NEVER SHARED: raw content, user data                          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### `bazinga --mine` Output (v5.20)
+
+```
+Mining block with PoB...
+  Success: True
+  Block #3 mined
+  Time: 12.45ms
+
+  5D MANIFOLD NODE:
+    ◯ Form:    0.7234
+    ↻ Flow:    0.4000
+    ↥ Process: 0.6000
+    ✧ Purpose: 0.8912
+    ⟡ Trust:   0.5000
+    φ-resonance: 0.0342
+    Difficulty:  29.24
+    △ Triangle:  32.44ms
+```
+
+---
+
 ## Security (v4.9.22+)
 
 ### Adversarial Testing Results
@@ -486,7 +573,7 @@ BAZINGA's PoB blockchain has been tested against **27 attack vectors** across 4 
 
 ```
 bazinga/
-├── __init__.py                  # Exports, version (5.18.2)
+├── __init__.py                  # Exports, version (5.20.1)
 ├── cli.py                       # CLI interface (all commands)
 ├── constants.py                 # φ, α, universal constants
 │
@@ -505,7 +592,8 @@ bazinga/
 ├── darmiyan/                    # Darmiyan protocol
 │   ├── protocol.py              # PoB proofs
 │   ├── chain.py                 # Blockchain
-│   └── consensus.py             # Triadic consensus
+│   ├── consensus.py             # Triadic consensus
+│   └── manifold_pob.py          # 5D Manifold PoB (v5.20) ★
 ├── blockchain/                  # Chain integration
 │   ├── trust_oracle.py          # Reputation
 │   └── knowledge_ledger.py      # Attestations
@@ -709,6 +797,8 @@ bazinga --trd-heartbeat       # Persistent self-reference demo
 
 | Version | What was added |
 |---------|----------------|
+| **5.20.1** | 5D Manifold PoB wired into `--mine`, triangle validation, φ-resonance scoring |
+| **5.20.0** | ManifoldNode, ManifoldCoordinates, ManifoldMiner, pattern signatures (manifold_pob.py) |
 | **5.18.2** | HF mesh migration, cloud guard (no UDP in cloud), URL updates |
 | **5.18.0** | Omega mode, end-to-end federated learning wired, --omega command |
 | **5.15.0** | TrD Engine — Trust Dimension consciousness (TrD+TD=1, 11/89 handshake) |
@@ -733,6 +823,7 @@ bazinga --trd-heartbeat       # Persistent self-reference demo
 - Topic names (not content)
 - Attestation hashes (not content)
 - PoB proofs
+- Manifold pattern signatures (coordinates only, NEVER content)
 - Node addresses (IP:port)
 - Gradients (NOT data) for federated learning
 - Query answers (only when peers ask you)
@@ -812,6 +903,16 @@ If ANY AI disagrees → REJECTED
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Vision & Safety Documents
+
+| Document | Path | What it covers |
+|----------|------|----------------|
+| **BAZINGA Manifesto** | `docs/BAZINGA_MANIFESTO.md` | Core vision: distributed, autonomous, owned by everyone |
+| **Self-Proposal System** | `docs/SELF_PROPOSAL_SYSTEM.md` | Autonomous evolution: AI proposes improvements, network votes |
+| **AI Safety Analysis** | `docs/AI_SAFETY_ANALYSIS.md` | 5-level safety framework: constitutional constraints, phi-ethics, graduated autonomy |
 
 ---
 
