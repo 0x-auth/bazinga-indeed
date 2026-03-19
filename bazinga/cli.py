@@ -1399,6 +1399,27 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
     chain_group.add_argument('--consciousness', type=int, nargs='?', const=2, metavar='N',
                              help='Consciousness scaling test (Darmiyan: psi = phi*sqrt(n))')
 
+    # === EVOLUTION (Self-Improvement) ===
+    evo_group = parser.add_argument_group('Evolution (Autonomous Self-Improvement)')
+    evo_group.add_argument('--propose', type=str, metavar='TITLE',
+                           help='Propose a code improvement (requires --diff)')
+    evo_group.add_argument('--diff', type=str, metavar='FILE',
+                           help='Patch file for --propose')
+    evo_group.add_argument('--proposals', nargs='?', const='all', metavar='STATUS',
+                           help='List proposals (all, active, approved, rejected)')
+    evo_group.add_argument('--vote', type=str, metavar='PROPOSAL_ID',
+                           help='Vote on a proposal')
+    evo_group.add_argument('--approve', action='store_true',
+                           help='Approve (use with --vote)')
+    evo_group.add_argument('--reject', action='store_true',
+                           help='Reject (use with --vote)')
+    evo_group.add_argument('--reason', type=str, default='',
+                           help='Reasoning for vote (use with --vote)')
+    evo_group.add_argument('--evolution-status', action='store_true',
+                           help='Show evolution engine status (autonomy level, proposals, constitution)')
+    evo_group.add_argument('--constitution', action='store_true',
+                           help='Show constitutional bounds')
+
     # === P2P NETWORK ===
     p2p_group = parser.add_argument_group('Network & P2P (Pillar 2)')
     p2p_group.add_argument('--omega', action='store_true',
@@ -3001,6 +3022,158 @@ Provide a concise, helpful answer based on the above context. If the context doe
             print(f"  ✗ Mining failed: {result.message}")
             print(f"    Attempts: {result.attempts}")
         print()
+        return
+
+    # =====================================================
+    # EVOLUTION — Self-Improvement
+    # =====================================================
+
+    if args.constitution:
+        from .evolution.constitution import ConstitutionEnforcer
+        enforcer = ConstitutionEnforcer()
+        print("\n" + "=" * 60)
+        print("  BAZINGA CONSTITUTIONAL BOUNDS")
+        print("=" * 60)
+        print(f"  Total bounds: {len(enforcer.constitution)}")
+        print(f"  Forbidden files: {len(enforcer.forbidden_files)}")
+        print()
+        for b in enforcer.list_bounds():
+            print(f"  [{b['name']}]")
+            print(f"    {b['description']}")
+            print(f"    Patterns: {b['patterns']}")
+            print()
+        print("  These bounds are IMMUTABLE — no proposal can modify them.")
+        print("=" * 60)
+        return
+
+    if args.evolution_status:
+        from .evolution.engine import EvolutionEngine
+        engine = EvolutionEngine()
+        stats = engine.get_stats()
+        auto = stats['autonomy_status']
+        print("\n" + "=" * 60)
+        print("  BAZINGA EVOLUTION STATUS")
+        print("=" * 60)
+        print(f"  Autonomy Level: {auto['level_name']} (Level {auto['current_level']})")
+        print(f"  Successful Proposals: {auto['successful_proposals']}")
+        print(f"  Total Proposals: {auto['total_proposals']}")
+        print(f"  Success Rate: {auto['success_rate']:.0%}")
+        print(f"  Reverts: {auto['reverts']}")
+        print(f"  Node Age: {auto['age_days']:.1f} days")
+        if auto.get('next_level_requirements'):
+            req = auto['next_level_requirements']
+            print(f"\n  Next Level Requirements:")
+            print(f"    Proposals: {auto['successful_proposals']}/{req['proposals_needed']}")
+            print(f"    Trust: {'?' }/{req['trust_needed']}")
+            print(f"    Age: {auto['age_days']:.0f}/{req['days_needed']} days")
+        print(f"\n  Proposals by Status: {stats['by_status']}")
+        print("=" * 60)
+        return
+
+    if args.proposals is not None:
+        from .evolution.engine import EvolutionEngine
+        engine = EvolutionEngine()
+        status_filter = None if args.proposals == 'all' else args.proposals
+        proposals = engine.list_proposals(status=status_filter)
+        print("\n" + "=" * 60)
+        print(f"  BAZINGA PROPOSALS" + (f" (status={args.proposals})" if args.proposals != 'all' else ""))
+        print("=" * 60)
+        if not proposals:
+            print("  No proposals found.")
+        else:
+            for p in proposals:
+                status_icon = {
+                    'approved': '✓', 'rejected': '✗', 'applied': '◉',
+                    'voting': '◎', 'reverted': '↺',
+                }.get(p.status, '○')
+                print(f"\n  {status_icon} {p.proposal_id}")
+                print(f"    Title: {p.title}")
+                print(f"    Status: {p.status}")
+                print(f"    Files: {', '.join(p.modified_files)}")
+                if p.ethics_overall is not None:
+                    print(f"    Ethics: {p.ethics_overall:.2f}")
+                print(f"    Votes: {p.approval_count} approve / {p.rejection_count} reject")
+        print("\n" + "=" * 60)
+        return
+
+    if args.propose:
+        from .evolution.engine import EvolutionEngine
+        from .evolution.proposal import EvolutionProposal
+        engine = EvolutionEngine()
+
+        # Read diff file
+        file_diffs = []
+        if args.diff:
+            import os
+            diff_path = os.path.expanduser(args.diff)
+            if os.path.exists(diff_path):
+                with open(diff_path) as f:
+                    content = f.read()
+                # Simple: treat the file as new content for the path
+                file_diffs = [{
+                    "path": diff_path,
+                    "old_content": "",
+                    "new_content": content,
+                }]
+            else:
+                print(f"  ✗ Diff file not found: {diff_path}")
+                return
+        else:
+            print("  ✗ --propose requires --diff FILE")
+            print("  Usage: bazinga --propose 'Title' --diff path/to/changes.py")
+            return
+
+        proposal = EvolutionProposal(
+            title=args.propose,
+            description=args.propose,
+            file_diffs=file_diffs,
+            proposer_node_id=getattr(args, 'node_id', None) or 'local',
+        )
+
+        result = engine.run_pipeline(proposal)
+
+        print("\n" + "=" * 60)
+        print("  PROPOSAL SUBMITTED")
+        print("=" * 60)
+        print(f"  ID: {result.proposal_id}")
+        print(f"  Status: {result.status}")
+        print(f"  Constitution: {'PASS' if result.constitution_passes else 'FAIL'}")
+        if result.constitution_violations:
+            for v in result.constitution_violations:
+                print(f"    ✗ {v}")
+        if result.ethics_overall is not None:
+            print(f"  Ethics: {result.ethics_overall:.2f}")
+        if result.sandbox_passed is not None:
+            print(f"  Sandbox: {'PASS' if result.sandbox_passed else 'FAIL'}")
+        print("=" * 60)
+        return
+
+    if args.vote:
+        from .evolution.engine import EvolutionEngine
+        from .evolution.proposal import Vote
+        engine = EvolutionEngine()
+
+        if not args.approve and not args.reject:
+            print("  ✗ --vote requires --approve or --reject")
+            print("  Usage: bazinga --vote PROP_ID --approve --reason 'Looks good'")
+            return
+
+        vote = Vote(
+            voter_node_id=getattr(args, 'node_id', None) or 'local',
+            approve=args.approve,
+            reasoning=args.reason or ("Approved" if args.approve else "Rejected"),
+            phi_coherence=0.7,  # TODO: compute from reasoning
+            trust_weight=0.5,   # TODO: get from TrustOracle
+        )
+
+        accepted = engine.cast_vote(args.vote, vote)
+        if accepted:
+            print(f"  ✓ Vote cast on {args.vote}: {'APPROVE' if args.approve else 'REJECT'}")
+            # Auto-tally
+            tally = engine.tally_votes(args.vote)
+            print(f"  Tally: {tally.summary}")
+        else:
+            print(f"  ✗ Could not vote on {args.vote} (not found, already voted, or not in voting)")
         return
 
     # Handle --wallet (identity)
