@@ -2977,6 +2977,23 @@ Provide a concise, helpful answer based on the above context. If the context doe
             print(f"    Transactions: {len(result.block.transactions)}")
             print(f"    PoB Attempts: {result.attempts}")
             print(f"    Time: {result.time_ms:.2f}ms")
+
+            # Manifold data (if available)
+            if result.manifold_coordinates:
+                c = result.manifold_coordinates
+                print()
+                print(f"  5D MANIFOLD NODE:")
+                print(f"    ◯ Form:    {c.get('form', 0):.4f}")
+                print(f"    ↻ Flow:    {c.get('flow', 0):.4f}")
+                print(f"    ↥ Process: {c.get('process', 0):.4f}")
+                print(f"    ✧ Purpose: {c.get('purpose', 0):.4f}")
+                print(f"    ⟡ Trust:   {c.get('trust', 0):.4f}")
+                print(f"    φ-resonance: {result.phi_resonance:.6f}" +
+                      (" (RESONANT)" if result.phi_resonance and result.phi_resonance < 0.1 else ""))
+                print(f"    Difficulty: {result.manifold_difficulty:.4f}" if result.manifold_difficulty else "")
+                if result.triangle_latency_ms is not None:
+                    print(f"    Triangle: {result.triangle_latency_ms:.2f}ms")
+
             print()
             print(f"  Energy used: ~0.00001 kWh")
             print(f"  (70 BILLION times more efficient than Bitcoin)")

@@ -47,6 +47,17 @@ except ImportError:
     BoundaryProof = None
     TriadicConsensus = None
 
+# Import Manifold PoB (5D topology layer)
+try:
+    from ..darmiyan.manifold_pob import (
+        ManifoldMiner, ManifoldNode, ManifoldBlock,
+        ManifoldCoordinates, validate_manifold_node,
+    )
+    MANIFOLD_AVAILABLE = True
+except ImportError:
+    MANIFOLD_AVAILABLE = False
+    ManifoldMiner = None
+
 
 @dataclass
 class MiningResult:
@@ -57,6 +68,12 @@ class MiningResult:
     attempts: int
     time_ms: float
     message: str
+    # Manifold fields (None if manifold not active)
+    manifold_node: Any = None
+    manifold_coordinates: Optional[Dict] = None
+    phi_resonance: Optional[float] = None
+    triangle_latency_ms: Optional[float] = None
+    manifold_difficulty: Optional[float] = None
 
 
 class PoBMiner:
@@ -97,6 +114,14 @@ class PoBMiner:
         else:
             self.nodes = []
             self.consensus = None
+
+        # 5D Manifold layer (enhances PoB with topology)
+        self.manifold_miner = None
+        if MANIFOLD_AVAILABLE and DarmiyanNode:
+            self.manifold_miner = ManifoldMiner(
+                node=self.nodes[0],
+                peers=self.nodes[1:],
+            )
 
         # Stats
         self.blocks_mined = 0
@@ -188,7 +213,15 @@ class PoBMiner:
         )
 
     def mine_sync(self, max_attempts: int = 10) -> MiningResult:
-        """Synchronous version of mine()."""
+        """
+        Synchronous mining with optional 5D manifold enhancement.
+
+        Flow:
+        1. Triadic consensus (existing PoB — find P/G ≈ φ⁴)
+        2. If manifold available: compute 5D coordinates + φ-resonance
+        3. Triangle validation of manifold node (patterns only, never data)
+        4. Block created with both PoB proofs and manifold metadata
+        """
         if not self.consensus:
             return MiningResult(
                 success=False,
@@ -212,11 +245,20 @@ class PoBMiner:
         start_time = time.time()
         attempts = 0
 
+        # Extract content from pending transactions for manifold mining
+        pending_content = ""
+        for tx in self.chain.pending_transactions[:3]:
+            if hasattr(tx, 'data') and isinstance(tx.data, dict):
+                pending_content += tx.data.get('summary', '') + " "
+            elif hasattr(tx, 'data') and isinstance(tx.data, str):
+                pending_content += tx.data[:100] + " "
+        pending_content = pending_content.strip() or f"block:{time.time()}"
+
         for _ in range(max_attempts):
             attempts += 1
             self.total_attempts += 1
 
-            # Attempt triadic consensus (sync)
+            # Step 1: Triadic consensus (existing PoB)
             result = self.consensus.attempt_consensus_sync()
 
             if result.achieved:
@@ -234,6 +276,36 @@ class PoBMiner:
                         elapsed = (time.time() - start_time) * 1000
                         self.total_time_ms += elapsed
 
+                        # Step 2: Manifold enhancement (if available)
+                        m_node = None
+                        m_coords = None
+                        m_phi_res = None
+                        m_tri_ms = None
+                        m_difficulty = None
+
+                        if self.manifold_miner:
+                            try:
+                                # Mine into the manifold using the same content
+                                # Previous blocks are references (creates Flow dimension)
+                                refs = [f"block_{block.header.index - i}"
+                                        for i in range(1, min(block.header.index, 6))]
+                                depth = min(block.header.index, 5)
+
+                                m_block = self.manifold_miner.mine(
+                                    content=pending_content,
+                                    references=refs,
+                                    depth=depth,
+                                )
+
+                                if m_block.is_valid:
+                                    m_node = m_block.manifold_node
+                                    m_coords = m_block.manifold_node.coordinates.to_dict()
+                                    m_phi_res = m_block.manifold_node.phi_resonance
+                                    m_tri_ms = m_block.triangle_latency_ms
+                                    m_difficulty = m_block.difficulty
+                            except Exception:
+                                pass  # Manifold is enhancement, not requirement
+
                         return MiningResult(
                             success=True,
                             block=block,
@@ -241,6 +313,11 @@ class PoBMiner:
                             attempts=attempts,
                             time_ms=elapsed,
                             message=f"Block #{block.header.index} mined",
+                            manifold_node=m_node,
+                            manifold_coordinates=m_coords,
+                            phi_resonance=m_phi_res,
+                            triangle_latency_ms=m_tri_ms,
+                            manifold_difficulty=m_difficulty,
                         )
 
         elapsed = (time.time() - start_time) * 1000
