@@ -86,8 +86,8 @@ bazinga --attest "My research finding about X"
 │                         BAZINGA NODE                                  │
 │                                                                      │
 │  ┌────────────────────────────────────────────────────────────────┐  │
-│  │                    CLI / TUI (cli.py, tui/app.py)              │  │
-│  │  --ask  --chat  --multi-ai  --agent  --phi-pulse  --join      │  │
+│  │                CLI / TUI (cli/_core.py, tui/app.py)            │  │
+│  │  --ask  --chat  --multi-ai  --agent  --constitution  --evolve │  │
 │  └──────────┬─────────────────────────────┬──────────────────────┘  │
 │             │                              │                         │
 │   ┌─────────▼─────────┐        ┌──────────▼──────────┐             │
@@ -171,8 +171,17 @@ Your Question: "What is φ?"
 
 ### Conversation Memory (RAC):
 
-```--chat``` maintains **Resonance-Augmented Continuity** — the last 6 turns
-are carried as context, so BAZINGA remembers what you talked about.
+```--chat``` maintains **Resonance-Augmented Continuity** — the last 4 turns
+are carried as context (truncated to 300 chars each to prevent context bloat).
+
+### File Attachments (v6.0):
+
+Both `--chat` and TUI support file attachments:
+```
+You: /attach ~/mycode.py
+You [📎 mycode.py]: What does this code do?
+```
+Files are read inline (max 100KB) and sent as context with your question.
 
 ---
 
@@ -333,7 +342,7 @@ Struggling network → k ≈ 2.0 → longer timeout
 | **φ-Coherence** | `phi_coherence.py` | Measures quality/consistency of responses |
 | **Memory** | `llm/providers.py` | Learns from your interactions |
 | **RAG** | `cli.py` (index/search) | Searches your indexed documents |
-| **TUI Chat** | `tui/app.py` | Full-screen interactive chat with RAC |
+| **TUI Chat** | `tui/app.py` | Full-screen interactive chat (Ctrl+P command palette, file attachments, scroll, copy) |
 
 ### 2. Darmiyan Blockchain
 
@@ -585,9 +594,15 @@ bazinga/
 ├── phi_coherence.py             # φ-coherence scoring
 ├── inter_ai/                    # Multi-AI consensus
 │
-├── # TUI (Terminal UI)
+├── # CLI Package (v6.0 restructure)
+├── cli/
+│   ├── __init__.py              # Backward-compatible shim (re-exports BAZINGA, main, main_sync)
+│   └── _core.py                 # Full CLI: argparse, BAZINGA class, all handlers
+│
+├── # TUI (Terminal UI) — Claude Code-inspired
 ├── tui/
-│   └── app.py                   # Full-screen chat with mesh query integration
+│   ├── __init__.py              # Exports BazingaApp, run_tui, run_tui_async
+│   └── app.py                   # Full-screen Textual app (command palette, attachments, scroll)
 │
 ├── # Blockchain
 ├── darmiyan/                    # Darmiyan protocol
@@ -602,6 +617,16 @@ bazinga/
 ├── # Services
 ├── attestation_service.py       # Knowledge attestation
 ├── payment_gateway.py           # Razorpay + Polygon
+│
+├── # Evolution Engine (v6.0) ★
+├── evolution/
+│   ├── constitution.py          # 7 immutable safety bounds (frozenset of frozen dataclasses)
+│   ├── phi_ethics.py            # 5-dimension value alignment (privacy, truth, autonomy, transparency, harm)
+│   ├── graduated.py             # Autonomy levels 0-4, trust-gated progression
+│   ├── proposal.py              # EvolutionProposal dataclass + ProposalStore (JSON persistence)
+│   ├── voting.py                # φ-weighted consensus voting (threshold: φ⁻¹ = 0.618)
+│   ├── sandbox.py               # Isolated proposal testing (tmpdir, py_compile, pytest)
+│   └── engine.py                # Full pipeline orchestrator
 │
 ├── # Agent
 ├── agent/                       # AI coding agent
@@ -650,7 +675,7 @@ bazinga/
 ### Pillar 1: AI Commands
 ```bash
 bazinga "question"                # Ask anything (one-shot)
-bazinga --chat                    # Interactive chat with memory + mesh
+bazinga --chat                    # Interactive chat with memory + mesh + attachments
 bazinga --multi-ai "question"     # 6 AIs reach consensus
 bazinga --agent                   # AI coding assistant
 bazinga --code "task" --lang py   # Generate code
@@ -682,6 +707,29 @@ bazinga --trd-heartbeat           # Persistent self-reference demo
 bazinga --consciousness 5         # Darmiyan scaling test
 bazinga --wallet                  # Show identity + trust score
 bazinga --trust                   # Show trust scores
+```
+
+### Pillar 4: Evolution Commands (v6.0)
+```bash
+bazinga --constitution            # Show 7 immutable safety bounds
+bazinga --evolution-status        # Show autonomy level + track record
+bazinga --proposals               # List evolution proposals
+bazinga --propose "desc" --diff f # Submit evolution proposal
+bazinga --vote ID --approve       # Cast φ-weighted vote on proposal
+```
+
+### TUI Shortcuts
+```
+Ctrl+A  — Toggle agent mode (read/edit files, run commands)
+Ctrl+M  — Toggle multi-AI consensus
+Ctrl+K  — KB search prefix
+Ctrl+O  — Attach file to next message
+Ctrl+P  — Command palette
+Ctrl+U  — Scroll up
+Ctrl+D  — Scroll down
+Ctrl+L  — Clear chat
+/copy   — Copy last response
+/copyall — Copy entire conversation
 ```
 
 ---
