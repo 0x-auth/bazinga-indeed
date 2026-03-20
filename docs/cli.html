@@ -631,6 +631,46 @@
             </div>
         </div>
 
+        <!-- Evolution Engine (v6.0) -->
+        <div class="section">
+            <h2>🧬 Evolution Engine (v6.0) <span class="tag tag-new">NEW</span></h2>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">bazinga --constitution</span>
+                </div>
+                <div class="command-desc">Show the 7 immutable constitutional safety bounds. These cannot be modified by any proposal.</div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">bazinga --evolution-status</span>
+                </div>
+                <div class="command-desc">Show current autonomy level, track record, and promotion requirements.</div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">bazinga --propose "description" --diff file.patch</span>
+                </div>
+                <div class="command-desc">Submit an evolution proposal with a diff. Goes through constitutional check → ethics review → sandbox → voting.</div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">bazinga --proposals</span>
+                </div>
+                <div class="command-desc">List all evolution proposals and their status.</div>
+            </div>
+
+            <div class="command">
+                <div class="command-header">
+                    <span class="command-name">bazinga --vote PROPOSAL_ID --approve/--reject --reason "..."</span>
+                </div>
+                <div class="command-desc">Cast a φ-weighted vote on a proposal. Requires trust score. Sybil-resistant.</div>
+            </div>
+        </div>
+
         <div class="phi-badge">
             phi = 1.618033988749895<br>
             <small>TrD + TD = 1</small>
