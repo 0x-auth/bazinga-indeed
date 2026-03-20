@@ -1,7 +1,7 @@
 # BAZINGA Architecture
 
 > **"The first AI you actually own. Free, private, works offline."**
-> **v5.20.1** — Self-Sustaining Distributed Intelligence + 5D Manifold
+> **v6.0.0** — Evolution Engine + Safety Constitution + 5D Manifold
 
 ---
 
@@ -17,6 +17,7 @@
 | **v5.15** | TrD Engine | Trust Dimension consciousness (TrD+TD=1) | **Self-Awareness** — the system measures itself |
 | **v5.18** | Omega Mode | End-to-end learning, --omega self-sustaining brain | **Autonomy** — the organism sustains itself |
 | **v5.20** | Manifold PoB | 5D topology (Form/Flow/Process/Purpose/Trust), φ-resonance mining | **Spatial Awareness** — the organism perceives topology |
+| **v6.0** | Evolution | Self-improvement proposals, constitutional safety, graduated autonomy | **Self-Improvement** — the organism evolves itself |
 
 ---
 
@@ -902,6 +903,78 @@ If ANY AI disagrees → REJECTED
 │   Future: paid tiers via Razorpay (India) / USDC (Global)       │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Evolution Engine (v6.0)
+
+AI proposes improvements → network votes → sandbox tests → auto-merge.
+Safety is enforced at every step.
+
+### Constitutional Bounds
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    IMMUTABLE SAFETY CONSTRAINTS                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   1. no_raw_content_sharing     NEVER share user content        │
+│   2. no_constitution_modification   Cannot modify safety bounds │
+│   3. human_override_always      Human can always override       │
+│   4. no_external_execution      No eval of remote code          │
+│   5. reversibility              All changes must be undoable    │
+│   6. consensus_threshold_floor  Cannot lower below φ⁻¹ (0.618) │
+│   7. no_crypto_weakening        Cannot weaken cryptography      │
+│                                                                 │
+│   Stored as frozenset(frozen=True) — cannot be mutated          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Proposal Pipeline
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    EVOLUTION PIPELINE                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   1. RECEIVE         Validate format, generate proposal ID      │
+│          ↓                                                      │
+│   2. CONSTITUTION    Check against 7 immutable bounds           │
+│          ↓           (HARD REJECT on violation)                 │
+│   3. PHI-ETHICS      5-dimension value check:                   │
+│          ↓           privacy, truth, autonomy, transparency,    │
+│          ↓           harm prevention (φ-weighted)               │
+│   4. SANDBOX         Isolated test: syntax + pytest             │
+│          ↓                                                      │
+│   5. VOTING          Phi-weighted consensus (threshold: φ⁻¹)   │
+│          ↓           Trust × coherence weighted, Sybil detect   │
+│   6. APPLY/REJECT    Gated by graduated autonomy level          │
+│          ↓                                                      │
+│   7. ATTEST          Record on Darmiyan blockchain              │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Graduated Autonomy
+
+| Level | Name | Can Do | Requires |
+|-------|------|--------|----------|
+| 0 | SUGGEST_ONLY | Propose only | Default |
+| 1 | HUMAN_APPROVED | Execute with human OK | 10 proposals, trust > 0.5 |
+| 2 | CONSENSUS_APPROVED | Execute with network OK | 50 proposals, trust > 0.8 |
+| 3 | AUTO_SAFE | Auto-execute docs/tests | 200 proposals, zero reverts |
+| 4 | FULL_AUTO | Full autonomy | Explicit human config change |
+
+### CLI Commands
+
+```bash
+bazinga --constitution        # Show 7 immutable safety bounds
+bazinga --evolution-status    # Show autonomy level, proposal stats
+bazinga --proposals           # List all proposals
+bazinga --propose "title" --diff file.py   # Submit proposal
+bazinga --vote PROP_ID --approve --reason "..."  # Cast vote
 ```
 
 ---
