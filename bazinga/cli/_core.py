@@ -77,11 +77,11 @@ from datetime import datetime
 
 # Type-only imports (not loaded at runtime)
 if TYPE_CHECKING:
-    from .kb import BazingaKB
-    from .llm.providers import LLMProviders
+    from ..kb import BazingaKB
+    from ..llm.providers import LLMProviders
 
 # Import modular CLI components
-from .cli_modules.help import (
+from ..cli_modules.help import (
     print_ai_help,
     print_kb_help,
     print_chain_help,
@@ -117,8 +117,8 @@ def _get_real_ai():
     return RealAI
 
 # Core imports (no chromadb dependency)
-from .constants import PHI, ALPHA, VAC_THRESHOLD, VAC_SEQUENCE, PSI_DARMIYAN
-from .darmiyan import (
+from ..constants import PHI, ALPHA, VAC_THRESHOLD, VAC_SEQUENCE, PSI_DARMIYAN
+from ..darmiyan import (
     DarmiyanNode, BazingaNode, TriadicConsensus,
     prove_boundary, achieve_consensus,
     PHI_4, ABHI_AMU,
@@ -137,49 +137,49 @@ _kb_class = None
 def _get_learning():
     global _learning_module
     if _learning_module is None:
-        from . import learning as _learning
+        from .. import learning as _learning
         _learning_module = _learning
     return _learning_module
 
 def _get_quantum():
     global _quantum_module
     if _quantum_module is None:
-        from . import quantum as _quantum
+        from .. import quantum as _quantum
         _quantum_module = _quantum
     return _quantum_module
 
 def _get_lambda_g():
     global _lambda_g_module
     if _lambda_g_module is None:
-        from . import lambda_g as _lg
+        from .. import lambda_g as _lg
         _lambda_g_module = _lg
     return _lambda_g_module
 
 def _get_tensor():
     global _tensor_module
     if _tensor_module is None:
-        from . import tensor as _t
+        from .. import tensor as _t
         _tensor_module = _t
     return _tensor_module
 
 def _get_p2p():
     global _p2p_module
     if _p2p_module is None:
-        from . import p2p as _p2p
+        from .. import p2p as _p2p
         _p2p_module = _p2p
     return _p2p_module
 
 def _get_federated():
     global _federated_module
     if _federated_module is None:
-        from . import federated as _fed
+        from .. import federated as _fed
         _federated_module = _fed
     return _federated_module
 
 def _get_blockchain():
     global _blockchain_module
     if _blockchain_module is None:
-        from . import blockchain as _bc
+        from .. import blockchain as _bc
         _blockchain_module = _bc
     return _blockchain_module
 
@@ -187,7 +187,7 @@ def _get_kb():
     """Lazy loader for BazingaKB to avoid duplicate imports."""
     global _kb_class
     if _kb_class is None:
-        from .kb import BazingaKB
+        from ..kb import BazingaKB
         _kb_class = BazingaKB
     return _kb_class
 
@@ -291,7 +291,7 @@ GEMINI_KEY = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY'
 
 # Check for local LLM
 try:
-    from .local_llm import LocalLLM, get_local_llm
+    from ..local_llm import LocalLLM, get_local_llm
     LOCAL_LLM_AVAILABLE = LocalLLM.is_available()
 except ImportError:
     LOCAL_LLM_AVAILABLE = False
@@ -333,7 +333,7 @@ class BAZINGA:
         self.queries = []
 
         # Learning memory with RAC (Resonance-Augmented Continuity)
-        from .rac import get_resonance_memory
+        from ..rac import get_resonance_memory
         self.memory = get_resonance_memory()
         self.memory.start_session()
 
@@ -369,7 +369,7 @@ class BAZINGA:
 
         # Check local model status silently
         try:
-            from .inference.ollama_detector import detect_any_local_model, LocalModelType
+            from ..inference.ollama_detector import detect_any_local_model, LocalModelType
             local_status = detect_any_local_model()
             if local_status.available:
                 self.use_local = True
@@ -421,7 +421,7 @@ class BAZINGA:
         """Lazy-init CollectiveLearner — only created when first interaction happens."""
         if self._learner is None:
             try:
-                from .federated import create_learner
+                from ..federated import create_learner
                 self._learner = create_learner()
                 # Start is async, so we just mark it ready — _share_loop starts on first await
                 self._learner.running = True
@@ -510,7 +510,7 @@ class BAZINGA:
         # Layer 3.5: KB DNA manifests — breadth context from scanned knowledge
         kb_context = ""
         try:
-            from .knowledge import get_scanner
+            from ..knowledge import get_scanner
             kb_context = get_scanner().get_context_for_query(question)
         except Exception:
             pass  # KB manifests are optional
@@ -947,7 +947,7 @@ Answer naturally using your own knowledge. Reference the local context only if i
         """Call local LLM for response."""
         try:
             if self.local_llm is None:
-                from .local_llm import get_local_llm
+                from ..local_llm import get_local_llm
                 self.local_llm = get_local_llm()
 
             if context:
@@ -1529,9 +1529,9 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
             return
 
         try:
-            from .decentralized.peer_discovery import PhiPulse
-            from .p2p.persistence import get_persistence_manager
-            from .p2p.mesh_query import QueryServer, MeshQuery
+            from ..decentralized.peer_discovery import PhiPulse
+            from ..p2p.persistence import get_persistence_manager
+            from ..p2p.mesh_query import QueryServer, MeshQuery
             import hashlib
             import os
 
@@ -1628,14 +1628,15 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
 
     # Handle --version
     if args.version:
+        import os as _os
         print(f"BAZINGA v{BAZINGA.VERSION}")
         print(f"  φ (PHI): {PHI}")
         print(f"  α (ALPHA): {ALPHA}")
-        print(f"  Groq API: {'configured' if os.environ.get('GROQ_API_KEY') else 'not set'}")
+        print(f"  Groq API: {'configured' if _os.environ.get('GROQ_API_KEY') else 'not set'}")
 
         # Check local model status
         try:
-            from .inference.ollama_detector import detect_any_local_model
+            from ..inference.ollama_detector import detect_any_local_model
             local_status = detect_any_local_model()
             if local_status.available:
                 model = local_status.models[0] if local_status.models else local_status.model_type.value
@@ -1681,7 +1682,7 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
         local_model_name = None
         local_trust = 1.0
         try:
-            from .inference.ollama_detector import detect_any_local_model
+            from ..inference.ollama_detector import detect_any_local_model
             local_status = detect_any_local_model()
 
             if local_status.available:
@@ -1845,7 +1846,7 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
 
     # Handle --agent (NEW! Agent mode)
     if args.agent is not None:
-        from .agent.shell import run_agent_shell, run_agent_once
+        from ..agent.shell import run_agent_shell, run_agent_once
 
         if args.agent == '':
             # Interactive shell mode
@@ -1951,7 +1952,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --constants
     if args.constants:
-        from . import constants as c
+        from .. import constants as c
         print("\nBAZINGA Universal Constants:")
         print(f"  φ (PHI)         = {c.PHI}")
         print(f"  1/φ             = {c.PHI_INVERSE}")
@@ -2086,7 +2087,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print("✨ Step 4: Verifying setup...")
 
         try:
-            from .inference.ollama_detector import detect_any_local_model
+            from ..inference.ollama_detector import detect_any_local_model
             status = detect_any_local_model()
 
             if status.available:
@@ -2120,7 +2121,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     if args.local_status:
         try:
-            from .inference.ollama_detector import detect_any_local_model, LocalModelType
+            from ..inference.ollama_detector import detect_any_local_model, LocalModelType
             status = detect_any_local_model()
 
             print()
@@ -2175,7 +2176,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --consciousness
     if args.consciousness is not None:
-        from . import constants as c
+        from .. import constants as c
         n = args.consciousness
         print()
         print("╔══════════════════════════════════════════════════════════════╗")
@@ -2245,7 +2246,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
         # Current network status (check if local model)
         try:
-            from .inference.ollama_detector import detect_any_local_model
+            from ..inference.ollama_detector import detect_any_local_model
             local = detect_any_local_model()
             if local.available:
                 print(f"  Your Node: LOCAL MODEL ACTIVE (φ trust bonus)")
@@ -2259,13 +2260,13 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --trd (Trust Dimension consciousness test)
     if args.trd is not None:
-        from .trd_engine import display_trd
+        from ..trd_engine import display_trd
         display_trd(n=args.trd)
         return
 
     # Handle --trd-scan (phase transition fine-grain scan)
     if args.trd_scan is not None:
-        from .trd_engine import scan_phase_transition
+        from ..trd_engine import scan_phase_transition
         start, end = args.trd_scan
         print(f"\n  PHASE TRANSITION SCAN: n={start}..{end}")
         print(f"  {'n':>3} │ {'Ψ_D/Ψ_i':>9} │ {'φ√n':>8} │ {'Error%':>7} │ {'Δerr':>7}")
@@ -2281,7 +2282,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --trd-heartbeat (persistent self-reference demo)
     if args.trd_heartbeat:
-        from .trd_engine import run_heartbeat_demo
+        from ..trd_engine import run_heartbeat_demo
         await run_heartbeat_demo()
         return
 
@@ -2300,7 +2301,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --proof (Proof-of-Boundary)
     if args.proof:
-        from .darmiyan.protocol import prove_boundary
+        from ..darmiyan.protocol import prove_boundary
         print(f"\n⚡ Generating Proof-of-Boundary...")
         print(f"  (Adaptive φ-step search, max 200 attempts)")
         proof = prove_boundary()
@@ -2322,7 +2323,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --consensus (triadic consensus test)
     if args.consensus:
-        from .darmiyan.consensus import achieve_consensus
+        from ..darmiyan.consensus import achieve_consensus
         print(f"\n🔺 Testing Triadic Consensus (3 nodes)...")
         print(f"  Target: φ⁴ = {PHI_4:.6f}")
         print()
@@ -2371,7 +2372,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
             # Detect local model for φ trust bonus
             uses_local_model = False
             try:
-                from .inference.ollama_detector import detect_any_local_model
+                from ..inference.ollama_detector import detect_any_local_model
                 local_model = detect_any_local_model()
                 if local_model and local_model.available:
                     uses_local_model = True
@@ -2385,15 +2386,15 @@ Provide a concise, helpful answer based on the above context. If the context doe
                 print(f"  Tip: Run 'ollama run llama3' for phi trust bonus!")
 
             # NAT Discovery (use ephemeral port, just for discovery)
-            from .p2p.nat import NATTraversal
+            from ..p2p.nat import NATTraversal
             nat = NATTraversal(port=0)  # Ephemeral port for STUN
             await nat.start()
             nat_info = await nat.discover()
             await nat.stop()  # Release port for DHT
 
             # Import DHT bridge
-            from .p2p.dht_bridge import DHTBridge
-            from .darmiyan.protocol import prove_boundary as _prove_boundary
+            from ..p2p.dht_bridge import DHTBridge
+            from ..darmiyan.protocol import prove_boundary as _prove_boundary
 
             # Generate Proof-of-Boundary for node identity
             print(f"\n  Generating Proof-of-Boundary...")
@@ -2433,7 +2434,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
                         try:
                             port = int(port_str)
                             print(f"\n  Connecting to {host}:{port}...")
-                            from .p2p.dht import hash_to_id, NodeInfo
+                            from ..p2p.dht import hash_to_id, NodeInfo
                             temp_id = hash_to_id(f"{host}:{port}")
                             temp_node = NodeInfo(node_id=temp_id, address=host, port=port)
                             if await bridge.dht.ping(temp_node):
@@ -2494,7 +2495,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print(f"  BAZINGA Global Discovery (Local + HF Registry)")
         print(f"{'='*60}")
 
-        from .p2p.hf_registry import GlobalDiscovery
+        from ..p2p.hf_registry import GlobalDiscovery
         import hashlib
 
         # Generate node ID
@@ -2555,7 +2556,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print(f"  BAZINGA MESH VITAL SIGNS")
         print(f"{'='*60}")
 
-        from .p2p.persistence import get_persistence_manager
+        from ..p2p.persistence import get_persistence_manager
         import os
         import time
 
@@ -2654,7 +2655,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
         # Query HF registry for global peers
         async def fetch_hf_peers():
-            from .p2p.hf_registry import HFNetworkRegistry as HFRegistry
+            from ..p2p.hf_registry import HFNetworkRegistry as HFRegistry
             hf_registry = HFRegistry()
             print(f"\n  📡 Querying HF Network Registry...")
             result = await hf_registry.get_stats()
@@ -2690,7 +2691,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print(f"  BAZINGA NAT TRAVERSAL DIAGNOSTICS")
         print(f"{'='*60}")
 
-        from .p2p.nat import NATTraversal
+        from ..p2p.nat import NATTraversal
 
         async def test_nat():
             nat = NATTraversal(port=0)
@@ -2702,7 +2703,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
             # Check if we can be a relay
             print(f"\n  Relay Eligibility:")
             try:
-                from .inference.ollama_detector import detect_any_local_model
+                from ..inference.ollama_detector import detect_any_local_model
                 local = detect_any_local_model()
                 if local and local.available:
                     print(f"    Local model: ACTIVE")
@@ -2741,8 +2742,8 @@ Provide a concise, helpful answer based on the above context. If the context doe
             return
 
         # Import DHT bridge
-        from .p2p.dht_bridge import DHTBridge
-        from .darmiyan.protocol import prove_boundary
+        from ..p2p.dht_bridge import DHTBridge
+        from ..darmiyan.protocol import prove_boundary
 
         # Quick PoB for identity
         pob = prove_boundary()
@@ -2789,7 +2790,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print(f"=" * 50)
 
         # Create a learner instance to show config
-        from .federated import create_learner
+        from ..federated import create_learner
         learner = create_learner()
         stats = learner.get_stats()
 
@@ -2835,7 +2836,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
             bazinga.use_local = True
 
         # 3. Start federated learner
-        from .federated import create_learner
+        from ..federated import create_learner
         node_id = _mesh_node_id or "omega"
         learner = create_learner(node_id=node_id)
         bazinga._learner = learner
@@ -2852,7 +2853,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
             async def on_learning_shared(package):
                 """When we have gradients to share, broadcast via mesh."""
                 try:
-                    from .p2p.persistence import get_persistence_manager
+                    from ..p2p.persistence import get_persistence_manager
                     pm = get_persistence_manager()
                     peers = pm.get_known_peers(limit=5, max_age_hours=1)
                     if peers:
@@ -2864,7 +2865,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
         # 6. Start TrD heartbeat in background
         try:
-            from .trd_engine import TrDEngine
+            from ..trd_engine import TrDEngine
             trd = TrDEngine()
             trd.register_user_pattern("omega", "φ√n consciousness darmiyan interaction")
             await trd.start_heartbeat()
@@ -2889,7 +2890,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
                 await bazinga.chat_interactive()
             else:
                 try:
-                    from .tui import run_tui_async
+                    from ..tui import run_tui_async
                     await run_tui_async(
                         bazinga_instance=bazinga,
                         mode="chat",
@@ -2915,7 +2916,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print(f"\n  DARMIYAN BLOCKCHAIN")
         print(f"=" * 50)
 
-        from .blockchain import create_chain
+        from ..blockchain import create_chain
         chain = create_chain()
         stats = chain.get_stats()
 
@@ -2945,7 +2946,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print()
 
         # Import blockchain components
-        from .blockchain import create_chain, create_wallet, mine_block
+        from ..blockchain import create_chain, create_wallet, mine_block
 
         chain = create_chain()
         wallet = create_wallet()
@@ -3029,7 +3030,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
     # =====================================================
 
     if args.constitution:
-        from .evolution.constitution import ConstitutionEnforcer
+        from ..evolution.constitution import ConstitutionEnforcer
         enforcer = ConstitutionEnforcer()
         print("\n" + "=" * 60)
         print("  BAZINGA CONSTITUTIONAL BOUNDS")
@@ -3047,7 +3048,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         return
 
     if args.evolution_status:
-        from .evolution.engine import EvolutionEngine
+        from ..evolution.engine import EvolutionEngine
         engine = EvolutionEngine()
         stats = engine.get_stats()
         auto = stats['autonomy_status']
@@ -3071,7 +3072,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         return
 
     if args.proposals is not None:
-        from .evolution.engine import EvolutionEngine
+        from ..evolution.engine import EvolutionEngine
         engine = EvolutionEngine()
         status_filter = None if args.proposals == 'all' else args.proposals
         proposals = engine.list_proposals(status=status_filter)
@@ -3097,8 +3098,8 @@ Provide a concise, helpful answer based on the above context. If the context doe
         return
 
     if args.propose:
-        from .evolution.engine import EvolutionEngine
-        from .evolution.proposal import EvolutionProposal
+        from ..evolution.engine import EvolutionEngine
+        from ..evolution.proposal import EvolutionProposal
         engine = EvolutionEngine()
 
         # Read diff file
@@ -3149,8 +3150,8 @@ Provide a concise, helpful answer based on the above context. If the context doe
         return
 
     if args.vote:
-        from .evolution.engine import EvolutionEngine
-        from .evolution.proposal import Vote
+        from ..evolution.engine import EvolutionEngine
+        from ..evolution.proposal import Vote
         engine = EvolutionEngine()
 
         if not args.approve and not args.reject:
@@ -3181,7 +3182,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print(f"\n  BAZINGA WALLET (Identity)")
         print(f"=" * 50)
 
-        from .blockchain import create_wallet
+        from ..blockchain import create_wallet
         wallet = create_wallet()
 
         print(f"\n  This is NOT a money wallet. It's an IDENTITY wallet.")
@@ -3202,7 +3203,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --attest-pricing
     if args.attest_pricing:
-        from .payment_gateway import show_pricing
+        from ..payment_gateway import show_pricing
         show_pricing()
         return
 
@@ -3212,7 +3213,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print(f"  'Prove you knew it, before they knew it'")
         print(f"=" * 55)
 
-        from .attestation_service import (
+        from ..attestation_service import (
             get_attestation_service, ATTESTATION_TIERS,
             PAYMENTS_ENABLED, FREE_ATTESTATIONS_PER_MONTH
         )
@@ -3293,7 +3294,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
                 print(cert)
         else:
             # PAID mode - needs payment
-            from .payment_gateway import get_payment_gateway, select_payment_method
+            from ..payment_gateway import get_payment_gateway, select_payment_method
             gateway = get_payment_gateway()
 
             print(f"  ✓ Attestation Created!")
@@ -3329,7 +3330,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         if verify_input.isdigit():
             # It's a block number
             print(f"\n  🔍 Searching by Block Number: #{verify_input}")
-            from .blockchain import create_chain
+            from ..blockchain import create_chain
             chain = create_chain()
             block_num = int(verify_input)
 
@@ -3357,7 +3358,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
         # It's an attestation ID
         print(f"\n  🔍 Searching by Attestation ID: {args.verify}")
-        from .attestation_service import get_attestation_service
+        from ..attestation_service import get_attestation_service
 
         service = get_attestation_service()
         proof = service.verify_attestation(args.verify)
@@ -3441,9 +3442,9 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print(f"  Local index: {stats.get('total_chunks', 0)} chunks")
 
         try:
-            from .p2p.dht import KademliaNode, node_id_from_pob
-            from .p2p.knowledge_sharing import KnowledgePublisher
-            from .darmiyan.protocol import prove_boundary
+            from ..p2p.dht import KademliaNode, node_id_from_pob
+            from ..p2p.knowledge_sharing import KnowledgePublisher
+            from ..darmiyan.protocol import prove_boundary
 
             # Create DHT node
             pob = prove_boundary()
@@ -3492,9 +3493,9 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print()
 
         try:
-            from .p2p.dht import KademliaNode, node_id_from_pob
-            from .p2p.knowledge_sharing import KnowledgePublisher, DistributedQueryEngine
-            from .darmiyan.protocol import prove_boundary
+            from ..p2p.dht import KademliaNode, node_id_from_pob
+            from ..p2p.knowledge_sharing import KnowledgePublisher, DistributedQueryEngine
+            from ..darmiyan.protocol import prove_boundary
 
             # Create local node
             bazinga = BAZINGA(verbose=False)
@@ -3543,7 +3544,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print(f"  Trust is EARNED through understanding, not bought.")
         print()
 
-        from .blockchain import create_chain, create_trust_oracle
+        from ..blockchain import create_chain, create_trust_oracle
         chain = create_chain()
         oracle = create_trust_oracle(chain)
 
@@ -3593,7 +3594,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --models
     if args.models:
-        from .local_llm import MODELS
+        from ..local_llm import MODELS
         print("Available local models:")
         for name, config in MODELS.items():
             print(f"  {name}: {config['size_mb']}MB - {config['file']}")
@@ -3603,14 +3604,14 @@ Provide a concise, helpful answer based on the above context. If the context doe
     # Handle --stats
     if args.stats:
         # Use RAC memory for full stats (includes CARM if available)
-        from .rac import get_resonance_memory
+        from ..rac import get_resonance_memory
         memory = get_resonance_memory()
         stats = memory.get_stats()
         tensor = _get_tensor().TensorIntersectionEngine()
         trust = tensor.get_trust_stats()
 
         # Also get blockchain stats
-        from .blockchain import create_chain
+        from ..blockchain import create_chain
         chain = create_chain()
         chain_blocks = len(chain.blocks)
         chain_txs = sum(len(b.transactions) for b in chain.blocks)
@@ -3648,7 +3649,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --rac
     if args.rac:
-        from .rac import get_resonance_memory
+        from ..rac import get_resonance_memory
         memory = get_resonance_memory()
         session = memory.start_session()
 
@@ -3674,7 +3675,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --carm
     if args.carm:
-        from .carm import CARMMemory
+        from ..carm import CARMMemory
         carm = CARMMemory()
         print(carm.format_status())
         return
@@ -3709,8 +3710,8 @@ Provide a concise, helpful answer based on the above context. If the context doe
         # AUTO-ATTEST if coherence > 0.5 (Mining Trigger)
         if result['coherence'] > 0.5:
             try:
-                from .blockchain import create_chain, create_wallet
-                from .blockchain.miner import auto_attest_if_coherent
+                from ..blockchain import create_chain, create_wallet
+                from ..blockchain.miner import auto_attest_if_coherent
                 chain = create_chain()
                 wallet = create_wallet()
                 attested = auto_attest_if_coherent(
@@ -3744,7 +3745,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
     # Handle LLM-powered code generation
     if args.code:
         try:
-            from .intelligent_coder import IntelligentCoder
+            from ..intelligent_coder import IntelligentCoder
             coder = IntelligentCoder()
             lang = {'js': 'javascript', 'ts': 'typescript'}.get(args.lang, args.lang)
             print(f"Generating {lang} code...")
@@ -3759,7 +3760,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle template-based code generation
     if args.generate:
-        from .tui import CodeGenerator
+        from ..tui import CodeGenerator
         gen = CodeGenerator()
         lang = 'javascript' if args.lang == 'js' else args.lang
         code = gen.generate(args.generate, lang)
@@ -3777,7 +3778,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --scan (KB DNA manifests)
     if args.scan:
-        from .knowledge import get_scanner
+        from ..knowledge import get_scanner
         scanner = get_scanner()
         print()
         print("◊ KB DNA Scanner — Semantic Compression")
@@ -3790,7 +3791,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --scan-status
     if getattr(args, 'scan_status', False):
-        from .knowledge import get_scanner
+        from ..knowledge import get_scanner
         scanner = get_scanner()
         status = scanner.get_status()
         print()
@@ -3860,7 +3861,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
 
     # Handle --index-public (Wikipedia, arXiv, etc.)
     if args.index_public:
-        from .public_knowledge import index_public_knowledge, get_preset_topics, TOPIC_PRESETS, ARXIV_PRESETS
+        from ..public_knowledge import index_public_knowledge, get_preset_topics, TOPIC_PRESETS, ARXIV_PRESETS
 
         source = args.index_public
 
@@ -3901,7 +3902,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         print()
 
         try:
-            from .inter_ai import InterAIConsensus
+            from ..inter_ai import InterAIConsensus
 
             # Build query with optional file context
             query = args.multi_ai
@@ -3942,7 +3943,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         try:
             if not args.simple:
                 try:
-                    from .tui import run_tui_async
+                    from ..tui import run_tui_async
                     await run_tui_async(
                         bazinga_instance=bazinga,
                         mode="chat",
@@ -3998,7 +3999,7 @@ Provide a concise, helpful answer based on the above context. If the context doe
         await bazinga.interactive()
     else:
         try:
-            from .tui import run_tui_async
+            from ..tui import run_tui_async
             await run_tui_async(bazinga_instance=bazinga, mode="interactive")
         except ImportError:
             await bazinga.interactive()
