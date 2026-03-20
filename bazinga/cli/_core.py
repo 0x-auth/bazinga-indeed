@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "5.19.4"  # TUI version fix + /copy command
+    VERSION = "6.0.0"  # Evolution engine + CLI package + config system
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
