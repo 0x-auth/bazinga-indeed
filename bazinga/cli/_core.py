@@ -516,7 +516,8 @@ class BAZINGA:
             pass  # KB manifests are optional
 
         # Layer 4: LLM (Cloud or Local) — always call LLM, RAG informs it
-        conv_context = self.memory.get_context(2)
+        # When fresh=True (chat mode), skip memory context — chat manages its own history
+        conv_context = "" if fresh else self.memory.get_context(2)
         rag_context = self._build_context(results) if best_similarity > 0.3 else ""
 
         # Add quantum context
@@ -1124,10 +1125,17 @@ Use the indexed content directly. If not relevant, say so."""
 
         conversation_history = []
         kb = None
+        attached_files = []
 
         while True:
             try:
-                user_input = input("You: ").strip()
+                # Show attachment indicator in prompt
+                if attached_files:
+                    names = ", ".join([os.path.basename(f) for f in attached_files])
+                    prompt = f"You [📎 {names}]: "
+                else:
+                    prompt = "You: "
+                user_input = input(prompt).strip()
 
                 if not user_input:
                     continue
@@ -1140,11 +1148,42 @@ Use the indexed content directly. If not relevant, say so."""
 
                 if user_input == '/clear':
                     conversation_history = []
+                    attached_files = []
                     print("✓ Conversation cleared.\n")
                     continue
 
                 if user_input == '/stats':
                     self._show_stats()
+                    continue
+
+                if user_input.startswith('/attach '):
+                    filepath = user_input[8:].strip()
+                    path = os.path.expanduser(filepath)
+                    if os.path.exists(path):
+                        size = os.path.getsize(path)
+                        if size > 100_000:
+                            print(f"  ⚠️  File too large ({size:,} bytes). Max 100KB.\n")
+                        else:
+                            attached_files.append(path)
+                            print(f"  📎 Attached: {os.path.basename(path)} ({size:,} bytes)")
+                            print(f"  Type your question about this file, or /detach to remove.\n")
+                    else:
+                        print(f"  ❌ File not found: {filepath}\n")
+                    continue
+
+                if user_input == '/detach':
+                    attached_files = []
+                    print("  ✓ Attachments cleared.\n")
+                    continue
+
+                if user_input == '/help':
+                    print("\n  Commands:")
+                    print("    /attach <path>  - Attach a file to your next message")
+                    print("    /detach         - Remove attached files")
+                    print("    /kb <query>     - Search knowledge base")
+                    print("    /stats          - Show session stats")
+                    print("    /clear          - Clear conversation")
+                    print("    /quit           - Exit chat\n")
                     continue
 
                 if user_input.startswith('/kb '):
@@ -1162,12 +1201,30 @@ Use the indexed content directly. If not relevant, say so."""
                         print(f"  No results for '{query}'\n")
                     continue
 
+                # Read attached files and prepend to query
+                if attached_files:
+                    file_context_parts = []
+                    for fpath in attached_files:
+                        try:
+                            with open(fpath, 'r', errors='replace') as f:
+                                content = f.read()
+                            file_context_parts.append(f"--- {os.path.basename(fpath)} ---\n{content}")
+                        except Exception as e:
+                            file_context_parts.append(f"--- {os.path.basename(fpath)} (error: {e}) ---")
+                    file_context = "\n\n".join(file_context_parts)
+                    user_input = f"{user_input}\n\n[Attached files]\n{file_context}"
+                    attached_files = []  # Clear after use
+
                 # Build context from conversation history
+                # Keep last 4 exchanges, truncate long responses to prevent context bloat
                 context = ""
                 if conversation_history:
                     context = "Previous conversation:\n"
-                    for turn in conversation_history[-6:]:  # Last 3 exchanges
-                        context += f"User: {turn['user']}\nAssistant: {turn['assistant']}\n"
+                    for turn in conversation_history[-4:]:
+                        assistant_text = turn['assistant']
+                        if len(assistant_text) > 300:
+                            assistant_text = assistant_text[:300] + "..."
+                        context += f"User: {turn['user']}\nAssistant: {assistant_text}\n"
                     context += "\nCurrent question: "
 
                 full_query = context + user_input if context else user_input
