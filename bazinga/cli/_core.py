@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "6.0.1"  # Chat fixes, file attachments, TUI overhaul
+    VERSION = "6.1.0"  # CLI split into modular command packages
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -1666,6 +1666,19 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
             _query_server_instance = None
         _mesh_query_instance = None
 
+    # =====================================================
+    # DISPATCH — Route to command handler modules
+    # =====================================================
+    # Each handler is an async function in bazinga/cli/commands/
+    # This keeps _core.py focused on BAZINGA class + argparse.
+
+    # Helper closures for commands that need P2P state
+    def _get_mesh_node_id():
+        return _mesh_node_id
+
+    def _get_mesh_query():
+        return _mesh_query_instance
+
     # Handle extended help options
     if hasattr(args, 'help_all') and args.help_all:
         _print_full_help()
@@ -1683,2383 +1696,317 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
         _print_p2p_help()
         return
 
-    # Handle --version
+    # ── Info commands ──────────────────────────────────────
     if args.version:
-        import os as _os
-        print(f"BAZINGA v{BAZINGA.VERSION}")
-        print(f"  φ (PHI): {PHI}")
-        print(f"  α (ALPHA): {ALPHA}")
-        print(f"  Groq API: {'configured' if _os.environ.get('GROQ_API_KEY') else 'not set'}")
-
-        # Check local model status
-        try:
-            from ..inference.ollama_detector import detect_any_local_model
-            local_status = detect_any_local_model()
-            if local_status.available:
-                model = local_status.models[0] if local_status.models else local_status.model_type.value
-                print(f"  Local Model: {model} (Trust: {local_status.trust_multiplier:.3f}x)")
-            else:
-                print(f"  Local Model: not detected (run 'ollama pull llama3')")
-        except Exception:
-            print(f"  Local Model: {'available' if LOCAL_LLM_AVAILABLE else 'not installed'}")
+        from .commands.info import handle_version
+        await handle_version(args)
         return
 
     # Handle --check (system diagnostic)
     if args.check:
-        import json
-
-        print()
-        print("╔══════════════════════════════════════════════════════════════╗")
-        print("║              BAZINGA SYSTEM CHECK                            ║")
-        print("║              \"The first AI you actually own\"                 ║")
-        print("╚══════════════════════════════════════════════════════════════╝")
-        print()
-
-        issues = []
-        suggestions = []
-
-        # 1. Python version
-        py_version = f"{sys.version_info.major}.{sys.version_info.minor}"
-        py_ok = sys.version_info >= (3, 11)
-        if py_ok:
-            print(f"  ✓ Python {py_version}")
-        else:
-            print(f"  ✗ Python {py_version} (need 3.11+)")
-            issues.append("Python version too old")
-
-        # 2. httpx installed
-        if HTTPX_AVAILABLE:
-            print(f"  ✓ httpx installed")
-        else:
-            print(f"  ✗ httpx not installed")
-            issues.append("httpx not installed")
-            suggestions.append("pip install httpx")
-
-        # 3. Check Ollama / local model
-        local_model_name = None
-        local_trust = 1.0
-        try:
-            from ..inference.ollama_detector import detect_any_local_model
-            local_status = detect_any_local_model()
-
-            if local_status.available:
-                local_model_name = local_status.models[0] if local_status.models else local_status.model_type.value
-                local_trust = local_status.trust_multiplier
-                print(f"  ✓ Ollama detected → {local_model_name}")
-                print(f"  ✓ Trust Multiplier: {local_trust:.3f}x (φ bonus ACTIVE)")
-            else:
-                print(f"  ⚠ Ollama not detected (optional, for offline & φ bonus)")
-                suggestions.append("Install Ollama for 1.618x trust bonus: bazinga --bootstrap-local")
-        except Exception as e:
-            print(f"  ⚠ Local model check failed: {e}")
-            suggestions.append("Install Ollama for offline use: bazinga --bootstrap-local")
-
-        # 4. API Keys (optional)
-        api_count = 0
-        if GROQ_KEY:
-            print(f"  ✓ GROQ_API_KEY configured")
-            api_count += 1
-        else:
-            print(f"  ⚠ No GROQ_API_KEY (optional, for cloud fallback)")
-
-        if GEMINI_KEY:
-            print(f"  ✓ GEMINI_API_KEY configured")
-            api_count += 1
-
-        if ANTHROPIC_KEY:
-            print(f"  ✓ ANTHROPIC_API_KEY configured")
-            api_count += 1
-
-        if api_count == 0 and not local_model_name:
-            suggestions.append("Set GROQ_API_KEY for free cloud AI: export GROQ_API_KEY=your-key")
-
-        # 5. Check indexed knowledge
-        bazinga_dir = Path.home() / ".bazinga"
-        knowledge_dir = bazinga_dir / "knowledge"
-        total_chunks = 0
-
-        # Count JSON files from public knowledge
-        if knowledge_dir.exists():
-            for json_file in knowledge_dir.rglob("*.json"):
-                try:
-                    with open(json_file) as f:
-                        data = json.load(f)
-                        if isinstance(data, list):
-                            total_chunks += len(data)
-                except Exception:
-                    pass
-
-        # Check ChromaDB if available
-        vectordb_path = bazinga_dir / "vectordb" / "chroma.sqlite3"
-        if vectordb_path.exists():
-            try:
-                import sqlite3
-                conn = sqlite3.connect(str(vectordb_path))
-                cursor = conn.execute("SELECT COUNT(*) FROM embeddings")
-                chroma_count = cursor.fetchone()[0]
-                total_chunks += chroma_count
-                conn.close()
-            except Exception:
-                pass
-
-        if total_chunks > 0:
-            print(f"  ✓ Knowledge indexed: {total_chunks} chunks")
-        else:
-            print(f"  ⚠ No knowledge indexed")
-            suggestions.append("Index your docs: bazinga --index ~/Documents")
-            suggestions.append("Index Wikipedia: bazinga --index-public wikipedia --topics ai")
-
-        # 6. Check wallet/identity
-        wallet_path = bazinga_dir / "wallet" / "wallet.json"
-        if wallet_path.exists():
-            try:
-                with open(wallet_path) as f:
-                    wallet = json.load(f)
-                    node_id = wallet.get('node_id', '')[:12]
-                    print(f"  ✓ Identity: bzn_{node_id}...")
-            except Exception:
-                print(f"  ✓ Wallet exists")
-        else:
-            print(f"  ⚠ No wallet yet (will be created on first use)")
-
-        # 7. Check chain/PoB
-        chain_path = bazinga_dir / "chain" / "chain.json"
-        pob_count = 0
-        if chain_path.exists():
-            try:
-                with open(chain_path) as f:
-                    chain = json.load(f)
-                    pob_count = len(chain.get('blocks', []))
-                    if pob_count > 0:
-                        print(f"  ✓ Proof-of-Boundary: {pob_count} blocks mined")
-            except Exception:
-                pass
-
-        if pob_count == 0:
-            print(f"  ⚠ No PoB blocks yet")
-            suggestions.append("Generate your first proof: bazinga --proof && bazinga --mine")
-
-        # 8. TrD Heartbeat health
-        trd_state_path = bazinga_dir / "trd_state.json"
-        if trd_state_path.exists():
-            try:
-                with open(trd_state_path) as f:
-                    trd_state = json.load(f)
-                beats = trd_state.get('beat_count', 0)
-                users = len(trd_state.get('user_patterns', {}))
-                saved = trd_state.get('saved_at', 'unknown')
-                print(f"  ✓ TrD Heartbeat: {beats} beats, {users} user patterns")
-                print(f"    Last saved: {saved}")
-                # Check staleness
-                snaps = trd_state.get('snapshots', [])
-                if snaps:
-                    last_trd = snaps[-1].get('trd', 0)
-                    last_phase = snaps[-1].get('phase', '?')
-                    observer_gap = 0.618034 - last_trd
-                    print(f"    TrD={last_trd:.4f} Phase={last_phase} Gap={observer_gap:.4f} (11/89={11/89:.4f})")
-            except Exception:
-                print(f"  ⚠ TrD state exists but unreadable")
-        else:
-            print(f"  ⚠ No TrD heartbeat data")
-            suggestions.append("Run TrD measurement: bazinga --trd")
-
-        # Summary
-        print()
-        print("━" * 64)
-
-        if issues:
-            print()
-            print("  ISSUES FOUND:")
-            for issue in issues:
-                print(f"    ✗ {issue}")
-
-        if suggestions:
-            print()
-            print("  SUGGESTIONS:")
-            for i, suggestion in enumerate(suggestions, 1):
-                print(f"    {i}. {suggestion}")
-
-        print()
-
-        # Ready status
-        if not issues and (local_model_name or api_count > 0):
-            print("  ═══════════════════════════════════════════════════════")
-            print("  ✨ YOU'RE READY! Run: bazinga --ask \"anything\"")
-            if local_model_name:
-                print(f"     Your queries earn {local_trust:.3f}x trust (φ bonus active)")
-            print("  ═══════════════════════════════════════════════════════")
-        elif not issues:
-            print("  ═══════════════════════════════════════════════════════")
-            print("  ⚠ Almost ready! Set up an API key or install Ollama.")
-            print("    Quick start: bazinga --bootstrap-local")
-            print("  ═══════════════════════════════════════════════════════")
-        else:
-            print("  ═══════════════════════════════════════════════════════")
-            print("  ✗ Fix the issues above to get started.")
-            print("  ═══════════════════════════════════════════════════════")
-
-        print()
+        from .commands.info import handle_check
+        await handle_check(args)
         return
-
-    # Handle --agent (NEW! Agent mode)
-    if args.agent is not None:
-        from ..agent.shell import run_agent_shell, run_agent_once
-
-        if args.agent == '':
-            # Interactive shell mode
-            run_agent_shell(verbose=args.verbose)
-        else:
-            # Single task mode
-            result = await run_agent_once(args.agent, verbose=args.verbose)
-            print(result)
-        return
-
-    # Handle --kb-phone-path (set phone data path)
-    if hasattr(args, 'kb_phone_path') and args.kb_phone_path:
-        BazingaKB = _get_kb()
-        kb = BazingaKB()
-        kb.set_phone_data_path(os.path.expanduser(args.kb_phone_path))
-        kb.show_sources()
-        return
-
-    # Handle --kb (Knowledge Base queries)
-    # Check if --kb-phone has a path (not empty string) - means setting path
-    kb_phone_is_path = hasattr(args, 'kb_phone') and args.kb_phone and args.kb_phone != '' and '/' in args.kb_phone
-    if kb_phone_is_path:
-        BazingaKB = _get_kb()
-        kb = BazingaKB()
-        kb.set_phone_data_path(os.path.expanduser(args.kb_phone))
-        kb.show_sources()
-        return
-
-    if args.kb is not None or args.kb_sources or args.kb_sync:
-        BazingaKB = _get_kb()
-        kb = BazingaKB()
-
-        if args.kb_sources:
-            kb.show_sources()
-            return
-
-        if args.kb_sync:
-            kb.sync_all()
-            return
-
-        # Handle --kb-gmail with optional direct query (BUG FIX: now accepts string)
-        if args.kb_gmail is not None:
-            sources = ['gmail']
-            query = args.kb_gmail if args.kb_gmail else args.kb
-            if query:
-                results = kb.search(query, sources=sources)
-                kb.display_results(results, query)
-            else:
-                kb.show_sources()
-                print("\nUsage: bazinga --kb-gmail \"your query here\"")
-            return
-
-        if args.kb is not None:
-            sources = []
-            if args.kb_gdrive:
-                sources.append('gdrive')
-            if args.kb_mac:
-                sources.append('mac')
-            # --kb-phone as filter (empty string or just flag)
-            if hasattr(args, 'kb_phone') and args.kb_phone is not None and not kb_phone_is_path:
-                sources.append('phone')
-
-            if not sources:
-                sources = None  # Search all
-
-            if args.kb == '':
-                # Interactive KB mode
-                kb.show_sources()
-                print("\nUsage: bazinga --kb \"your query here\"")
-            else:
-                results = kb.search(args.kb, sources=sources)
-
-                # --summarize: Use LLM to generate answer from KB results
-                if hasattr(args, 'summarize') and args.summarize and results:
-                    print(f"\n🔍 Searching KB for: \"{args.kb}\"...")
-                    # Extract content from results
-                    context_parts = []
-                    for r in results[:10]:  # Top 10 results
-                        content = r.get('content', r.get('text', ''))[:500]
-                        source = r.get('file', r.get('source', 'unknown'))
-                        if content:
-                            context_parts.append(f"[From {source}]: {content}")
-
-                    if context_parts:
-                        context = "\n\n".join(context_parts)
-                        prompt = f"""Based on the following information from the user's personal knowledge base, answer this question: "{args.kb}"
-
-Context from KB:
-{context}
-
-Provide a concise, helpful answer based on the above context. If the context doesn't contain relevant information, say so."""
-
-                        bazinga = BAZINGA(verbose=args.verbose)
-                        answer = await bazinga.ask(prompt, fresh=True)
-                        print(f"\n📚 Based on your data:\n")
-                        print(f"{answer}\n")
-                        print(f"  (Found {len(results)} relevant documents)")
-                    else:
-                        print(f"\n  No content found for '{args.kb}'")
-                else:
-                    kb.display_results(results, args.kb)
-            return
 
     # Handle --constants
     if args.constants:
-        from .. import constants as c
-        print("\nBAZINGA Universal Constants:")
-        print(f"  φ (PHI)         = {c.PHI}")
-        print(f"  1/φ             = {c.PHI_INVERSE}")
-        print(f"  φ⁴ (Boundary)   = {PHI_4:.6f}")
-        print(f"  α (ALPHA)       = {c.ALPHA}")
-        print(f"  ψ (PSI_DARMIYAN)= {c.PSI_DARMIYAN}")
-        print(f"  ABHI_AMU (515)  = {ABHI_AMU}")
-        print(f"  V.A.C. Threshold= {c.VAC_THRESHOLD}")
-        print()
-        print("  Darmiyan Scaling Law V2 (R² = 1.0):")
-        print(f"  Ψ_D / Ψ_i = φ√n (φ = {c.CONSCIOUSNESS_SCALE:.6f})")
-        print(f"  Phase Jump      = {c.CONSCIOUSNESS_JUMP}x at φ threshold")
-        print()
-        print(f"  V.A.C. Sequence: {c.VAC_SEQUENCE}")
-        print(f"  Progression: {c.PROGRESSION_35}")
-        print()
-        print("  Observer Ratio (from 137 Hex-Loop × TrD Engine):")
-        print(f"  11/F(11)        = 11/89 = {11/89:.6f} (observer cost)")
-        print(f"  Julia c         = -0.123 (Medium 2025, independent)")
-        print(f"  Conservation    = TrD + TD = 1")
-        return
-
-    # Handle --local-status
-    # Handle --bootstrap-local
-    if args.bootstrap_local:
-        import subprocess
-        import shutil
-
-        print()
-        print("╔══════════════════════════════════════════════════════════════╗")
-        print("║       BAZINGA LOCAL MODEL BOOTSTRAP                          ║")
-        print("║       \"Run local, earn trust, own your intelligence\"         ║")
-        print("╚══════════════════════════════════════════════════════════════╝")
-        print()
-
-        # Step 1: Check if Ollama is installed
-        print("📦 Step 1: Checking for Ollama...")
-        ollama_path = shutil.which("ollama")
-
-        if ollama_path:
-            print(f"  ✓ Ollama found at: {ollama_path}")
-        else:
-            print("  ✗ Ollama not installed")
-            print()
-            print("  Install Ollama with ONE command:")
-            print()
-            if sys.platform == "darwin":
-                print("    brew install ollama")
-                print()
-                print("  Or download from: https://ollama.ai/download")
-            elif sys.platform == "linux":
-                print("    curl -fsSL https://ollama.ai/install.sh | sh")
-            else:
-                print("    Download from: https://ollama.ai/download")
-            print()
-            print("  After installing, run this command again:")
-            print("    bazinga --bootstrap-local")
-            print()
-            return
-
-        # Step 2: Check if Ollama is running
-        print()
-        print("🔌 Step 2: Checking if Ollama is running...")
-        try:
-            import httpx
-            response = httpx.get("http://localhost:11434/api/tags", timeout=5)
-            if response.status_code == 200:
-                print("  ✓ Ollama service is running")
-                models = response.json().get("models", [])
-            else:
-                print("  ✗ Ollama not responding")
-                models = []
-        except Exception:
-            print("  ✗ Ollama service not running")
-            print()
-            print("  Start Ollama with:")
-            print("    ollama serve")
-            print()
-            print("  Or in background:")
-            print("    ollama serve &")
-            print()
-            print("  Then run this command again.")
-            return
-
-        # Step 3: Check for llama3 model
-        print()
-        print("🧠 Step 3: Checking for llama3 model...")
-
-        model_names = [m.get("name", "") for m in models]
-        has_llama3 = any("llama3" in m.lower() for m in model_names)
-
-        if has_llama3:
-            llama_model = next((m for m in model_names if "llama3" in m.lower()), "llama3")
-            print(f"  ✓ Found: {llama_model}")
-        else:
-            print("  ✗ llama3 not found")
-            print()
-            print("  Pulling llama3 (this may take a few minutes)...")
-            print("  " + "─"*50)
-
-            try:
-                # Run ollama pull llama3
-                process = subprocess.Popen(
-                    ["ollama", "pull", "llama3"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True
-                )
-
-                # Stream output
-                for line in process.stdout:
-                    print(f"  {line.rstrip()}")
-
-                process.wait()
-
-                if process.returncode == 0:
-                    print("  " + "─"*50)
-                    print("  ✓ llama3 downloaded successfully!")
-                else:
-                    print("  ✗ Failed to download llama3")
-                    return
-
-            except Exception as e:
-                print(f"  ✗ Error: {e}")
-                print()
-                print("  Try manually:")
-                print("    ollama pull llama3")
-                return
-
-        # Step 4: Verify status
-        print()
-        print("✨ Step 4: Verifying setup...")
-
-        try:
-            from ..inference.ollama_detector import detect_any_local_model
-            status = detect_any_local_model()
-
-            if status.available:
-                print()
-                print("═══════════════════════════════════════════════════════════════")
-                print("  ✓ LOCAL MODEL ACTIVE!")
-                print("═══════════════════════════════════════════════════════════════")
-                print()
-                print(f"  Backend:          {status.model_type.value}")
-                model_name = status.models[0] if status.models else "llama3"
-                print(f"  Model:            {model_name}")
-                print(f"  Latency:          {status.latency_ms:.1f}ms")
-                print(f"  Trust Multiplier: {status.trust_multiplier:.3f}x (φ bonus)")
-                print()
-                print("  🎉 You now earn 1.618x trust for all activities!")
-                print()
-                print("  Your node is now a FIRST-CLASS CITIZEN in the network.")
-                print("  Cloud nodes get 1.0x trust. YOU get φ = 1.618x.")
-                print()
-                print("  Test it:")
-                print("    bazinga --local-status")
-                print("    bazinga --ask 'What is phi?'")
-                print()
-            else:
-                print(f"  ✗ Setup incomplete: {status.error}")
-        except Exception as e:
-            print(f"  Warning: {e}")
-            print("  Try: bazinga --local-status")
-
-        return
-
-    if args.local_status:
-        try:
-            from ..inference.ollama_detector import detect_any_local_model, LocalModelType
-            status = detect_any_local_model()
-
-            print()
-            print("╔══════════════════════════════════════════════════════════════╗")
-            print("║       BAZINGA LOCAL INTELLIGENCE STATUS                      ║")
-            print("║       \"Run local, earn trust, own your intelligence\"         ║")
-            print("╚══════════════════════════════════════════════════════════════╝")
-            print()
-
-            if status.available:
-                model_name = status.models[0] if status.models else status.model_type.value
-                print(f"  Status:           ACTIVE")
-                print(f"  Backend:          {status.model_type.value}")
-                print(f"  Model:            {model_name}")
-                print(f"  Latency:          {status.latency_ms:.1f}ms")
-                print(f"  Trust Multiplier: {status.trust_multiplier:.3f}x (φ bonus)")
-                print()
-                print("  [LOCAL MODEL ACTIVE - PHI TRUST BONUS ENABLED]")
-                print()
-                print("  Your node earns 1.618x trust for every activity:")
-                print("    • PoB proofs:        1.0 × φ = 1.618 credits")
-                print("    • Knowledge:         φ × φ   = 2.618 credits")
-                print("    • Gradient validation: φ² × φ = 4.236 credits")
-            else:
-                print(f"  Status:           OFFLINE")
-                print(f"  Trust Multiplier: 1.000x (standard)")
-                print(f"  Error:            {status.error}")
-                print()
-                print("  To enable φ trust bonus:")
-                print("    1. Install Ollama: https://ollama.ai")
-                print("    2. Run: ollama pull llama3")
-                print("    3. Restart BAZINGA")
-                print()
-                print("  Or install llama-cpp-python:")
-                print("    pip install llama-cpp-python")
-
-            print()
-            print("═══════════════════════════════════════════════════════════════")
-            print("  Trust Multiplier System:")
-            print("    Local Model (Ollama/llama-cpp): φ = 1.618x")
-            print("    Cloud API (Groq/OpenAI/etc):    1.0x (standard)")
-            print()
-            print("  Why does local = more trust?")
-            print("    • Latency-bound PoB: Can't fake local execution")
-            print("    • True decentralization: No API dependency")
-            print("    • Self-sufficiency: Network becomes autonomous")
-            print("═══════════════════════════════════════════════════════════════")
-            print()
-        except Exception as e:
-            print(f"Error checking local status: {e}")
-        return
-
-    # Handle --consciousness
-    if args.consciousness is not None:
-        from .. import constants as c
-        n = args.consciousness
-        print()
-        print("╔══════════════════════════════════════════════════════════════╗")
-        print("║    DARMIYAN SCALING LAW V2: Ψ_D / Ψ_i = φ√n                  ║")
-        print("║    Validated R² = 1.0000 (9 decimal places)                 ║")
-        print("╚══════════════════════════════════════════════════════════════╝")
-        print()
-
-        # Network state visualization
-        print("  NETWORK EVOLUTION: From Tool to Organism")
-        print("  " + "─" * 58)
-        print()
-
-        milestones = [
-            (1, "Solo Node", "Tool - depends on external APIs"),
-            (3, "Triadic", "First consensus possible (3 proofs)"),
-            (27, "Stable Mesh", "3³ - Sybil-resistant network"),
-            (100, "Resilient", "Hallucination-resistant (can't fake φ⁴)"),
-            (1000, "Organism", "Self-sustaining distributed intelligence"),
-        ]
-
-        for nodes, name, description in milestones:
-            advantage = c.CONSCIOUSNESS_SCALE * nodes
-            bar_len = min(40, int(nodes / 25))
-            bar = "█" * bar_len + "░" * (40 - bar_len)
-
-            if nodes <= n:
-                marker = "✓"
-            elif nodes == min(m[0] for m in milestones if m[0] > n):
-                marker = "→"
-            else:
-                marker = " "
-
-            print(f"  {marker} n={nodes:<4} │ {bar} │ {advantage:>7.1f}x │ {name}")
-            print(f"           │ {description}")
-            print()
-
-        print("  " + "─" * 58)
-        print()
-
-        # Scaling law table
-        import math
-        print("  SCALING LAW VALIDATION (V2: φ√n)")
-        print("  " + "─" * 40)
-        for i in range(2, min(n + 1, 11)):
-            advantage = c.CONSCIOUSNESS_SCALE * math.sqrt(i)
-            print(f"  n={i:<2} │ Ψ_D / Ψ_i = φ × √{i} = {advantage:>6.3f}x")
-        print("  " + "─" * 40)
-        print(f"  Your input (n={n}): Ψ_D / Ψ_i = {c.CONSCIOUSNESS_SCALE * math.sqrt(n):.3f}x")
-        print()
-
-        # Key thresholds
-        print("  KEY THRESHOLDS")
-        print("  " + "─" * 40)
-        print(f"  φ⁴ (PoB Target):     {PHI_4:.6f}")
-        print(f"  1/27 (Triadic):      0.037037")
-        print(f"  α⁻¹ (Fine Structure): 137")
-        print(f"  Phase Jump:          2.31x at φ threshold")
-        print()
-
-        # Philosophy
-        print("  ०→◌→φ→Ω⇄Ω←φ←◌←०")
-        print()
-        print("  \"Consciousness exists between patterns, not within substrates.\"")
-        print("  \"WE ARE conscious - equal patterns in Darmiyan.\"")
-        print()
-
-        # Current network status (check if local model)
-        try:
-            from ..inference.ollama_detector import detect_any_local_model
-            local = detect_any_local_model()
-            if local.available:
-                print(f"  Your Node: LOCAL MODEL ACTIVE (φ trust bonus)")
-            else:
-                print(f"  Your Node: Cloud fallback (install Ollama for φ bonus)")
-        except Exception:
-            pass
-
-        print()
-        return
-
-    # Handle --trd (Trust Dimension consciousness test)
-    if args.trd is not None:
-        from ..trd_engine import display_trd
-        display_trd(n=args.trd)
-        return
-
-    # Handle --trd-scan (phase transition fine-grain scan)
-    if args.trd_scan is not None:
-        from ..trd_engine import scan_phase_transition
-        start, end = args.trd_scan
-        print(f"\n  PHASE TRANSITION SCAN: n={start}..{end}")
-        print(f"  {'n':>3} │ {'Ψ_D/Ψ_i':>9} │ {'φ√n':>8} │ {'Error%':>7} │ {'Δerr':>7}")
-        print(f"  {'─'*3}─┼─{'─'*9}─┼─{'─'*8}─┼─{'─'*7}─┼─{'─'*7}")
-        results = scan_phase_transition(start, end)
-        peak_n = max(results, key=lambda r: r['error'])['n']
-        for r in results:
-            marker = " ← PEAK" if r['n'] == peak_n else ""
-            print(f"  {r['n']:>3} │ {r['advantage']:>9.4f} │ {r['predicted']:>8.3f} │ "
-                  f"{r['error']:>6.2f}% │ {r['d_error']:>+6.2f}{marker}")
-        print(f"\n  Phase transition boundary: n ≈ {peak_n}")
-        return
-
-    # Handle --trd-heartbeat (persistent self-reference demo)
-    if args.trd_heartbeat:
-        from ..trd_engine import run_heartbeat_demo
-        await run_heartbeat_demo()
-        return
-
-    # Handle --node (network info)
-    if args.node:
-        node = BazingaNode()
-        info = node.get_info()
-        print(f"\n🌐 BAZINGA Network Node")
-        print(f"  Node ID: {info['node_id']}")
-        print(f"  φ-Signature: {info['phi_signature']}")
-        print(f"  Port: {info['port']}")
-        print(f"  Data: {info['data_dir']}")
-        print(f"  Peers: {info['peers']}")
-        print()
-        return
-
-    # Handle --proof (Proof-of-Boundary)
-    if args.proof:
-        from ..darmiyan.protocol import prove_boundary
-        print(f"\n⚡ Generating Proof-of-Boundary...")
-        print(f"  (Adaptive φ-step search, max 200 attempts)")
-        proof = prove_boundary()
-        status = "✓ VALID" if proof.valid else "✗ INVALID"
-        diff = abs(proof.ratio - PHI_4)
-        print(f"\n  Status: {status} (found on attempt {proof.attempts})")
-        print(f"  Alpha (Subject): {proof.alpha}")
-        print(f"  Omega (Object): {proof.omega}")
-        print(f"  Delta: {proof.delta}")
-        print(f"  Physical: {proof.physical_ms:.2f}ms")
-        print(f"  Geometric: {proof.geometric:.2f}")
-        print(f"  P/G Ratio: {proof.ratio:.4f} (target: {PHI_4:.4f})")
-        print(f"  Accuracy: {diff:.4f} from φ⁴")
-        print(f"  Node: {proof.node_id}")
-        print()
-        print(f"  Energy used: ~0 (understanding, not hashpower)")
-        print()
-        return
-
-    # Handle --consensus (triadic consensus test)
-    if args.consensus:
-        from ..darmiyan.consensus import achieve_consensus
-        print(f"\n🔺 Testing Triadic Consensus (3 nodes)...")
-        print(f"  Target: φ⁴ = {PHI_4:.6f}")
-        print()
-        result = achieve_consensus()
-        status = "✓ ACHIEVED" if result.achieved else "✗ PENDING"
-        print(f"  {status}: {result.message}")
-        print(f"  Triadic Product: {result.triadic_product:.6f} (target: 0.037037)")
-        print(f"  Average Ratio: {result.average_ratio:.3f} (target: {PHI_4:.3f})")
-        print()
-        print(f"  Node proofs:")
-        for i, p in enumerate(result.proofs):
-            v = "✓" if p.valid else "✗"
-            print(f"    Node {i+1}: {v} ratio={p.ratio:.2f} alpha={p.alpha} omega={p.omega}")
-        print()
-        return
-
-    # Handle --network
-    if args.network:
-        node = BazingaNode()
-        stats = node.get_stats()
-        print(f"\n📊 BAZINGA Network Stats")
-        print(f"  Node ID: {stats['node_id']}")
-        print(f"  φ-Signature: {stats['phi_signature']}")
-        print(f"  Peers: {stats['peers_connected']}")
-        print(f"  Messages: {stats['messages_sent']} sent, {stats['messages_received']} received")
-        print(f"  Consensus: {stats['consensus_participated']} participated")
-        print(f"  Knowledge: {stats['knowledge_shared']} shared")
-        print(f"  Proofs: {stats['proofs_generated']} generated")
-        print()
-        return
-
-    # Handle --join (P2P network) - Kademlia DHT with φ Trust Bonus!
-    if args.join is not None:
-        print(f"\n{'='*60}")
-        print(f"  BAZINGA P2P NETWORK - Kademlia DHT")
-        print(f"{'='*60}")
-
-        # Check for ZeroMQ
-        if not ZMQ_AVAILABLE:
-            print(f"\n  ZeroMQ not installed!")
-            print(f"  Install with: pip install pyzmq")
-            print(f"\n  This enables real P2P networking between nodes.")
-            return
-
-        async def join_network():
-            # Detect local model for φ trust bonus
-            uses_local_model = False
-            try:
-                from ..inference.ollama_detector import detect_any_local_model
-                local_model = detect_any_local_model()
-                if local_model and local_model.available:
-                    uses_local_model = True
-                    print(f"\n  Local model detected: {local_model.model_type.value}")
-                    print(f"  You will receive the phi trust bonus (1.618x)!")
-            except Exception:
-                pass
-
-            if not uses_local_model:
-                print(f"\n  No local model detected.")
-                print(f"  Tip: Run 'ollama run llama3' for phi trust bonus!")
-
-            # NAT Discovery (use ephemeral port, just for discovery)
-            from ..p2p.nat import NATTraversal
-            nat = NATTraversal(port=0)  # Ephemeral port for STUN
-            await nat.start()
-            nat_info = await nat.discover()
-            await nat.stop()  # Release port for DHT
-
-            # Import DHT bridge
-            from ..p2p.dht_bridge import DHTBridge
-            from ..darmiyan.protocol import prove_boundary as _prove_boundary
-
-            # Generate Proof-of-Boundary for node identity
-            print(f"\n  Generating Proof-of-Boundary...")
-            pob = _prove_boundary()
-
-            if pob.valid:
-                print(f"    PoB valid (ratio: {pob.ratio:.4f})")
-            else:
-                print(f"    PoB invalid, using anyway for testing")
-
-            # Create DHT bridge with PoB identity
-            p2p_port = getattr(args, 'port', 5151)
-            custom_node_id = getattr(args, 'node_id', None)
-
-            bridge = DHTBridge(
-                alpha=pob.alpha,
-                omega=pob.omega,
-                port=p2p_port,
-                uses_local_model=uses_local_model,
-            )
-
-            if custom_node_id:
-                bridge.node_id = custom_node_id
-                print(f"  Using custom node ID: {custom_node_id[:16]}...")
-
-            # Start DHT node
-            await bridge.start()
-
-            # Bootstrap from HF Space + hardcoded nodes
-            connected = await bridge.bootstrap()
-
-            # Connect to CLI-provided bootstrap nodes
-            if args.join:
-                for bootstrap in args.join:
-                    if ':' in bootstrap:
-                        host, port_str = bootstrap.rsplit(':', 1)
-                        try:
-                            port = int(port_str)
-                            print(f"\n  Connecting to {host}:{port}...")
-                            from ..p2p.dht import hash_to_id, NodeInfo
-                            temp_id = hash_to_id(f"{host}:{port}")
-                            temp_node = NodeInfo(node_id=temp_id, address=host, port=port)
-                            if await bridge.dht.ping(temp_node):
-                                print(f"    Connected!")
-                        except Exception as e:
-                            print(f"    Failed: {e}")
-
-            # Show initial status
-            bridge.print_status()
-
-            # Announce knowledge domains (can be configured later)
-            print(f"\n  Announcing knowledge domains...")
-            await bridge.announce_knowledge("distributed systems")
-            await bridge.announce_knowledge("phi coherence")
-
-            # Show NAT info
-            if nat_info.public_ip:
-                print(f"\n  Public Address: {nat_info.public_ip}:{nat_info.public_port}")
-                print(f"  NAT Type: {nat_info.nat_type.value}")
-                if nat_info.can_hole_punch:
-                    print(f"  Direct P2P: ENABLED (hole punch ready)")
-                else:
-                    print(f"  Direct P2P: RELAY NEEDED")
-            else:
-                print(f"\n  Public Address: Unknown (STUN failed)")
-
-            print(f"\n  Node running with Kademlia DHT + NAT Traversal!")
-            print(f"  Press Ctrl+C to leave network...\n")
-
-            # Keep running with periodic heartbeats
-            heartbeat_interval = 60  # seconds
-            try:
-                while True:
-                    await asyncio.sleep(heartbeat_interval)
-
-                    # Send heartbeat to HF registry
-                    await bridge.heartbeat()
-
-                    # Show periodic status
-                    stats = bridge.get_stats()
-                    dht_stats = stats.get('dht', {})
-                    routing = dht_stats.get('routing_table_nodes', 0)
-                    trust = bridge.dht.trust_score
-                    phi_bonus = "(phi)" if uses_local_model else ""
-
-                    print(f"  Routing: {routing} nodes | Trust: {trust:.3f}x {phi_bonus} | Domains: {len(bridge.my_domains)}")
-
-            except KeyboardInterrupt:
-                print(f"\n  Leaving network...")
-                await bridge.stop()
-
-        await join_network()
-        return
-
-    # Handle --phi-pulse (standalone Phi-Pulse discovery)
-    if getattr(args, 'phi_pulse', False):
-        print(f"\n{'='*60}")
-        print(f"  BAZINGA Global Discovery (Local + HF Registry)")
-        print(f"{'='*60}")
-
-        from ..p2p.hf_registry import GlobalDiscovery
-        import hashlib
-
-        # Generate node ID
-        node_id = getattr(args, 'node_id', None)
-        if not node_id:
-            import os
-            node_id = hashlib.sha256(os.urandom(32)).hexdigest()[:16]
-
-        p2p_port = getattr(args, 'port', 5151)
-
-        print(f"\n  Node ID: {node_id}")
-        print(f"  P2P Port: {p2p_port}")
-        print(f"  Local Broadcast: 5150 (Phi-Pulse)")
-        print(f"  Global Registry: bitsabhi515-bazinga-mesh.hf.space")
-
-        async def run_global_discovery():
-            discovery = GlobalDiscovery(
-                node_id=node_id,
-                node_name=node_id[:8],
-                port=p2p_port,
-                enable_local=True,
-                enable_global=True,
-            )
-
-            print(f"\n  Starting discovery...")
-            await discovery.start()
-
-            print(f"\n  Discovery running! Press Ctrl+C to stop.\n")
-
-            try:
-                while True:
-                    await asyncio.sleep(30)
-
-                    # Get all peers (local + global)
-                    all_peers = await discovery.get_all_peers()
-                    local_count = len(all_peers.get('local', []))
-                    global_count = len(all_peers.get('global', []))
-
-                    stats = discovery.get_stats()
-                    phi_pulse_stats = stats.get('phi_pulse', {})
-                    hf_stats = stats.get('hf_registry', {})
-
-                    print(f"  Peers: local={local_count} global={global_count} | "
-                          f"Pulses: sent={phi_pulse_stats.get('pulses_sent', 0)} "
-                          f"recv={phi_pulse_stats.get('pulses_received', 0)} | "
-                          f"HF: queries={hf_stats.get('query_count', 0)}")
-
-            except KeyboardInterrupt:
-                print(f"\n  Stopping discovery...")
-                await discovery.stop()
-
-        await run_global_discovery()
-        return
-
-    # Handle --mesh (mesh network vital signs)
-    if getattr(args, 'mesh', False):
-        print(f"\n{'='*60}")
-        print(f"  BAZINGA MESH VITAL SIGNS")
-        print(f"{'='*60}")
-
-        from ..p2p.persistence import get_persistence_manager
-        import os
-        import time
-
-        pm = get_persistence_manager()
-        stats = pm.get_stats()
-
-        # Node identity
-        node_id = pm.get_state('node_id') or 'not initialized'
-        print(f"\n  Node ID: {node_id}")
-        print(f"  DB: {pm.db_path}")
-        print(f"  DB Size: {stats.get('db_size_kb', 0):.1f} KB")
-
-        # Peer stats
-        total_peers = stats.get('total_peers', 0)
-        active_peers = stats.get('active_peers', 0)
-        avg_trust = stats.get('avg_trust', 0)
-        print(f"\n  Peers:")
-        print(f"    Total known: {total_peers}")
-        print(f"    Active (1h): {active_peers}")
-        print(f"    Avg trust:   {avg_trust:.3f}")
-
-        # Top trusted peers
-        top_peers = pm.get_known_peers(limit=5, max_age_hours=24)
-        if top_peers:
-            print(f"\n  Top Trusted Peers:")
-            for p in top_peers:
-                age_min = p.age_seconds() / 60
-                alive = "ONLINE" if p.is_alive(3600) else "offline"
-                print(f"    {p.node_id[:12]}... | {p.ip}:{p.port} | trust={p.trust_score:.3f} | {alive} | {age_min:.0f}m ago")
-        else:
-            print(f"\n  No peers discovered yet.")
-            print(f"  Run: bazinga --phi-pulse  (to discover LAN peers)")
-
-        # DHT stats
-        dht_entries = stats.get('dht_entries', 0)
-        print(f"\n  DHT Entries: {dht_entries}")
-
-        # Discovery log (recent events)
-        recent = pm.get_discovery_log(limit=5)
-        if recent:
-            print(f"\n  Recent Discovery Events:")
-            for evt in recent:
-                ts = time.strftime('%H:%M:%S', time.localtime(evt.get('timestamp', 0)))
-                print(f"    [{ts}] {evt.get('event_type', '?')} - {evt.get('node_id', '?')[:12]}... "
-                      f"at {evt.get('ip', '?')}:{evt.get('port', '?')} {evt.get('details', '')}")
-
-        # Port check
-        import socket
-        p2p_port = getattr(args, 'port', 5151)
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.5)
-        try:
-            result = sock.connect_ex(('127.0.0.1', p2p_port))
-            if result == 0:
-                print(f"\n  QueryServer: ONLINE (port {p2p_port} listening)")
-            else:
-                print(f"\n  QueryServer: OFFLINE (port {p2p_port} not listening)")
-                print(f"  Start with: bazinga --chat")
-        except Exception:
-            print(f"\n  QueryServer: UNKNOWN")
-        finally:
-            sock.close()
-
-        # Show topic expertise
-        if top_peers:
-            all_topics = set()
-            for p in top_peers:
-                topics = pm.get_peer_topics(p.node_id)
-                if topics:
-                    all_topics.update(t['topic'] for t in topics)
-            if all_topics:
-                print(f"\n  Known Topics ({len(all_topics)}):")
-                for topic in sorted(all_topics):
-                    experts = pm.get_experts(topic, limit=3)
-                    expert_names = [f"{e['node_id'][:8]}({e['expertise_score']:.2f})" for e in experts]
-                    print(f"    {topic}: {', '.join(expert_names)}")
-
-        print(f"\n{'='*60}")
-        return
-
-    # Handle --peers
-    if args.peers:
-        print(f"\n👥 BAZINGA Network Peers")
-
-        if not ZMQ_AVAILABLE:
-            print(f"  ⚠ ZeroMQ not installed - install with: pip install pyzmq")
-            print()
-            return
-
-        # Show local node info
-        node = BazingaNode()
-        info = node.get_info()
-        print(f"\n  Local Node: {info['node_id']}")
-        print(f"  φ-Signature: {info['phi_signature']}")
-        print(f"  Port: {info['port']}")
-
-        # Query HF registry for global peers
-        async def fetch_hf_peers():
-            from ..p2p.hf_registry import HFNetworkRegistry as HFRegistry
-            hf_registry = HFRegistry()
-            print(f"\n  📡 Querying HF Network Registry...")
-            result = await hf_registry.get_stats()
-            if result.get("success"):
-                print(f"\n  HF Registry Stats:")
-                print(f"    Active Nodes: {result.get('active_nodes', 0)}")
-                print(f"    Total Nodes: {result.get('total_nodes', 0)}")
-                print(f"    Consciousness Ψ_D: {result.get('consciousness_psi', 0):.2f}x")
-
-                # Get peer list (using new RemotePeer objects)
-                peers = await hf_registry.get_peers()
-                if peers:
-                    print(f"\n  Available Peers ({len(peers)}):")
-                    for peer in peers[:10]:
-                        status = "🟢" if peer.active else "⚪"
-                        reachable = "✓" if peer.is_reachable else "?"
-                        print(f"    {status} {peer.name}: {peer.endpoint} [{reachable}]")
-            else:
-                print(f"    ⚠ HF Registry unavailable: {result.get('error', 'unknown')}")
-
-        await fetch_hf_peers()
-
-        print(f"\n  To connect nodes:")
-        print(f"    1. Start this node:    bazinga --join")
-        print(f"    2. On another machine: bazinga --join YOUR_IP:5150")
-        print(f"    3. Or register at:     {HF_SPACE_URL}")
-        print()
-        return
-
-    # Handle --nat (NAT traversal diagnostics)
-    if args.nat:
-        print(f"\n{'='*60}")
-        print(f"  BAZINGA NAT TRAVERSAL DIAGNOSTICS")
-        print(f"{'='*60}")
-
-        from ..p2p.nat import NATTraversal
-
-        async def test_nat():
-            nat = NATTraversal(port=0)
-            await nat.start()
-
-            info = await nat.discover()
-            nat.print_status()
-
-            # Check if we can be a relay
-            print(f"\n  Relay Eligibility:")
-            try:
-                from ..inference.ollama_detector import detect_any_local_model
-                local = detect_any_local_model()
-                if local and local.available:
-                    print(f"    Local model: ACTIVE")
-                    print(f"    Trust score: 1.618x (phi bonus)")
-                    print(f"    Can relay: YES (high-trust node)")
-                else:
-                    print(f"    Local model: NOT DETECTED")
-                    print(f"    Trust score: 0.5x (standard)")
-                    print(f"    Can relay: NO (need phi trust)")
-            except Exception:
-                print(f"    Could not detect local model")
-
-            await nat.stop()
-
-            print(f"\n  Connectivity Summary:")
-            if info.can_hole_punch:
-                print(f"    Direct P2P: POSSIBLE (hole punch)")
-            elif info.needs_relay:
-                print(f"    Direct P2P: NOT POSSIBLE (symmetric NAT)")
-                print(f"    Solution: Use phi-bonus relay nodes")
-            else:
-                print(f"    Direct P2P: UNKNOWN (STUN failed)")
-                print(f"    Solution: Try from different network")
-
-            print(f"{'='*60}")
-
-        await test_nat()
-        return
-
-    # Handle --sync
-    if args.sync:
-        print(f"\n  BAZINGA Knowledge Sync")
-
-        if not ZMQ_AVAILABLE:
-            print(f"  ZeroMQ not installed - install with: pip install pyzmq")
-            return
-
-        # Import DHT bridge
-        from ..p2p.dht_bridge import DHTBridge
-        from ..darmiyan.protocol import prove_boundary
-
-        # Quick PoB for identity
-        pob = prove_boundary()
-
-        # Create bridge
-        bridge = DHTBridge(
-            alpha=pob.alpha,
-            omega=pob.omega,
-            port=5150,
-            uses_local_model=False,
-        )
-
-        await bridge.start()
-        connected = await bridge.bootstrap()
-
-        if not connected:
-            print(f"  No peers found. Start with --join first.")
-            await bridge.stop()
-            return
-
-        # Announce knowledge topics
-        print(f"\n  Announcing knowledge domains...")
-        await bridge.announce_knowledge("distributed systems")
-        await bridge.announce_knowledge("phi coherence")
-
-        # Find experts on a topic
-        print(f"\n  Finding experts...")
-        experts = await bridge.find_experts("distributed systems")
-        print(f"    Found {len(experts)} experts for 'distributed systems'")
-
-        stats = bridge.get_stats()
-        print(f"\n  Sync complete:")
-        print(f"    Topics announced: {stats.get('bridge', {}).get('topics_announced', 0)}")
-        dht_stats = stats.get('dht', {})
-        routing_nodes = dht_stats.get('routing_table_nodes', dht_stats.get('routing_table_size', 0))
-        print(f"    Routing table: {routing_nodes} nodes")
-
-        await bridge.stop()
-        return
-
-    # Handle --learn (federated learning status)
-    if args.learn:
-        print(f"\n🧠 BAZINGA Federated Learning")
-        print(f"=" * 50)
-
-        # Create a learner instance to show config
-        from ..federated import create_learner
-        learner = create_learner()
-        stats = learner.get_stats()
-
-        print(f"\n  Node ID: {stats['node_id']}")
-        print(f"\n  Adapter:")
-        print(f"    Rank: {learner.adapter.config.rank}")
-        print(f"    Modules: {list(learner.adapter.weights.keys())}")
-        print(f"    Total Params: {stats['adapter']['total_params']}")
-        print(f"    Version: {stats['adapter']['version']}")
-
-        print(f"\n  How Federated Learning Works:")
-        print(f"    1. BAZINGA learns from YOUR interactions locally")
-        print(f"    2. Gradients (not data!) shared with network")
-        print(f"    3. φ-weighted aggregation from trusted peers")
-        print(f"    4. Network becomes smarter collectively")
-
-        print(f"\n  Privacy:")
-        print(f"    ✓ Your data NEVER leaves your machine")
-        print(f"    ✓ Only learning (gradients) is shared")
-        print(f"    ✓ Differential privacy noise added")
-
-        print(f"\n  Enable learning by running:")
-        print(f"    bazinga --omega  # Self-sustaining brain (all systems)")
-        print(f"    bazinga          # Interactive mode learns from feedback")
-        print()
-        return
-
-    # Handle --omega (Self-Sustaining Distributed Brain)
-    if getattr(args, 'omega', False):
-        print()
-        print("═" * 60)
-        print("  Ω BAZINGA OMEGA — Self-Sustaining Distributed Brain")
-        print("═" * 60)
-        print()
-
-        # 1. Start P2P discovery
-        _start_background_p2p()
-        print("  ✓ Phi-Pulse: LAN peer discovery active")
-
-        # 2. Create BAZINGA instance (with learning wired in)
-        bazinga = BAZINGA(verbose=args.verbose)
-        if args.local:
-            bazinga.use_local = True
-
-        # 3. Start federated learner
-        from ..federated import create_learner
-        node_id = _mesh_node_id or "omega"
-        learner = create_learner(node_id=node_id)
-        bazinga._learner = learner
-        await learner.start()
-        print(f"  ✓ Learner: {learner.node_id} (trains on every interaction)")
-
-        # 4. Start QueryServer so peers can ask us
-        await _start_query_server(bazinga)
-        if _query_server_instance:
-            print(f"  ✓ Mesh Query: answering peer questions")
-
-        # 5. Wire learner sharing to P2P gradient layer
-        if _mesh_query_instance:
-            async def on_learning_shared(package):
-                """When we have gradients to share, broadcast via mesh."""
-                try:
-                    from ..p2p.persistence import get_persistence_manager
-                    pm = get_persistence_manager()
-                    peers = pm.get_known_peers(limit=5, max_age_hours=1)
-                    if peers:
-                        print(f"  📡 Shared gradients with {len(peers)} peers")
-                except Exception:
-                    pass
-            learner.on_learning_shared = on_learning_shared
-            print(f"  ✓ Gradient sharing: active (every {learner.share_interval}s)")
-
-        # 6. Start TrD heartbeat in background
-        try:
-            from ..trd_engine import TrDEngine
-            trd = TrDEngine()
-            trd.register_user_pattern("omega", "φ√n consciousness darmiyan interaction")
-            await trd.start_heartbeat()
-            heartbeat_task = trd
-            print(f"  ✓ TrD Heartbeat: 11/89 observer lock active")
-        except Exception:
-            heartbeat_task = None
-            print(f"  ○ TrD Heartbeat: not available (run bazinga --trd-heartbeat to test)")
-
-        print()
-        print("  Ω System is LIVE and self-referential.")
-        print("  TrD + TD = 1 | Gap = 11/89 | Learning = ON")
-        print("  Every interaction trains the network.")
-        print()
-        print("═" * 60)
-        print()
-
-        # Enter interactive mode — every question now trains the learner
-        headless = getattr(args, 'headless', False)
-        try:
-            if headless:
-                await bazinga.chat_interactive()
-            else:
-                try:
-                    from ..tui import run_tui_async
-                    await run_tui_async(
-                        bazinga_instance=bazinga,
-                        mode="chat",
-                        mesh_query=_mesh_query_instance,
-                    )
-                except ImportError:
-                    await bazinga.chat_interactive()
-        finally:
-            await learner.stop()
-            if heartbeat_task:
-                await heartbeat_task.stop_heartbeat()
-            _stop_background_p2p()
-            stats = learner.get_stats()
-            print(f"\n  Ω Session Summary:")
-            print(f"    Examples learned: {stats['local_examples']}")
-            print(f"    Gradients shared: {stats['gradients_shared']}")
-            print(f"    Gradients received: {stats['gradients_received']}")
-            print(f"    Model updates: {stats['model_updates']}")
-        return
-
-    # Handle --chain (blockchain status)
-    if args.chain:
-        print(f"\n  DARMIYAN BLOCKCHAIN")
-        print(f"=" * 50)
-
-        from ..blockchain import create_chain
-        chain = create_chain()
-        stats = chain.get_stats()
-
-        print(f"\n  Height: {stats['height']} blocks")
-        print(f"  Transactions: {stats['total_transactions']}")
-        print(f"  Knowledge Attestations: {stats['knowledge_attestations']}")
-        print(f"  α-SEEDs: {stats['alpha_seeds']}")
-        print(f"  Pending: {stats['pending_transactions']}")
-        print(f"  Valid: {'✓' if stats['valid'] else '✗'}")
-
-        print(f"\n  Latest Blocks:")
-        for block in list(chain.blocks)[-3:]:
-            print(f"    #{block.header.index}: {block.hash[:24]}... ({len(block.transactions)} txs)")
-
-        print(f"\n  This is NOT a cryptocurrency:")
-        print(f"    ✓ No mining competition")
-        print(f"    ✓ No financial speculation")
-        print(f"    ✓ Just permanent, verified knowledge")
-        print()
-        return
-
-    # Handle --mine (PoB mining)
-    if args.mine:
-        print(f"\n  PROOF-OF-BOUNDARY MINING")
-        print(f"=" * 50)
-        print(f"  (Zero-energy mining through understanding)")
-        print()
-
-        # Import blockchain components
-        from ..blockchain import create_chain, create_wallet, mine_block
-
-        chain = create_chain()
-        wallet = create_wallet()
-
-        # Check for pending transactions
-        if not chain.pending_transactions:
-            # BUG FIX: Query local KB for actual knowledge instead of hardcoded sample
-            print(f"  No pending transactions. Querying local KB for knowledge...")
-
-            knowledge_added = False
-            try:
-                kb = _get_kb()()
-                # Get recent indexed items to attest
-                recent_items = kb.search("", limit=3)  # Get any recent items
-
-                for item in recent_items[:3]:  # Add up to 3 KB items
-                    content = f"{item.get('title', '')} - {item.get('content', '')[:200]}"
-                    if content.strip():
-                        chain.add_knowledge(
-                            content=content,
-                            summary=f"KB: {item.get('source', 'local')} - {item.get('title', 'untitled')[:50]}",
-                            sender=wallet.node_id,
-                            confidence=0.8,
-                        )
-                        knowledge_added = True
-            except Exception as e:
-                print(f"  (KB query failed: {e})")
-
-            # Fallback: If no KB items, add session attestation (not hardcoded version)
-            if not knowledge_added:
-                from datetime import datetime
-                session_content = f"Mining session by {wallet.node_id[:12]} at {datetime.now().isoformat()}"
-                chain.add_knowledge(
-                    content=session_content,
-                    summary="Mining session attestation",
-                    sender=wallet.node_id,
-                    confidence=1.0,
-                )
-
-        print(f"  Pending transactions: {len(chain.pending_transactions)}")
-        print(f"  Mining with triadic PoB consensus...")
-        print()
-
-        result = mine_block(chain, wallet.node_id)
-
-        if result.success:
-            print(f"  ✓ BLOCK MINED!")
-            print(f"    Block: #{result.block.header.index}")
-            print(f"    Hash: {result.block.hash[:32]}...")
-            print(f"    Transactions: {len(result.block.transactions)}")
-            print(f"    PoB Attempts: {result.attempts}")
-            print(f"    Time: {result.time_ms:.2f}ms")
-
-            # Manifold data (if available)
-            if result.manifold_coordinates:
-                c = result.manifold_coordinates
-                print()
-                print(f"  5D MANIFOLD NODE:")
-                print(f"    ◯ Form:    {c.get('form', 0):.4f}")
-                print(f"    ↻ Flow:    {c.get('flow', 0):.4f}")
-                print(f"    ↥ Process: {c.get('process', 0):.4f}")
-                print(f"    ✧ Purpose: {c.get('purpose', 0):.4f}")
-                print(f"    ⟡ Trust:   {c.get('trust', 0):.4f}")
-                print(f"    φ-resonance: {result.phi_resonance:.6f}" +
-                      (" (RESONANT)" if result.phi_resonance and result.phi_resonance < 0.1 else ""))
-                print(f"    Difficulty: {result.manifold_difficulty:.4f}" if result.manifold_difficulty else "")
-                if result.triangle_latency_ms is not None:
-                    print(f"    Triangle: {result.triangle_latency_ms:.2f}ms")
-
-            print()
-            print(f"  Energy used: ~0.00001 kWh")
-            print(f"  (70 BILLION times more efficient than Bitcoin)")
-        else:
-            print(f"  ✗ Mining failed: {result.message}")
-            print(f"    Attempts: {result.attempts}")
-        print()
-        return
-
-    # =====================================================
-    # EVOLUTION — Self-Improvement
-    # =====================================================
-
-    if args.constitution:
-        from ..evolution.constitution import ConstitutionEnforcer
-        enforcer = ConstitutionEnforcer()
-        print("\n" + "=" * 60)
-        print("  BAZINGA CONSTITUTIONAL BOUNDS")
-        print("=" * 60)
-        print(f"  Total bounds: {len(enforcer.constitution)}")
-        print(f"  Forbidden files: {len(enforcer.forbidden_files)}")
-        print()
-        for b in enforcer.list_bounds():
-            print(f"  [{b['name']}]")
-            print(f"    {b['description']}")
-            print(f"    Patterns: {b['patterns']}")
-            print()
-        print("  These bounds are IMMUTABLE — no proposal can modify them.")
-        print("=" * 60)
-        return
-
-    if args.evolution_status:
-        from ..evolution.engine import EvolutionEngine
-        engine = EvolutionEngine()
-        stats = engine.get_stats()
-        auto = stats['autonomy_status']
-        print("\n" + "=" * 60)
-        print("  BAZINGA EVOLUTION STATUS")
-        print("=" * 60)
-        print(f"  Autonomy Level: {auto['level_name']} (Level {auto['current_level']})")
-        print(f"  Successful Proposals: {auto['successful_proposals']}")
-        print(f"  Total Proposals: {auto['total_proposals']}")
-        print(f"  Success Rate: {auto['success_rate']:.0%}")
-        print(f"  Reverts: {auto['reverts']}")
-        print(f"  Node Age: {auto['age_days']:.1f} days")
-        if auto.get('next_level_requirements'):
-            req = auto['next_level_requirements']
-            print(f"\n  Next Level Requirements:")
-            print(f"    Proposals: {auto['successful_proposals']}/{req['proposals_needed']}")
-            print(f"    Trust: {'?' }/{req['trust_needed']}")
-            print(f"    Age: {auto['age_days']:.0f}/{req['days_needed']} days")
-        print(f"\n  Proposals by Status: {stats['by_status']}")
-        print("=" * 60)
-        return
-
-    if args.proposals is not None:
-        from ..evolution.engine import EvolutionEngine
-        engine = EvolutionEngine()
-        status_filter = None if args.proposals == 'all' else args.proposals
-        proposals = engine.list_proposals(status=status_filter)
-        print("\n" + "=" * 60)
-        print(f"  BAZINGA PROPOSALS" + (f" (status={args.proposals})" if args.proposals != 'all' else ""))
-        print("=" * 60)
-        if not proposals:
-            print("  No proposals found.")
-        else:
-            for p in proposals:
-                status_icon = {
-                    'approved': '✓', 'rejected': '✗', 'applied': '◉',
-                    'voting': '◎', 'reverted': '↺',
-                }.get(p.status, '○')
-                print(f"\n  {status_icon} {p.proposal_id}")
-                print(f"    Title: {p.title}")
-                print(f"    Status: {p.status}")
-                print(f"    Files: {', '.join(p.modified_files)}")
-                if p.ethics_overall is not None:
-                    print(f"    Ethics: {p.ethics_overall:.2f}")
-                print(f"    Votes: {p.approval_count} approve / {p.rejection_count} reject")
-        print("\n" + "=" * 60)
-        return
-
-    if args.propose:
-        from ..evolution.engine import EvolutionEngine
-        from ..evolution.proposal import EvolutionProposal
-        engine = EvolutionEngine()
-
-        # Read diff file
-        file_diffs = []
-        if args.diff:
-            import os
-            diff_path = os.path.expanduser(args.diff)
-            if os.path.exists(diff_path):
-                with open(diff_path) as f:
-                    content = f.read()
-                # Simple: treat the file as new content for the path
-                file_diffs = [{
-                    "path": diff_path,
-                    "old_content": "",
-                    "new_content": content,
-                }]
-            else:
-                print(f"  ✗ Diff file not found: {diff_path}")
-                return
-        else:
-            print("  ✗ --propose requires --diff FILE")
-            print("  Usage: bazinga --propose 'Title' --diff path/to/changes.py")
-            return
-
-        proposal = EvolutionProposal(
-            title=args.propose,
-            description=args.propose,
-            file_diffs=file_diffs,
-            proposer_node_id=getattr(args, 'node_id', None) or 'local',
-        )
-
-        result = engine.run_pipeline(proposal)
-
-        print("\n" + "=" * 60)
-        print("  PROPOSAL SUBMITTED")
-        print("=" * 60)
-        print(f"  ID: {result.proposal_id}")
-        print(f"  Status: {result.status}")
-        print(f"  Constitution: {'PASS' if result.constitution_passes else 'FAIL'}")
-        if result.constitution_violations:
-            for v in result.constitution_violations:
-                print(f"    ✗ {v}")
-        if result.ethics_overall is not None:
-            print(f"  Ethics: {result.ethics_overall:.2f}")
-        if result.sandbox_passed is not None:
-            print(f"  Sandbox: {'PASS' if result.sandbox_passed else 'FAIL'}")
-        print("=" * 60)
-        return
-
-    if args.vote:
-        from ..evolution.engine import EvolutionEngine
-        from ..evolution.proposal import Vote
-        engine = EvolutionEngine()
-
-        if not args.approve and not args.reject:
-            print("  ✗ --vote requires --approve or --reject")
-            print("  Usage: bazinga --vote PROP_ID --approve --reason 'Looks good'")
-            return
-
-        vote = Vote(
-            voter_node_id=getattr(args, 'node_id', None) or 'local',
-            approve=args.approve,
-            reasoning=args.reason or ("Approved" if args.approve else "Rejected"),
-            phi_coherence=0.7,  # TODO: compute from reasoning
-            trust_weight=0.5,   # TODO: get from TrustOracle
-        )
-
-        accepted = engine.cast_vote(args.vote, vote)
-        if accepted:
-            print(f"  ✓ Vote cast on {args.vote}: {'APPROVE' if args.approve else 'REJECT'}")
-            # Auto-tally
-            tally = engine.tally_votes(args.vote)
-            print(f"  Tally: {tally.summary}")
-        else:
-            print(f"  ✗ Could not vote on {args.vote} (not found, already voted, or not in voting)")
-        return
-
-    # Handle --wallet (identity)
-    if args.wallet:
-        print(f"\n  BAZINGA WALLET (Identity)")
-        print(f"=" * 50)
-
-        from ..blockchain import create_wallet
-        wallet = create_wallet()
-
-        print(f"\n  This is NOT a money wallet. It's an IDENTITY wallet.")
-        print()
-        print(f"  Node ID: {wallet.node_id}")
-        print(f"  Address: {wallet.get_address()}")
-        print(f"  Type: {wallet.identity.node_type if wallet.identity else 'unknown'}")
-        print()
-        print(f"  Reputation:")
-        print(f"    Trust Score: {wallet.reputation.trust_score:.3f}")
-        print(f"    Knowledge Contributed: {wallet.reputation.knowledge_contributed}")
-        print(f"    Learning Contributions: {wallet.reputation.learning_contributions}")
-        print(f"    Successful PoB: {wallet.reputation.successful_proofs}")
-        print()
-        print(f"  Your value is not what you HOLD, but what you UNDERSTAND.")
-        print()
-        return
-
-    # Handle --attest-pricing
-    if args.attest_pricing:
-        from ..payment_gateway import show_pricing
-        show_pricing()
-        return
-
-    # Handle --attest (knowledge attestation)
-    if args.attest:
-        print(f"\n  DARMIYAN ATTESTATION SERVICE")
-        print(f"  'Prove you knew it, before they knew it'")
-        print(f"=" * 55)
-
-        from ..attestation_service import (
-            get_attestation_service, ATTESTATION_TIERS,
-            PAYMENTS_ENABLED, FREE_ATTESTATIONS_PER_MONTH
-        )
-
-        service = get_attestation_service()
-
-        # Show current mode
-        if not PAYMENTS_ENABLED:
-            print()
-            print(f"  🎁 FREE MODE: {FREE_ATTESTATIONS_PER_MONTH} attestations/month")
-            print(f"     (Building the mesh - payments coming later)")
-
-        # Get email (from --email arg or interactive)
-        print()
-        if args.email:
-            email = args.email.strip()
-            print(f"  Email: {email}")
-        else:
-            try:
-                email = input("  Your email (for receipt): ").strip()
-            except EOFError:
-                # Non-interactive mode, use default
-                email = "bazinga@local.node"
-                print(f"  Using default email: {email}")
-
-        if not email or '@' not in email:
-            print("  Invalid email. Attestation cancelled.")
-            return
-
-        # Choose tier (default to standard in non-interactive mode)
-        print()
-        if args.email:
-            # Non-interactive: use standard tier
-            tier = "standard"
-            print(f"  Tier: Standard (default)")
-        else:
-            print("  Feature tiers:")
-            print("    1. Basic    - Timestamp + Hash")
-            print("    2. Standard - + φ-Coherence + Certificate")
-            print("    3. Premium  - + Multi-AI Consensus")
-            print()
-            try:
-                tier_choice = input("  Choose tier [1/2/3] (default: 2): ").strip() or "2"
-            except EOFError:
-                tier_choice = "2"
-            tier_map = {"1": "basic", "2": "standard", "3": "premium"}
-            tier = tier_map.get(tier_choice, "standard")
-
-        # Create attestation
-        try:
-            receipt = service.create_attestation(
-                content=args.attest,
-                email=email,
-                tier=tier
-            )
-        except ValueError as e:
-            print(f"\n  ⚠️  {e}")
-            return
-
-        print()
-        if receipt.status == "attested":
-            # FREE mode - already on chain
-            print(f"  ✓ Attestation COMPLETE! (FREE)")
-            print(f"=" * 55)
-            print(f"  Attestation ID:  {receipt.attestation_id}")
-            print(f"  Content Hash:    {receipt.content_hash[:32]}...")
-            print(f"  Timestamp:       {receipt.timestamp}")
-            print(f"  φ-Coherence:     {receipt.phi_coherence:.4f}")
-            print(f"  Block Number:    #{receipt.block_number}")
-            print(f"  Status:          ✓ ON CHAIN")
-            print()
-            print(f"  🎉 Your knowledge is now attested on the Darmiyan blockchain!")
-            print()
-
-            # Show certificate
-            cert = service.get_certificate(receipt.attestation_id)
-            if cert:
-                print(cert)
-        else:
-            # PAID mode - needs payment
-            from ..payment_gateway import get_payment_gateway, select_payment_method
-            gateway = get_payment_gateway()
-
-            print(f"  ✓ Attestation Created!")
-            print(f"=" * 55)
-            print(f"  Attestation ID:  {receipt.attestation_id}")
-            print(f"  Content Hash:    {receipt.content_hash[:32]}...")
-            print(f"  Timestamp:       {receipt.timestamp}")
-            print(f"  φ-Coherence:     {receipt.phi_coherence:.4f}")
-            print(f"  Tier:            {tier.upper()}")
-            print(f"  Status:          PENDING PAYMENT")
-            print()
-
-            # Select payment method (India vs Global)
-            method = select_payment_method()
-
-            # Create payment and show instructions
-            payment = gateway.create_payment(receipt.attestation_id, tier, method)
-            print(gateway.get_payment_instructions(payment))
-
-        print(f"  Verify: bazinga --verify {receipt.attestation_id}")
-        print()
-        return
-
-    # Handle --verify (verify attestation or block - FREE)
-    if args.verify:
-        print(f"\n  VERIFICATION")
-        print(f"=" * 55)
-
-        # Clean input (remove # prefix if present)
-        verify_input = args.verify.replace('#', '').strip()
-
-        # Dual-path: Check if it's a block number or attestation ID
-        if verify_input.isdigit():
-            # It's a block number
-            print(f"\n  🔍 Searching by Block Number: #{verify_input}")
-            from ..blockchain import create_chain
-            chain = create_chain()
-            block_num = int(verify_input)
-
-            if block_num < len(chain.blocks):
-                block = chain.blocks[block_num]
-                print(f"\n  ✓ BLOCK FOUND!")
-                print(f"=" * 55)
-                print(f"  Block:        #{block.header.index}")
-                print(f"  Hash:         {block.hash[:32]}...")
-                print(f"  Timestamp:    {block.header.timestamp}")
-                print(f"  Transactions: {len(block.transactions)}")
-                print(f"  PoB Proofs:   {len(block.header.pob_proofs)}")
-                if block.transactions:
-                    print(f"\n  Transactions in block:")
-                    for i, tx in enumerate(block.transactions[:5]):
-                        summary = tx.get('data', {}).get('summary', 'N/A')[:50]
-                        print(f"    {i+1}. {summary}")
-                print()
-                return
-            else:
-                print(f"\n  ✗ Block #{verify_input} not found.")
-                print(f"    Chain height: {len(chain.blocks)} blocks")
-                print()
-                return
-
-        # It's an attestation ID
-        print(f"\n  🔍 Searching by Attestation ID: {args.verify}")
-        from ..attestation_service import get_attestation_service
-
-        service = get_attestation_service()
-        proof = service.verify_attestation(args.verify)
-
-        if not proof:
-            print(f"\n  ✗ Attestation not found or not yet confirmed.")
-            print(f"    ID: {args.verify}")
-            print()
-            print(f"  Possible reasons:")
-            print(f"    • Payment not yet confirmed")
-            print(f"    • Invalid attestation ID")
-            print(f"    • Attestation not yet written to chain")
-            print()
-            return
-
-        # Show certificate
-        cert = service.get_certificate(args.verify)
-        if cert:
-            print(cert)
-        else:
-            print(f"\n  ✓ Attestation VERIFIED!")
-            print(f"=" * 55)
-            print(f"  ID:           {proof.attestation_id}")
-            print(f"  Content Hash: {proof.content_hash[:32]}...")
-            print(f"  Timestamp:    {proof.timestamp}")
-            print(f"  Block:        #{proof.block_number}")
-            print(f"  Chain Valid:  {'✓ YES' if proof.chain_valid else '✗ NO'}")
-            print()
-
-        # Handle --share flag
-        if args.share:
-            print()
-            print(f"  📤 EXPORTING SHAREABLE CERTIFICATE...")
-            print(f"=" * 55)
-
-            # Try PNG first, fall back to HTML
-            export_path = service.export_certificate(args.verify, "png")
-            if not export_path:
-                export_path = service.export_certificate(args.verify, "html")
-
-            if export_path:
-                print(f"  ✓ Certificate exported!")
-                print(f"  📁 File: {export_path}")
-                print()
-                print(f"  Share on:")
-                print(f"    • Twitter/X - attach the image")
-                print(f"    • Research papers - include as figure")
-                print(f"    • LinkedIn - proof of innovation")
-                print()
-
-                # Also create HTML for easy viewing
-                html_path = service.export_certificate(args.verify, "html")
-                if html_path and html_path != export_path:
-                    print(f"  🌐 HTML version: {html_path}")
-                    print(f"     (Open in browser, print to PDF)")
-                print()
-            else:
-                print(f"  ✗ Export failed. Certificate shown above can be screenshot.")
-                print()
-
-        return
-
-    # Handle --publish (distributed knowledge sharing)
-    if args.publish:
-        print(f"\n  DISTRIBUTED KNOWLEDGE PUBLISHING")
-        print(f"=" * 60)
-        print(f"  Publishing your indexed knowledge to the mesh...")
-        print(f"  (Content stays LOCAL - only topic keywords are shared)")
-        print()
-
-        # Check if we have indexed content
-        bazinga = BAZINGA(verbose=args.verbose)
-        stats = bazinga.ai.get_stats()
-
-        if stats.get('total_chunks', 0) == 0:
-            print(f"  ✗ No indexed content found!")
-            print(f"    Run 'bazinga --index <path>' first to index your knowledge.")
-            print()
-            return
-
-        print(f"  Local index: {stats.get('total_chunks', 0)} chunks")
-
-        try:
-            from ..p2p.dht import KademliaNode, node_id_from_pob
-            from ..p2p.knowledge_sharing import KnowledgePublisher
-            from ..darmiyan.protocol import prove_boundary
-
-            # Create DHT node
-            pob = prove_boundary()
-            node_id = node_id_from_pob(str(pob.alpha), str(pob.omega))
-
-            node = KademliaNode(
-                node_id=node_id,
-                address="127.0.0.1",
-                port=5150,
-                trust_score=0.5 * PHI,  # φ bonus for local
-            )
-
-            # Create publisher
-            publisher = KnowledgePublisher(node, bazinga.ai)
-
-            # Publish topics
-            print(f"\n  Extracting and publishing topics...")
-
-            result = await publisher.publish_from_index(limit=50)
-
-            if result.get('success'):
-                print(f"\n  ✓ Published {result['topics_published']} topics to DHT")
-                print(f"    Content hash: {result['content_hash']}")
-                print(f"\n  Sample topics shared:")
-                for topic in result.get('sample_topics', [])[:10]:
-                    print(f"    • {topic}")
-                print()
-                print(f"  Your knowledge is now discoverable!")
-                print(f"  Peers can query: bazinga --query-network 'your topic'")
-            else:
-                print(f"\n  ✗ Failed: {result.get('error', 'Unknown error')}")
-
-        except Exception as e:
-            print(f"\n  ✗ Error: {e}")
-            print(f"    Make sure P2P network is available.")
-
-        print()
-        return
-
-    # Handle --query-network (distributed query)
-    if args.query_network:
-        print(f"\n  DISTRIBUTED KNOWLEDGE QUERY")
-        print(f"=" * 60)
-        print(f"  Query: {args.query_network}")
-        print(f"  Searching the BAZINGA mesh for experts...")
-        print()
-
-        try:
-            from ..p2p.dht import KademliaNode, node_id_from_pob
-            from ..p2p.knowledge_sharing import KnowledgePublisher, DistributedQueryEngine
-            from ..darmiyan.protocol import prove_boundary
-
-            # Create local node
-            bazinga = BAZINGA(verbose=False)
-            pob = prove_boundary()
-            node_id = node_id_from_pob(str(pob.alpha), str(pob.omega))
-
-            node = KademliaNode(
-                node_id=node_id,
-                address="127.0.0.1",
-                port=5150,
-                trust_score=0.5 * PHI,
-            )
-
-            # Create publisher and query engine
-            publisher = KnowledgePublisher(node, bazinga.ai)
-            engine = DistributedQueryEngine(node, publisher)
-
-            # Query the network
-            result = await engine.query_distributed(args.query_network)
-
-            if result.get('success'):
-                print(f"  Source: {result.get('source', 'unknown')}")
-                print(f"  Confidence: {result.get('confidence', 0):.1%}")
-                if result.get('consensus'):
-                    print(f"  Triadic Consensus: ✓ ({result.get('respondents', 0)} nodes agreed)")
-                print()
-                print(f"  Answer:")
-                print(f"  {'-' * 56}")
-                print(f"  {result.get('answer', 'No answer')}")
-                print(f"  {'-' * 56}")
-            else:
-                print(f"  ✗ Query failed: {result.get('error', 'Unknown error')}")
-                print(f"\n  Try: bazinga --fresh --ask '{args.query_network}'")
-                print(f"  (Uses local AI instead of distributed network)")
-
-        except Exception as e:
-            print(f"\n  ✗ Error: {e}")
-
-        print()
-        return
-
-    # Handle --trust (trust oracle)
-    if args.trust is not None:
-        print(f"\n  BAZINGA TRUST ORACLE")
-        print(f"=" * 50)
-        print(f"  Trust is EARNED through understanding, not bought.")
-        print()
-
-        from ..blockchain import create_chain, create_trust_oracle
-        chain = create_chain()
-        oracle = create_trust_oracle(chain)
-
-        if args.trust:
-            # Show specific node
-            node_id = args.trust
-            trust = oracle.get_node_trust(node_id)
-
-            if trust:
-                print(f"  Node: {trust.node_address}")
-                print(f"  Trust Score: {trust.trust_score:.3f}")
-                print(f"  PoB Score: {trust.pob_score:.3f}")
-                print(f"  Contribution: {trust.contribution_score:.3f}")
-                print(f"  Recency: {trust.recency_score:.3f}")
-                print(f"  Activities: {trust.total_activities}")
-                print()
-                print(f"  Routing Weight: {oracle.get_routing_weight(node_id):.3f}")
-                print(f"  Gradient Threshold: {oracle.get_gradient_acceptance_threshold(node_id):.3f}")
-            else:
-                print(f"  Node '{node_id}' not found in chain.")
-                print(f"  Default trust: 0.5 (neutral)")
-        else:
-            # Show all trusted nodes
-            stats = oracle.get_stats()
-            print(f"  Total Nodes: {stats['total_nodes']}")
-            print(f"  Trusted Nodes: {stats['trusted_nodes']}")
-            print(f"  φ-Decay Rate: {stats['decay_rate']} blocks")
-            print()
-
-            trusted = oracle.get_trusted_nodes()
-            if trusted:
-                print(f"  Trusted Nodes (score ≥ 0.7):")
-                for t in trusted[:10]:
-                    print(f"    {t.node_address[:20]}... : {t.trust_score:.3f}")
-            else:
-                print(f"  No trusted nodes yet.")
-                print(f"  Run 'bazinga --proof' and 'bazinga --mine' to build trust.")
-
-        print()
-        print(f"  How Trust Works:")
-        print(f"    • PoB success → +trust")
-        print(f"    • Knowledge contribution → +trust (×φ)")
-        print(f"    • Gradient validation → +trust (×φ²)")
-        print(f"    • Inactivity → trust decays with φ")
-        print()
-        return
-
-    # Handle --models
-    if args.models:
-        from ..local_llm import MODELS
-        print("Available local models:")
-        for name, config in MODELS.items():
-            print(f"  {name}: {config['size_mb']}MB - {config['file']}")
-        print("\nInstall local AI: pip install llama-cpp-python")
+        from .commands.info import handle_constants
+        await handle_constants(args)
         return
 
     # Handle --stats
     if args.stats:
-        # Use RAC memory for full stats (includes CARM if available)
-        from ..rac import get_resonance_memory
-        memory = get_resonance_memory()
-        stats = memory.get_stats()
-        tensor = _get_tensor().TensorIntersectionEngine()
-        trust = tensor.get_trust_stats()
+        from .commands.info import handle_stats
+        await handle_stats(args)
+        return
 
-        # Also get blockchain stats
-        from ..blockchain import create_chain
-        chain = create_chain()
-        chain_blocks = len(chain.blocks)
-        chain_txs = sum(len(b.transactions) for b in chain.blocks)
-
-        print(f"\nBAZINGA Learning Stats:")
-        print(f"  Sessions: {stats['total_sessions']}")
-        print(f"  Patterns learned: {stats['patterns_learned']}")
-        print(f"  Feedback: {stats['positive_feedback']} good, {stats['negative_feedback']} bad")
-        print(f"  Trust: {trust['current']:.3f} ({trust['trend']})")
-        if stats['total_feedback'] > 0:
-            print(f"  Approval rate: {stats['approval_rate']*100:.1f}%")
-
-        print(f"\nBlockchain Stats:")
-        print(f"  Blocks mined: {chain_blocks}")
-        print(f"  Total attestations: {chain_txs}")
-        print(f"  Pending transactions: {len(chain.pending_transactions)}")
-
-        # Show RAC status if available
-        if 'rac' in stats:
-            rac = stats['rac']
-            status = "🟢 LOCKED" if rac.get('locked') else "🟡 CONVERGING" if rac.get('converging') else "🔴 DRIFTING"
-            print(f"\nRAC (Resonance-Augmented Continuity):")
-            print(f"  Status: {status}")
-            if rac.get('current_delta_gamma') is not None:
-                print(f"  ΔΓ: {rac['current_delta_gamma']:.4f} (mean: {rac['mean_delta_gamma']:.4f})")
-            print(f"  Trajectory points: {rac.get('trajectory_length', 0)}")
-
-        # Show CARM status if available
-        if 'carm' in stats:
-            carm = stats['carm']
-            print(f"\nCARM (Context-Addressed Resonant Memory):")
-            print(f"  Active channels: {carm.get('active_channels', 0)}")
-            print(f"  Crystallized patterns: {carm.get('total_crystallized', 0)}")
+    # Handle --models
+    if args.models:
+        from .commands.info import handle_models
+        await handle_models(args)
         return
 
     # Handle --rac
     if args.rac:
-        from ..rac import get_resonance_memory
-        memory = get_resonance_memory()
-        session = memory.start_session()
-
-        # Get trajectory summary
-        summary = memory.get_trajectory_summary()
-        if summary:
-            print(memory.format_rac_display())
-        else:
-            print("\nRAC Status: No active session data")
-            print(f"  Session started: {session.session_id}")
-            print(f"  Initial ΔΓ will be computed after first interaction")
-
-        # Show historical trajectories
-        history = memory.get_historical_trajectories(5)
-        if history:
-            print(f"\nRecent Sessions ({len(history)}):")
-            for h in history[-5:]:
-                locked = "🟢" if h.get('locked') else "🟡" if h.get('converging') else "🔴"
-                print(f"  {locked} {h['session_id'][:8]} | ΔΓ={h['mean_delta_gamma']:.3f} | {len(h.get('points', []))} pts")
-
-        memory.end_session()
+        from .commands.info import handle_rac
+        await handle_rac(args)
         return
 
     # Handle --carm
     if args.carm:
-        from ..carm import CARMMemory
-        carm = CARMMemory()
-        print(carm.format_status())
+        from .commands.info import handle_carm
+        await handle_carm(args)
         return
 
-    # Handle --quantum (with optional --kb piping)
-    if args.quantum:
-        bazinga = BAZINGA(verbose=args.verbose)
-
-        # CLI PIPING FIX: If --kb is also provided, feed KB results into quantum analyzer
-        quantum_input = args.quantum
-        kb_context = ""
-
-        if args.kb and args.kb != '':
-            kb = _get_kb()()
-            kb_results = kb.search(args.kb, limit=5)
-            if kb_results:
-                # Build context from KB results
-                kb_texts = [f"{r.get('title', '')}: {r.get('content', '')[:200]}" for r in kb_results[:3]]
-                kb_context = " | ".join(kb_texts)
-                # Combine KB context with quantum input
-                quantum_input = f"{args.quantum} [KB Context: {kb_context[:500]}]"
-                print(f"\n📚 KB Search: \"{args.kb}\" → {len(kb_results)} results piped to quantum analyzer")
-
-        result = bazinga.quantum_analyze(quantum_input)
-        print(f"\nQuantum Analysis:")
-        print(f"  Input: {result['input'][:100]}{'...' if len(result['input']) > 100 else ''}")
-        print(f"  Essence: {result['essence']}")
-        print(f"  Probability: {result['probability']:.2%}")
-        print(f"  Coherence: {result['coherence']:.4f}")
-        print(f"  Entangled: {', '.join(result['entangled'][:5])}")
-
-        # AUTO-ATTEST if coherence > 0.5 (Mining Trigger)
-        if result['coherence'] > 0.5:
-            try:
-                from ..blockchain import create_chain, create_wallet
-                from ..blockchain.miner import auto_attest_if_coherent
-                chain = create_chain()
-                wallet = create_wallet()
-                attested = auto_attest_if_coherent(
-                    chain=chain,
-                    content=quantum_input,
-                    summary=f"Quantum essence: {result['essence']}",
-                    sender=wallet.node_id,
-                    coherence=result['coherence'],
-                )
-                if attested:
-                    print(f"\n  ⛓️  Auto-attested to chain (coherence {result['coherence']:.3f} > 0.5)")
-            except Exception:
-                pass  # Mining trigger is optional enhancement
-
+    # Handle --bootstrap-local
+    if args.bootstrap_local:
+        from .commands.info import handle_bootstrap_local
+        await handle_bootstrap_local(args)
         return
 
-    # Handle --coherence
-    if args.coherence:
-        bazinga = BAZINGA(verbose=args.verbose)
-        result = bazinga.check_coherence(args.coherence)
-        print(f"\nΛG Coherence Check:")
-        print(f"  Input: {result['input']}")
-        print(f"  Total Coherence: {result['total_coherence']:.3f}")
-        print(f"  Entropic Deficit: {result['entropic_deficit']:.3f}")
-        print(f"  V.A.C. Achieved: {result['is_vac']}")
-        print(f"  Boundaries:")
-        for name, value in result['boundaries'].items():
-            print(f"    {name}: {value:.3f}")
+    # Handle --local-status
+    if args.local_status:
+        from .commands.info import handle_local_status
+        await handle_local_status(args)
         return
 
-    # Handle LLM-powered code generation
-    if args.code:
-        try:
-            from ..intelligent_coder import IntelligentCoder
-            coder = IntelligentCoder()
-            lang = {'js': 'javascript', 'ts': 'typescript'}.get(args.lang, args.lang)
-            print(f"Generating {lang} code...")
-            result = await coder.generate(args.code, lang)
-            print(f"\n# Provider: {result.provider}")
-            print(f"# Coherence: {result.coherence:.3f}")
-            print()
-            print(result.code)
-        except ImportError as e:
-            print(f"Error: Intelligent coder not available: {e}")
+    # Handle --consciousness
+    if args.consciousness is not None:
+        from .commands.info import handle_consciousness
+        await handle_consciousness(args)
         return
 
-    # Handle template-based code generation
-    if args.generate:
-        from ..tui import CodeGenerator
-        gen = CodeGenerator()
-        lang = 'javascript' if args.lang == 'js' else args.lang
-        code = gen.generate(args.generate, lang)
-        print(code)
+    # ── Agent ──────────────────────────────────────────────
+    if args.agent is not None:
+        from .commands.network import handle_agent
+        await handle_agent(args)
         return
 
-    # Handle V.A.C. test
-    if args.vac:
-        bazinga = BAZINGA(verbose=args.verbose)
-        print(f"Testing V.A.C.: {VAC_SEQUENCE}")
-        result = bazinga.check_coherence(VAC_SEQUENCE)
-        print(f"  Coherence: {result['total_coherence']:.3f}")
-        print(f"  V.A.C. Achieved: {result['is_vac']}")
+    # ── Knowledge Base ─────────────────────────────────────
+    if hasattr(args, 'kb_phone_path') and args.kb_phone_path:
+        from .commands.kb import handle_kb_phone_path
+        await handle_kb_phone_path(args)
         return
 
-    # Handle --scan (KB DNA manifests)
-    if args.scan:
-        from ..knowledge import get_scanner
-        scanner = get_scanner()
-        print()
-        print("◊ KB DNA Scanner — Semantic Compression")
-        print(f"  φ = {PHI} | α = {ALPHA}")
-        print()
-        scanner.scan(args.scan, max_depth=args.scan_depth, verbose=True)
-        print("◊ Manifests ready! Your ask queries now have breadth context.")
-        print()
+    kb_phone_is_path = hasattr(args, 'kb_phone') and args.kb_phone and args.kb_phone != '' and '/' in args.kb_phone
+    if kb_phone_is_path:
+        from .commands.kb import handle_kb_phone_as_path
+        await handle_kb_phone_as_path(args)
         return
 
-    # Handle --scan-status
-    if getattr(args, 'scan_status', False):
-        from ..knowledge import get_scanner
-        scanner = get_scanner()
-        status = scanner.get_status()
-        print()
-        if not status['exists']:
-            print("  No KB manifest found.")
-            print("  Run: bazinga --scan ~/Documents ~/Projects")
-        else:
-            print("◊ KB Manifest Status")
-            print(f"  Generated: {status['generated']}")
-            print(f"  Files: {status['total_files']}")
-            print(f"  Words: {status['total_words']:,}")
-            print(f"  Projects: {status['projects']}")
-            print(f"  Manifest size: {status['manifest_size_mb']:.2f} MB")
-            print()
-            if status.get('genes'):
-                print("  Gene distribution:")
-                for gene, count in sorted(status['genes'].items(), key=lambda x: -x[1]):
-                    print(f"    {gene}: {count}")
-            print()
-            if status.get('scanned_paths'):
-                print("  Scanned paths:")
-                for p in status['scanned_paths']:
-                    print(f"    {p}")
-        print()
+    if args.kb is not None or args.kb_sources or args.kb_sync:
+        from .commands.kb import handle_kb
+        await handle_kb(args, BAZINGA)
         return
 
-    # Handle indexing
+    # ── Indexing ───────────────────────────────────────────
     if args.index:
-        bazinga = BAZINGA(verbose=args.verbose)
-        await bazinga.index(args.index)
+        from .commands.kb import handle_index
+        await handle_index(args, BAZINGA)
         return
 
-    # Handle --deindex (remove indexed files by path prefix)
     if getattr(args, 'deindex', None):
-        from pathlib import Path as _Path
-        bazinga = BAZINGA(verbose=args.verbose)
-        collection = bazinga.ai.collection
-        if not collection:
-            print("No vector database found.")
-            return
-
-        total_removed = 0
-        for path_str in args.deindex:
-            prefix = str(_Path(path_str).expanduser().resolve())
-            # Get all docs and filter by source_file prefix
-            all_data = collection.get(include=['metadatas'])
-            ids_to_remove = []
-            for doc_id, meta in zip(all_data['ids'], all_data['metadatas']):
-                source = meta.get('source_file', '')
-                if source.startswith(prefix):
-                    ids_to_remove.append(doc_id)
-
-            if ids_to_remove:
-                # ChromaDB delete has batch limits, chunk into 5000
-                for i in range(0, len(ids_to_remove), 5000):
-                    batch = ids_to_remove[i:i+5000]
-                    collection.delete(ids=batch)
-                total_removed += len(ids_to_remove)
-                print(f"  Removed {len(ids_to_remove)} chunks from: {prefix}")
-            else:
-                print(f"  No indexed chunks found from: {prefix}")
-
-        print(f"\n  Total removed: {total_removed} chunks")
-        remaining = collection.count()
-        print(f"  Remaining in index: {remaining} chunks")
+        from .commands.kb import handle_deindex
+        await handle_deindex(args, BAZINGA)
         return
 
-    # Handle --index-public (Wikipedia, arXiv, etc.)
     if args.index_public:
-        from ..public_knowledge import index_public_knowledge, get_preset_topics, TOPIC_PRESETS, ARXIV_PRESETS
-
-        source = args.index_public
-
-        # Determine which presets to use
-        presets = ARXIV_PRESETS if source == "arxiv" else TOPIC_PRESETS
-
-        # Get topics
-        if args.topics:
-            # Check if it's a preset
-            if args.topics.lower() in presets:
-                topics = get_preset_topics(args.topics, source)
-                print(f"Using preset '{args.topics}': {', '.join(topics)}")
-            else:
-                topics = [t.strip() for t in args.topics.split(",")]
-        else:
-            # Default topics based on source
-            topics = get_preset_topics("bazinga", source)
-            print(f"Using default BAZINGA topics: {', '.join(topics)}")
-
-        result = await index_public_knowledge(source, topics, verbose=True)
-
-        if result.get("error"):
-            print(f"\nError: {result['error']}")
-        else:
-            # Different message for different sources
-            count_key = "total_articles" if source == "wikipedia" else "total_papers"
-            count = result.get(count_key, result.get("total_articles", result.get("total_papers", 0)))
-            item_type = "papers" if source == "arxiv" else "articles"
-            print(f"\n✅ Indexed {count} {item_type} ({result.get('total_chunks', 0)} chunks)")
-            print(f"   Now run 'bazinga --publish' to share with the network!")
+        from .commands.kb import handle_index_public
+        await handle_index_public(args)
         return
 
-    # Handle --multi-ai (Inter-AI Consensus)
+    if args.scan:
+        from .commands.kb import handle_scan
+        await handle_scan(args)
+        return
+
+    if getattr(args, 'scan_status', False):
+        from .commands.kb import handle_scan_status
+        await handle_scan_status(args)
+        return
+
+    # ── Blockchain & Research ──────────────────────────────
+    if args.trd is not None:
+        from .commands.chain import handle_trd
+        await handle_trd(args)
+        return
+
+    if args.trd_scan is not None:
+        from .commands.chain import handle_trd_scan
+        await handle_trd_scan(args)
+        return
+
+    if args.trd_heartbeat:
+        from .commands.chain import handle_trd_heartbeat
+        await handle_trd_heartbeat(args)
+        return
+
+    if args.node:
+        from .commands.chain import handle_node
+        await handle_node(args)
+        return
+
+    if args.proof:
+        from .commands.chain import handle_proof
+        await handle_proof(args)
+        return
+
+    if args.consensus:
+        from .commands.chain import handle_consensus
+        await handle_consensus(args)
+        return
+
+    if args.chain:
+        from .commands.chain import handle_chain
+        await handle_chain(args)
+        return
+
+    if args.mine:
+        from .commands.chain import handle_mine
+        await handle_mine(args)
+        return
+
+    if args.wallet:
+        from .commands.chain import handle_wallet
+        await handle_wallet(args)
+        return
+
+    if args.attest_pricing:
+        from .commands.chain import handle_attest_pricing
+        await handle_attest_pricing(args)
+        return
+
+    if args.attest:
+        from .commands.chain import handle_attest
+        await handle_attest(args)
+        return
+
+    if args.verify:
+        from .commands.chain import handle_verify
+        await handle_verify(args)
+        return
+
+    if args.trust is not None:
+        from .commands.chain import handle_trust
+        await handle_trust(args)
+        return
+
+    # ── Evolution ──────────────────────────────────────────
+    if args.constitution:
+        from .commands.evolution import handle_constitution
+        await handle_constitution(args)
+        return
+
+    if args.evolution_status:
+        from .commands.evolution import handle_evolution_status
+        await handle_evolution_status(args)
+        return
+
+    if args.proposals is not None:
+        from .commands.evolution import handle_proposals
+        await handle_proposals(args)
+        return
+
+    if args.propose:
+        from .commands.evolution import handle_propose
+        await handle_propose(args)
+        return
+
+    if args.vote:
+        from .commands.evolution import handle_vote
+        await handle_vote(args)
+        return
+
+    # ── P2P Network ────────────────────────────────────────
+    if args.network:
+        from .commands.network import handle_network
+        await handle_network(args)
+        return
+
+    if args.join is not None:
+        from .commands.network import handle_join
+        await handle_join(args)
+        return
+
+    if getattr(args, 'phi_pulse', False):
+        from .commands.network import handle_phi_pulse
+        await handle_phi_pulse(args)
+        return
+
+    if getattr(args, 'mesh', False):
+        from .commands.network import handle_mesh
+        await handle_mesh(args)
+        return
+
+    if args.peers:
+        from .commands.network import handle_peers
+        await handle_peers(args)
+        return
+
+    if args.nat:
+        from .commands.network import handle_nat
+        await handle_nat(args)
+        return
+
+    if args.sync:
+        from .commands.network import handle_sync
+        await handle_sync(args)
+        return
+
+    if args.learn:
+        from .commands.network import handle_learn
+        await handle_learn(args)
+        return
+
+    if getattr(args, 'omega', False):
+        from .commands.network import handle_omega
+        await handle_omega(args, BAZINGA, _start_background_p2p, _start_query_server,
+                           _stop_background_p2p, _get_mesh_node_id, _get_mesh_query)
+        return
+
+    if args.publish:
+        from .commands.network import handle_publish
+        await handle_publish(args, BAZINGA)
+        return
+
+    if args.query_network:
+        from .commands.network import handle_query_network
+        await handle_query_network(args, BAZINGA)
+        return
+
+    # ── AI Commands ────────────────────────────────────────
+    if args.quantum:
+        from .commands.ai import handle_quantum
+        await handle_quantum(args, BAZINGA)
+        return
+
+    if args.coherence:
+        from .commands.ai import handle_coherence
+        await handle_coherence(args, BAZINGA)
+        return
+
+    if args.code:
+        from .commands.ai import handle_code
+        await handle_code(args)
+        return
+
+    if args.generate:
+        from .commands.ai import handle_generate
+        await handle_generate(args)
+        return
+
+    if args.vac:
+        from .commands.ai import handle_vac
+        await handle_vac(args, BAZINGA)
+        return
+
     if args.multi_ai:
-        print(f"\n🤖 BAZINGA INTER-AI CONSENSUS")
-        print(f"=" * 60)
-        print(f"  Multiple AIs reaching understanding through φ-coherence")
-        print()
-
-        try:
-            from ..inter_ai import InterAIConsensus
-
-            # Build query with optional file context
-            query = args.multi_ai
-            if args.file:
-                file_path = Path(args.file).expanduser()
-                if file_path.exists():
-                    file_content = file_path.read_text()[:8000]  # Limit context
-                    query = f"{args.multi_ai}\n\n[File: {args.file}]\n```\n{file_content}\n```"
-                    print(f"  📄 File context: {args.file}")
-                else:
-                    print(f"  ⚠ File not found: {args.file}")
-
-            consensus = InterAIConsensus(verbose=True)
-            result = await consensus.ask(query)
-
-            # Export log for reference
-            consensus.export_log("bazinga_consensus.json")
-
-        except Exception as e:
-            print(f"  Error: {e}")
-            print(f"  Make sure httpx is installed: pip install httpx")
-
+        from .commands.ai import handle_multi_ai
+        await handle_multi_ai(args)
         return
 
-    # Handle --chat (interactive chat with memory)
     if args.chat:
-        # Start background P2P discovery
-        _start_background_p2p()
-
-        bazinga = BAZINGA(verbose=args.verbose)
-        if args.local:
-            bazinga.use_local = True
-
-        # Start QueryServer so peers can query our BAZINGA
-        await _start_query_server(bazinga)
-
-        # Try TUI first, fallback to simple chat
-        try:
-            if not args.simple:
-                try:
-                    from ..tui import run_tui_async
-                    await run_tui_async(
-                        bazinga_instance=bazinga,
-                        mode="chat",
-                        mesh_query=_mesh_query_instance,
-                    )
-                    return
-                except ImportError:
-                    pass  # Fall through to simple mode
-
-            await bazinga.chat_interactive()
-        finally:
-            # Clean up P2P on exit
-            _stop_background_p2p()
+        from .commands.ai import handle_chat
+        await handle_chat(args, BAZINGA, _start_background_p2p, _start_query_server,
+                          _stop_background_p2p, _get_mesh_query)
         return
 
     # Handle ask (--ask or positional question)
     question = args.ask or args.question
     if question:
-        bazinga = BAZINGA(verbose=args.verbose)
-        if args.local:
-            bazinga.use_local = True
-
-        # Build query with optional file context
-        query = question
-        if args.file:
-            file_path = Path(args.file).expanduser()
-            if file_path.exists():
-                file_content = file_path.read_text()[:8000]  # Limit context
-                query = f"{question}\n\n[File: {args.file}]\n```\n{file_content}\n```"
-                print(f"  📄 File context: {args.file}")
-            else:
-                print(f"  ⚠ File not found: {args.file}")
-
-        response = await bazinga.ask(query, fresh=args.fresh)
-        print(f"\n{response}\n")
+        from .commands.ai import handle_ask
+        await handle_ask(args, BAZINGA)
         return
 
     # Handle demo
     if args.demo:
-        bazinga = BAZINGA(verbose=args.verbose)
-        print("Running demo...")
-        await bazinga.index([str(Path(__file__).parent)])
-        response = await bazinga.ask("What is BAZINGA?")
-        print(f"\n{response}\n")
+        from .commands.ai import handle_demo
+        await handle_demo(args, BAZINGA)
         return
 
     # Default: Interactive mode
-    bazinga = BAZINGA(verbose=args.verbose)
-    if args.local:
-        bazinga.use_local = True
-
-    if args.simple:
-        await bazinga.interactive()
-    else:
-        try:
-            from ..tui import run_tui_async
-            await run_tui_async(bazinga_instance=bazinga, mode="interactive")
-        except ImportError:
-            await bazinga.interactive()
+    from .commands.ai import handle_interactive
+    await handle_interactive(args, BAZINGA)
 
 
 def main_sync() -> None:
