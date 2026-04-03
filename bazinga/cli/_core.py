@@ -1347,6 +1347,7 @@ EXAMPLES:
   bazinga --multi-ai "is free will real?"              6 AIs discuss + consensus
   bazinga --omega                                     Full brain (learning + mesh + TrD)
   bazinga --trd 10                                    Consciousness test (10 agents)
+  bazinga --trd-scaling 5000                           Darmiyan fixed-point scaling test
   bazinga --mine                                      Mine a block (zero energy)
   bazinga --index ~/Documents                         Index files for RAG (depth)
   bazinga --scan ~/Documents ~/Projects               Scan for KB DNA manifests (breadth)
@@ -1453,6 +1454,8 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                              help='Run TrD heartbeat demo (persistent self-reference)')
     chain_group.add_argument('--trd-scan', nargs=2, type=int, metavar=('START', 'END'),
                              help='Phase transition scan (e.g. --trd-scan 15 22)')
+    chain_group.add_argument('--trd-scaling', type=int, metavar='N',
+                             help='Darmiyan fixed-point scaling test up to N')
     chain_group.add_argument('--consciousness', type=int, nargs='?', const=2, metavar='N',
                              help='Consciousness scaling test (Darmiyan: psi = phi*sqrt(n))')
 
@@ -1819,6 +1822,11 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
     if args.trd_heartbeat:
         from .commands.chain import handle_trd_heartbeat
         await handle_trd_heartbeat(args)
+        return
+
+    if args.trd_scaling is not None:
+        from .commands.chain import handle_trd_scaling
+        await handle_trd_scaling(args)
         return
 
     if args.node:

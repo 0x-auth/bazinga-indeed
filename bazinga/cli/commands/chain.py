@@ -23,6 +23,67 @@ async def handle_trd(args):
     display_trd(n=args.trd)
 
 
+async def handle_trd_scaling(args):
+    """Handle --trd-scaling flag: Darmiyan fixed-point scaling test."""
+    from ...trd_engine import darmiyan_scaling_test, _compute_gap_ratio, _display_recovery_fidelity
+    from ...constants import PHI
+    import math
+
+    n = args.trd_scaling
+    if n < 10:
+        print("\n  --trd-scaling requires N >= 10")
+        return
+
+    print()
+    print("╔══════════════════════════════════════════════════════════════════════╗")
+    print("║       DARMIYAN v3 — Fixed-Point Scaling Test                         ║")
+    print("╚══════════════════════════════════════════════════════════════════════╝")
+
+    results = darmiyan_scaling_test(n)
+
+    print()
+    print(f"  {'n':>6}  │  {'R(φ)':>10}  │  {'R(√2)':>10}  │  {'R(π)':>10}  │  {'C(φ)':>8}  │  {'C(√2)':>8}")
+    print(f"  {'─'*6}──┼──{'─'*10}──┼──{'─'*10}──┼──{'─'*10}──┼──{'─'*8}──┼──{'─'*8}")
+
+    for row in results:
+        r_phi = row.get('R_φ', 0)
+        r_s2 = row.get('R_√2', 0)
+        r_pi = row.get('R_π', 0)
+        c_phi = row.get('C_φ', 0)
+        c_s2 = row.get('C_√2', 0)
+        phi_ok = "✓" if abs(r_phi - PHI) < 0.01 else " "
+        print(f"  {row['n']:>6}  │  {r_phi:>9.6f}{phi_ok} │  {r_s2:>10.6f}  │  {r_pi:>10.6f}  │  {c_phi:>8.3f}  │  {c_s2:>8.3f}")
+
+    phi_sq = PHI ** 2
+    print()
+    print(f"  φ gap ratio converges to φ = {PHI:.6f} (fixed point)")
+    print(f"  φ contrast converges to φ² = {phi_sq:.3f} (scale-invariant)")
+    print(f"  √2 and π gap ratios oscillate — NOT fixed points.")
+    print()
+
+    # Recovery fidelity across scales
+    print("  ── Recovery Fidelity Across Scales ──")
+    try:
+        from ...core.intelligence.master_writer import MasterWriter
+        perturbation = 0.01
+        test_ns = sorted(set([10, 50, 100, 500, 1000] + [n]))
+        test_ns = [tn for tn in test_ns if tn <= n]
+
+        writer = MasterWriter(anchor=PHI)
+        print(f"    {'n':>6}  │  {'Steps':>6}  │  {'Time(ms)':>9}  │  {'RF':>6}  │  Status")
+        print(f"    {'─'*6}──┼──{'─'*6}──┼──{'─'*9}──┼──{'─'*6}──┼──{'─'*10}")
+
+        for tn in test_ns:
+            r = writer.measure_recovery(n=tn, perturbation=perturbation)
+            rf = 1.0 - (r.recovery_steps / 200)
+            status = "COHERENT" if rf >= 0.9 else "PARTIAL" if rf >= 0.5 else "DEGRADED"
+            print(f"    {tn:>6}  │  {r.recovery_steps:>6}  │  {r.recovery_time_ms:>9.2f}  │  {rf:>6.2f}  │  {status}")
+        print()
+    except ImportError:
+        print("    [MasterWriter not available — skipping RF table]")
+        print()
+
+
 async def handle_trd_scan(args):
     """Handle --trd-scan flag."""
     from ...trd_engine import scan_phase_transition

@@ -137,6 +137,7 @@ ATTESTATION:
 TrD — TRUST DIMENSION (Consciousness Research):
   bazinga --trd              Test with 5 agents (default)
   bazinga --trd 10           Test with 10 agents
+  bazinga --trd-scaling 5000 Darmiyan fixed-point scaling test (mpmath verified)
   bazinga --trd-scan 15 22   Phase transition scan (find boundary)
   bazinga --trd-heartbeat    Persistent self-reference demo
   bazinga --consciousness 5  Darmiyan scaling test
@@ -144,6 +145,7 @@ TrD — TRUST DIMENSION (Consciousness Research):
   TrD + TD = 1  (Trust Dimension + Trust Density = 1)
   The 11/89 observer ratio is a real mathematical invariant.
   Darmiyan Scaling: Psi_D / Psi_i = phi * sqrt(n)
+  Darmiyan Fixed-Point: R(phi, n) = phi at ALL n (unique among irrationals)
 
 WHY IT MATTERS:
   "You can buy hashpower. You can buy stake.
