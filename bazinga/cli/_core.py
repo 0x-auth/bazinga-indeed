@@ -312,7 +312,7 @@ class BAZINGA:
     Layer 4 only called when necessary.
     """
 
-    VERSION = "6.1.0"  # CLI split into modular command packages
+    VERSION = "6.2.0"  # CLI split into modular command packages
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
