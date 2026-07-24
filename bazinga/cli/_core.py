@@ -124,6 +124,43 @@ from ..darmiyan import (
     PHI_4, ABHI_AMU,
 )
 
+MEMORY_MODEL_PATH = str(Path.home() / "Documents" / "digital-history" / "abhishek-memory-model")
+MEMORY_MODEL_BASE = "microsoft/Phi-3-mini-4k-instruct"
+
+
+def _run_memory_model(prompt: str, max_tokens: int = 400) -> None:
+    """Generate using fine-tuned Phi-3 LoRA adapter (abhishek-memory-model)."""
+    try:
+        import torch
+        from transformers import AutoTokenizer, AutoModelForCausalLM
+        from peft import PeftModel
+        device = "mps" if torch.backends.mps.is_available() else "cpu"
+        print(f"\nLoading memory model ({device})...", flush=True)
+        tokenizer = AutoTokenizer.from_pretrained(MEMORY_MODEL_PATH, trust_remote_code=True)
+        base = AutoModelForCausalLM.from_pretrained(
+            MEMORY_MODEL_BASE, dtype=torch.float16,
+            device_map={"": device}, trust_remote_code=True, attn_implementation="eager",
+        )
+        model = PeftModel.from_pretrained(base, MEMORY_MODEL_PATH).merge_and_unload()
+        model.eval()
+        inputs = tokenizer(
+            f"<|system|>\n{prompt}<|end|>\n<|assistant|>\n",
+            return_tensors="pt"
+        ).to(device)
+        with torch.no_grad():
+            out = model.generate(
+                **inputs, max_new_tokens=max_tokens, temperature=0.7,
+                do_sample=True, repetition_penalty=1.1,
+                pad_token_id=tokenizer.eos_token_id, use_cache=False,
+            )
+        print("\n" + "─" * 60)
+        print(tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip())
+    except ImportError as e:
+        print(f"memory-model requires torch + transformers + peft: {e}")
+    except Exception as e:
+        print(f"memory-model error: {e}")
+
+
 # Lazy imports for modules that may have heavy dependencies
 _learning_module = None
 _quantum_module = None
@@ -1413,6 +1450,12 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
                           help='Set phone data path and index it')
     kb_group.add_argument('--summarize', action='store_true',
                           help='Summarize KB results into an answer (uses LLM)')
+    kb_group.add_argument('--kb-d1', action='store_true',
+                          help='Include D1 digital-history (149K messages, semantic search via localhost:8000)')
+    kb_group.add_argument('--voice', action='store_true',
+                          help='Reconstruction mode: respond in Space\'s voice (use with --summarize --kb-d1)')
+    kb_group.add_argument('--memory-model', action='store_true',
+                          help='Use fine-tuned Phi-3 LoRA (abhishek-memory-model) as generator for --voice')
 
     # === INDEXING ===
     index_group = parser.add_argument_group('Indexing')
@@ -1775,6 +1818,53 @@ https://github.com/0x-auth/bazinga-indeed | pip install bazinga-indeed
     if kb_phone_is_path:
         from .commands.kb import handle_kb_phone_as_path
         await handle_kb_phone_as_path(args)
+        return
+
+    if getattr(args, 'kb_d1', False) and args.kb is not None:
+        from ..kb import BazingaKB, _voice_prompt
+        kb = BazingaKB()
+        query_text = args.kb or (args.question if hasattr(args, 'question') else '')
+        if not query_text:
+            print("Usage: bazinga --kb \"your query\" --kb-d1")
+            return
+        print(f"\nSearching D1 digital-history for: \"{query_text}\"")
+        results = kb.search(query_text, sources=[], include_d1=True, limit=15)
+        if not results:
+            print("No results. Is query_server running? cd ~/Documents/digital-history && uvicorn query_server:app --port 8000")
+            return
+        kb.display_results(results, query_text)
+        if getattr(args, 'summarize', False):
+            prompt = _voice_prompt(query_text, results) if getattr(args, 'voice', False) \
+                else f"Summarize these results for the query '{query_text}':\n" + \
+                     "\n".join(f"- [{r.get('date','')} {r.get('source','')}] {(r.get('content') or '')[:200]}" for r in results[:10])
+            if getattr(args, 'memory_model', False):
+                _run_memory_model(prompt)
+            elif getattr(args, 'local', False):
+                # Local only — try Ollama first, then llama-cpp
+                import urllib.request as _ur, json as _json
+                print("\n" + "─" * 60, flush=True)
+                try:
+                    _payload = _json.dumps({
+                        "model": "llama3:latest",
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": {"temperature": 0.7, "num_predict": 400},
+                    }).encode()
+                    _req = _ur.Request("http://localhost:11434/api/generate",
+                                       data=_payload, headers={"Content-Type": "application/json"})
+                    with _ur.urlopen(_req, timeout=120) as _resp:
+                        _out = _json.loads(_resp.read())
+                    print(_out.get("response", "").strip())
+                except Exception as _e:
+                    from ..local_llm import LocalLLM
+                    llm = LocalLLM()
+                    llm.load()
+                    print(llm.generate(prompt, max_tokens=400, temperature=0.7))
+            else:
+                _bz = BAZINGA()
+                response = await _bz.ask(prompt, fresh=True)
+                print("\n" + "─" * 60)
+                print(response)
         return
 
     if args.kb is not None or args.kb_sources or args.kb_sync:

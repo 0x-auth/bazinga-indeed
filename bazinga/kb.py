@@ -22,9 +22,73 @@ Architecture:
 import os
 import json
 import subprocess
+import urllib.request
+import urllib.error
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+
+# D1 query server (query_server.py running on localhost)
+D1_SERVER = "http://127.0.0.1:8000"
+
+
+# ── 8-axis tonal scoring (deterministic, no LLM) ──────────────────────────────
+_AXIS_KEYWORDS = {
+    "assertion":  ["i think", "i believe", "i know", "i'm sure", "definitely", "clearly", "obviously", "i assert"],
+    "concrete":   ["specifically", "exactly", "in fact", "for example", "in particular", "the number", "the date", "the file"],
+    "self":       ["i ", "me ", "my ", "myself", "i've", "i'm", "i'd", "i'll"],
+    "present":    ["now", "today", "currently", "right now", "at the moment", "these days", "this week"],
+    "warmth":     ["love", "miss", "care", "happy", "glad", "thank", "appreciate", "wonderful", "amrita", "bhai"],
+    "certainty":  ["must", "will", "always", "never", "certain", "sure", "definitely", "absolutely"],
+    "action":     ["build", "deploy", "commit", "fix", "write", "create", "implement", "run", "start", "finish"],
+    "technical":  ["code", "function", "api", "server", "database", "model", "algorithm", "vector", "phi", "zk"],
+}
+
+def _score_8_axes(text: str) -> dict:
+    t = text.lower()
+    scores = {}
+    for axis, keywords in _AXIS_KEYWORDS.items():
+        hits = sum(1 for kw in keywords if kw in t)
+        scores[axis] = min(hits / max(len(keywords) * 0.3, 1), 1.0)
+    return scores
+
+def _tonal_description(scores: dict) -> str:
+    parts = []
+    if scores["warmth"] > 0.3:
+        parts.append("emotionally warm")
+    if scores["technical"] > 0.3:
+        parts.append("technically grounded")
+    if scores["action"] > 0.3:
+        parts.append("action-oriented")
+    if scores["self"] > 0.4:
+        parts.append("personal/first-person")
+    if scores["certainty"] > 0.3:
+        parts.append("certain")
+    if scores["present"] > 0.3:
+        parts.append("present-tense")
+    if scores["concrete"] > 0.3:
+        parts.append("specific")
+    if not parts:
+        parts.append("reflective")
+    return ", ".join(parts)
+
+
+def _voice_prompt(query: str, fragments: List[Dict]) -> str:
+    scaffold = "\n".join(
+        f"[{r.get('date','')} {r.get('source','').upper()}] {(r.get('text') or r.get('content',''))[:300]}"
+        for r in fragments[:15]
+    )
+    tone = _tonal_description(_score_8_axes(query))
+    return (
+        f"You are reconstructing a memory for Abhishek from fragments of his own past writing.\n"
+        f"You are NOT summarizing. You are REBUILDING what he would remember.\n\n"
+        f"Speak in his voice. Short. Fragmentary is fine. Present tense where tone allows.\n"
+        f"Never say 'based on the fragments' or 'according to the data'.\n\n"
+        f"Tonal target: {tone}\n\n"
+        f"Fragments (his own past words):\n{scaffold}\n\n"
+        f"Query: {query}\n\n"
+        f"Reconstruct the memory."
+    )
 
 # Constants
 PHI = 1.618033988749895
@@ -330,7 +394,36 @@ class BazingaKB:
         print(f"✅ Indexed {count} files from phone data")
         print(f"   Index saved to: {SOURCES['phone']}")
 
-    def search(self, query: str, sources: Optional[List[str]] = None, limit: int = 20) -> List[Dict]:
+    def _load_d1_index(self, query: str, limit: int = 15) -> List[Dict]:
+        """Query D1 via local query_server. Returns [] gracefully if server is down."""
+        try:
+            payload = json.dumps({"query": query, "k": limit}).encode()
+            req = urllib.request.Request(
+                f"{D1_SERVER}/query",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read())
+            items = []
+            for r in data.get("results", []):
+                items.append({
+                    "source": r.get("source", "d1"),
+                    "id": r.get("id", ""),
+                    "title": (r.get("text") or "")[:80],
+                    "content": r.get("text") or "",
+                    "date": r.get("date", ""),
+                    "path": f"d1:{r.get('id','')}",
+                    "relevance": r.get("score", 0.5),
+                    "person": r.get("person", ""),
+                })
+            return items
+        except Exception:
+            return []
+
+    def search(self, query: str, sources: Optional[List[str]] = None, limit: int = 20,
+               include_d1: bool = False) -> List[Dict]:
         """Search the knowledge base."""
         all_items = []
 
@@ -350,15 +443,24 @@ class BazingaKB:
         if 'phone' in sources:
             all_items.extend(self._load_phone_index())
 
-        # Calculate relevance for each item
+        # D1 digital-history source (semantic search via query_server)
+        if include_d1:
+            d1_items = self._load_d1_index(query, limit=limit)
+            # D1 results already ranked by cosine score — skip relevance recalc
+            all_items.extend(d1_items)
+
+        # Calculate relevance for non-D1 items
         results = []
         for item in all_items:
-            searchable = f"{item.get('title', '')} {item.get('content', '')} {item.get('path', '')}"
-            relevance = self._calculate_relevance(searchable, query)
-
-            if relevance > 0:
-                item['relevance'] = relevance
+            if item.get('source') in ('d1', 'WhatsApp', 'Telegram', 'Claude', 'ChatGPT', 'Gmail', 'commit'):
+                # D1 results: already have relevance from semantic search
                 results.append(item)
+            else:
+                searchable = f"{item.get('title', '')} {item.get('content', '')} {item.get('path', '')}"
+                relevance = self._calculate_relevance(searchable, query)
+                if relevance > 0:
+                    item['relevance'] = relevance
+                    results.append(item)
 
         # Sort by relevance
         results.sort(key=lambda x: x['relevance'], reverse=True)
@@ -378,7 +480,13 @@ class BazingaKB:
             'gmail': '📧',
             'gdrive': '📁',
             'mac': '💻',
-            'phone': '📱'
+            'phone': '📱',
+            'WhatsApp': '💬',
+            'Telegram': '✈️',
+            'Claude': '🤖',
+            'ChatGPT': '🧠',
+            'commit': '📦',
+            'd1': '🗄️',
         }
 
         for i, item in enumerate(results, 1):
@@ -470,6 +578,19 @@ class BazingaKB:
         else:
             print(f"   Status: Not configured")
             print(f"   Setup: bazinga --kb-phone /path/to/phone-data")
+
+        # D1 digital-history
+        print(f"\n🗄️  D1 digital-history")
+        try:
+            req = urllib.request.Request(f"{D1_SERVER}/stats", method="GET")
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                stats = json.loads(resp.read())
+            print(f"   Status: reachable")
+            print(f"   Messages: {stats.get('messages', '?'):,}")
+            print(f"   Embeddings: {stats.get('embeddings', '?'):,}")
+            print(f"   Vectors loaded: {stats.get('vectors_loaded', '?'):,}")
+        except Exception:
+            print(f"   Status: not reachable (start with: cd ~/Documents/digital-history && uvicorn query_server:app --port 8000)")
 
         print(f"\n📅 Last sync: {self.config.get('last_sync', 'Never')}")
 
