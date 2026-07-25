@@ -28,8 +28,13 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-# D1 query server (query_server.py running on localhost)
-D1_SERVER = "http://127.0.0.1:8000"
+# memory_tool: direct import (same machine). Falls back to HTTP if not installed.
+try:
+    import memory_tool as _mt
+    _MT_AVAILABLE = True
+except ImportError:
+    _mt = None
+    _MT_AVAILABLE = False
 
 
 # ── 8-axis tonal scoring (deterministic, no LLM) ──────────────────────────────
@@ -395,30 +400,25 @@ class BazingaKB:
         print(f"   Index saved to: {SOURCES['phone']}")
 
     def _load_d1_index(self, query: str, limit: int = 15) -> List[Dict]:
-        """Query D1 via local query_server. Returns [] gracefully if server is down."""
+        """Query personal history via memory_tool (direct import, no HTTP)."""
+        if not _MT_AVAILABLE:
+            return []
         try:
-            payload = json.dumps({"query": query, "k": limit}).encode()
-            req = urllib.request.Request(
-                f"{D1_SERVER}/query",
-                data=payload,
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                data = json.loads(resp.read())
-            items = []
-            for r in data.get("results", []):
-                items.append({
-                    "source": r.get("source", "d1"),
-                    "id": r.get("id", ""),
-                    "title": (r.get("text") or "")[:80],
-                    "content": r.get("text") or "",
-                    "date": r.get("date", ""),
-                    "path": f"d1:{r.get('id','')}",
-                    "relevance": r.get("score", 0.5),
-                    "person": r.get("person", ""),
-                })
-            return items
+            frags = _mt.query(query, k=limit)
+            return [
+                {
+                    "source": f.source,
+                    "id": "",
+                    "title": (f.text or "")[:80],
+                    "content": f.text or "",
+                    "date": f.date,
+                    "week_index": f.week_index,
+                    "path": f"memory:{f.source}:{f.date}",
+                    "relevance": f.score,
+                    "person": f.person,
+                }
+                for f in frags
+            ]
         except Exception:
             return []
 
@@ -579,18 +579,18 @@ class BazingaKB:
             print(f"   Status: Not configured")
             print(f"   Setup: bazinga --kb-phone /path/to/phone-data")
 
-        # D1 digital-history
-        print(f"\n🗄️  D1 digital-history")
-        try:
-            req = urllib.request.Request(f"{D1_SERVER}/stats", method="GET")
-            with urllib.request.urlopen(req, timeout=3) as resp:
-                stats = json.loads(resp.read())
-            print(f"   Status: reachable")
-            print(f"   Messages: {stats.get('messages', '?'):,}")
-            print(f"   Embeddings: {stats.get('embeddings', '?'):,}")
-            print(f"   Vectors loaded: {stats.get('vectors_loaded', '?'):,}")
-        except Exception:
-            print(f"   Status: not reachable (start with: cd ~/Documents/digital-history && uvicorn query_server:app --port 8000)")
+        # D1 digital-history (via memory_tool direct import)
+        print(f"\n🗄️  digital-history memory")
+        if _MT_AVAILABLE:
+            try:
+                counts = _mt.db.stats()
+                print(f"   Status: available (memory_tool)")
+                print(f"   Messages: {counts.get('messages') or '?':,}")
+                print(f"   Embeddings: {counts.get('entity_embeddings') or 'run: dh migrate':}")
+            except Exception as e:
+                print(f"   Status: error — {e}")
+        else:
+            print(f"   Status: not installed (run: pip install -e ~/Documents/digital-history)")
 
         print(f"\n📅 Last sync: {self.config.get('last_sync', 'Never')}")
 
