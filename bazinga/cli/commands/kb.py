@@ -53,7 +53,7 @@ async def handle_kb(args, BAZINGA_cls):
             kb.show_sources()
             print("\nUsage: bazinga --kb \"your query here\"")
         else:
-            results = kb.search(args.kb, sources=sources)
+            results = kb.search(args.kb, sources=sources, include_d1=(sources is None))
 
             if hasattr(args, 'summarize') and args.summarize and results:
                 print(f"\n🔍 Searching KB for: \"{args.kb}\"...")
