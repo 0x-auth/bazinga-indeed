@@ -772,7 +772,7 @@ Provide your refined answer, acknowledging agreements and explaining disagreemen
 class ClaudeParticipant(ConsensusParticipant):
     """Anthropic Claude API participant."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "claude-3-5-haiku-20241022"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "claude-haiku-4-5-20251001"):
         self.api_key = api_key or os.environ.get('ANTHROPIC_API_KEY')
         super().__init__(
             participant_id=f"claude_{model[:8]}",
@@ -1024,7 +1024,7 @@ Your refined answer:"""
 class CerebrasParticipant(ConsensusParticipant):
     """Cerebras API participant (FREE - ultra fast inference)."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "llama3.1-8b"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gemma-4-31b"):
         self.api_key = api_key or os.environ.get('CEREBRAS_API_KEY')
         super().__init__(
             participant_id=f"cerebras_{model[:8]}",
@@ -1366,7 +1366,7 @@ Your refined answer:"""
 class OpenRouterParticipant(ConsensusParticipant):
     """OpenRouter participant (FREE models available)."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "meta-llama/llama-3.2-3b-instruct:free"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "poolside/laguna-s-2.1:free"):
         self.api_key = api_key or os.environ.get('OPENROUTER_API_KEY')
         super().__init__(
             participant_id=f"openrouter_{model.split('/')[-1][:8]}",
@@ -1414,7 +1414,8 @@ class OpenRouterParticipant(ConsensusParticipant):
 
                 if response.status_code == 200:
                     data = response.json()
-                    content = data["choices"][0]["message"]["content"]
+                    msg = data["choices"][0]["message"]
+                    content = msg.get("content") or msg.get("reasoning") or ""
 
                     coherence, embedding = self.coherence_calc.calculate_coherence(content, prompt)
                     understanding = self.coherence_calc.calculate_understanding(content)
@@ -1478,19 +1479,20 @@ Your refined perspective:"""
 
 class FreeLLMParticipant(ConsensusParticipant):
     """
-    FREE LLM participant using LLM7.io - NO API KEY REQUIRED!
+    FREE LLM participant using Groq (free tier) - uses GROQ_API_KEY.
 
-    This is the zero-config fallback that makes BAZINGA work out of the box.
-    Uses OpenAI-compatible API at api.llm7.io
+    Fast inference on open-source models with generous free limits.
+    Falls back to Groq's llama-3.1-8b-instant by default.
     """
 
-    def __init__(self, model: str = "gpt-4o-mini"):
+    def __init__(self, model: str = "llama-3.1-8b-instant"):
+        self.api_key = os.environ.get('GROQ_API_KEY')
         super().__init__(
             participant_id=f"freellm_{model.replace('-', '')}",
             participant_type=ParticipantType.FREELLM,
             model=model,
         )
-        self.available = HTTPX_AVAILABLE  # Always available if httpx is installed!
+        self.available = bool(self.api_key) and HTTPX_AVAILABLE
         self.coherence_calc = CoherenceCalculator()
         self.pob_gen = PoBGenerator()
         self.rate_limiter = get_rate_limiter("freellm", requests_per_minute=20)
@@ -1514,8 +1516,8 @@ class FreeLLMParticipant(ConsensusParticipant):
 
             async with httpx.AsyncClient(timeout=API_TIMEOUT_SECONDS) as client:
                 response = await client.post(
-                    "https://api.llm7.io/v1/chat/completions",
-                    headers={"Content-Type": "application/json"},
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"},
                     json={
                         "model": self.model,
                         "messages": [
