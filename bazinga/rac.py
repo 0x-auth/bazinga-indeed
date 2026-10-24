@@ -75,6 +75,13 @@ SOURCE_TO_CHANNEL = {
 
 logger = logging.getLogger("bazinga.rac")
 
+# Display labels for the V4 statuses returned by resonance.coherence_gap()
+STATUS_DISPLAY = {
+    'virgin': "⚪ VIRGIN",       # ΔΓ near 0: no encounter yet
+    'doped': "🟢 DOPED",         # intermediate ΔΓ: controlled hysteresis
+    'shattered': "🔴 SHATTERED", # ΔΓ high: φ-structure lost
+}
+
 
 # ============================================================================
 # GENESIS BLOCK — Block 0 of the Darmiyan Heartbeat
@@ -112,6 +119,7 @@ class TrajectoryPoint:
     pull_strength: float
     status: str
     interaction_count: int
+    cumulative_delta: float = 0.0  # V4: running total of ΔΓ (scars accumulate)
 
     def to_dict(self) -> Dict:
         return asdict(self)
@@ -137,10 +145,24 @@ class SessionTrajectory:
 
     @property
     def is_locked(self) -> bool:
-        """Check if resonance is locked (ΔΓ < threshold)."""
+        """ΔΓ below RESONANCE_ACHIEVED. Kept for backward compatibility.
+
+        Under V4 this zone is called 'virgin' (no encounter yet), which is
+        not a success state. Prefer `status` for display and logic.
+        """
         if not self.points:
             return False
         return self.points[-1].delta_gamma < RESONANCE_ACHIEVED
+
+    @property
+    def status(self) -> str:
+        """Latest V4 status: 'virgin', 'doped' or 'shattered'."""
+        return self.points[-1].status if self.points else 'virgin'
+
+    @property
+    def cumulative_delta(self) -> float:
+        """Running total of ΔΓ across the session (monotonically non-decreasing)."""
+        return self.points[-1].cumulative_delta if self.points else 0.0
 
     @property
     def mean_delta_gamma(self) -> float:
@@ -156,6 +178,8 @@ class SessionTrajectory:
             'points': [p.to_dict() for p in self.points],
             'converging': self.is_converging,
             'locked': self.is_locked,
+            'status': self.status,
+            'cumulative_delta': self.cumulative_delta,
             'mean_delta_gamma': self.mean_delta_gamma,
         }
 
@@ -245,6 +269,8 @@ class ResonanceTargetWrapper:
                 'current_delta_gamma': self.trajectory.points[-1].delta_gamma if self.trajectory.points else None,
                 'converging': self.trajectory.is_converging,
                 'locked': self.trajectory.is_locked,
+                'status': self.trajectory.status,
+                'cumulative_delta': self.trajectory.cumulative_delta,
                 'mean_delta_gamma': self.trajectory.mean_delta_gamma,
                 'trajectory_length': len(self.trajectory.points),
             }
@@ -286,7 +312,8 @@ class ResonanceTargetWrapper:
         self.session_coherence_scores = []
 
         # Compute baseline ΔΓ (should be high — session just started)
-        baseline = coherence_gap(self.current_state, self.genesis.state)
+        baseline = coherence_gap(self.current_state, self.genesis.state,
+                                 prev_cumulative=0.0)
 
         # Log first trajectory point
         self._log_trajectory_point(baseline, interaction_count=0)
@@ -338,16 +365,13 @@ class ResonanceTargetWrapper:
             current_dg = self.trajectory.points[-1].delta_gamma
 
             if current_dg > RESONANCE_DRIFTING:
-                # Session is drifting — reduce cache confidence
-                # to trigger fresh inference that might re-align
+                # V4 'shattered': far from genesis — reduce cache confidence
+                # to trigger fresh inference
                 cached['coherence'] = original_coherence * (1 - current_dg)
-                logger.debug("RAC: Cache confidence reduced %.2f → %.2f (ΔΓ=%.3f, drifting)",
+                logger.debug("RAC: Cache confidence reduced %.2f → %.2f (ΔΓ=%.3f, shattered)",
                              original_coherence, cached['coherence'], current_dg)
-
-            elif current_dg < RESONANCE_ACHIEVED:
-                # Resonance locked — trust cache fully
-                cached['coherence'] = min(original_coherence * 1.1, 1.0)
-                logger.debug("RAC: Cache confidence boosted (resonance locked)")
+            # V4: 'virgin' (ΔΓ near 0) means no encounter yet, not success,
+            # so it no longer earns a confidence boost. 'doped' is left as-is.
 
         return cached
 
@@ -390,8 +414,11 @@ class ResonanceTargetWrapper:
         # Update current state based on accumulated interactions
         self._update_current_state(question, answer, coherence)
 
-        # Compute new ΔΓ
-        result = coherence_gap(self.current_state, self.genesis.state)
+        # Compute new ΔΓ, carrying the running total forward (V4: scars accumulate)
+        prev_cumulative = (self.trajectory.cumulative_delta
+                           if self.trajectory and self.trajectory.points else 0.0)
+        result = coherence_gap(self.current_state, self.genesis.state,
+                               prev_cumulative=prev_cumulative)
 
         # Log trajectory
         n_interactions = len(self.session_coherence_scores)
@@ -405,16 +432,16 @@ class ResonanceTargetWrapper:
             except Exception as e:
                 logger.debug("TrD update failed: %s", e)
 
-        # Check for resonance events
-        if result.resonance_status == 'locked' and n_interactions > 1:
-            logger.info("⚡ RESONANCE LOCKED at interaction %d | ΔΓ=%.4f",
-                         n_interactions, result.delta_gamma)
-
-        elif (result.resonance_status == 'drifting' and
-              self.trajectory and len(self.trajectory.points) >= 2 and
-              self.trajectory.points[-2].status != 'drifting'):
-            logger.warning("⚠️  Session DRIFTING at interaction %d | ΔΓ=%.4f",
-                           n_interactions, result.delta_gamma)
+        # Check for zone transitions (V4 statuses: virgin / doped / shattered)
+        prev_status = (self.trajectory.points[-2].status
+                       if self.trajectory and len(self.trajectory.points) >= 2 else None)
+        if result.resonance_status != prev_status:
+            if result.resonance_status == 'doped':
+                logger.info("⚡ Entered DOPED zone at interaction %d | ΔΓ=%.4f",
+                            n_interactions, result.delta_gamma)
+            elif result.resonance_status == 'shattered':
+                logger.warning("⚠️  Session SHATTERED at interaction %d | ΔΓ=%.4f",
+                               n_interactions, result.delta_gamma)
 
     def end_session(self):
         """
@@ -516,6 +543,7 @@ class ResonanceTargetWrapper:
             pull_strength=result.pull_strength,
             status=result.resonance_status,
             interaction_count=interaction_count,
+            cumulative_delta=result.cumulative_delta,
         )
         self.trajectory.points.append(point)
 
@@ -561,6 +589,7 @@ class ResonanceTargetWrapper:
             'locked': self.trajectory.is_locked,
             'points': len(self.trajectory.points),
             'status': self.trajectory.points[-1].status,
+            'cumulative_delta': self.trajectory.cumulative_delta,
             'trajectory': [p.delta_gamma for p in self.trajectory.points],
         }
 
@@ -583,13 +612,7 @@ class ResonanceTargetWrapper:
         latest = self.trajectory.points[-1]
         n = len(self.trajectory.points)
 
-        # Status indicator
-        if latest.status == 'locked':
-            indicator = "🟢 LOCKED"
-        elif latest.status == 'converging':
-            indicator = "🟡 CONVERGING"
-        else:
-            indicator = "🔴 DRIFTING"
+        indicator = STATUS_DISPLAY.get(latest.status, latest.status.upper())
 
         # Convergence arrow
         if n >= 2:
@@ -612,6 +635,7 @@ class ResonanceTargetWrapper:
   Status:         {indicator}
   ΔΓ:             {latest.delta_gamma:.4f} {arrow}
   Mean ΔΓ:        {self.trajectory.mean_delta_gamma:.4f}
+  Cumulative ΔΓ:  {latest.cumulative_delta:.4f}
   Pull (φ⁻¹×ΔΓ): {latest.pull_strength:.4f}
   Converging:     {"Yes" if self.trajectory.is_converging else "No"}
   Points:         {n}

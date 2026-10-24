@@ -1283,12 +1283,8 @@ Use the indexed content directly. If not relevant, say so."""
                     if rac_summary:
                         dg = rac_summary['current_delta_gamma']
                         status = rac_summary['status']
-                        if status == 'locked':
-                            indicator = "🟢"
-                        elif status == 'converging':
-                            indicator = "🟡"
-                        else:
-                            indicator = "🔴"
+                        indicator = {'virgin': "⚪", 'doped': "🟢",
+                                     'shattered': "🔴"}.get(status, "·")
                         print(f"  {indicator} ΔΓ={dg:.3f} | {status.upper()}\n")
 
                         # Auto-push RAC heartbeat to Cloudflare (non-blocking)
