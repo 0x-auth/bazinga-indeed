@@ -632,14 +632,16 @@ def get_resonance_stats() -> Dict[str, Any]:
     to resonance targeting. Instead of retrieving, we resonate with Block 0.
 
     Returns:
-        - current_delta_gamma: Distance from Genesis Pattern (0 = locked)
-        - status: 'locked' (<0.1), 'converging' (0.1-0.3), 'drifting' (>0.3)
+        - current_delta_gamma: Distance from Genesis Pattern
+        - resonance_status: V4 zone — 'virgin' (<0.1, no encounter yet),
+          'doped' (0.1-0.5, controlled hysteresis), 'shattered' (>0.5)
+        - cumulative_delta: running total of ΔΓ (scars accumulate)
         - trajectory: List of ΔΓ values across session
         - converging: Whether ΔΓ is monotonically decreasing
         - points: Number of trajectory measurements
         - historical: Recent session trajectories for comparison
 
-    Target: ΔΓ < 0.1 = Resonance Lock (🟢)
+    Target (V4): the doped zone, not ΔΓ → 0
     Law: Ψ_D / Ψ_i = φ√n | Seed: 515
     """
     try:
@@ -661,6 +663,7 @@ def get_resonance_stats() -> Dict[str, Any]:
                 "resonance_status": summary.get("status"),
                 "converging": summary.get("converging"),
                 "locked": summary.get("locked"),
+                "cumulative_delta": summary.get("cumulative_delta"),
                 "trajectory_points": summary.get("points"),
                 "trajectory": summary.get("trajectory"),
                 "historical_sessions": len(history),

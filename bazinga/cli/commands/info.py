@@ -271,11 +271,13 @@ async def handle_stats(args):
 
     if 'rac' in stats:
         rac = stats['rac']
-        status = "🟢 LOCKED" if rac.get('locked') else "🟡 CONVERGING" if rac.get('converging') else "🔴 DRIFTING"
+        from ...rac import STATUS_DISPLAY
+        status = STATUS_DISPLAY.get(rac.get('status'), str(rac.get('status', 'unknown')).upper())
         print(f"\nRAC (Resonance-Augmented Continuity):")
         print(f"  Status: {status}")
         if rac.get('current_delta_gamma') is not None:
-            print(f"  ΔΓ: {rac['current_delta_gamma']:.4f} (mean: {rac['mean_delta_gamma']:.4f})")
+            print(f"  ΔΓ: {rac['current_delta_gamma']:.4f} (mean: {rac['mean_delta_gamma']:.4f}, "
+                  f"cumulative: {rac.get('cumulative_delta', 0.0):.4f})")
         print(f"  Trajectory points: {rac.get('trajectory_length', 0)}")
 
     if 'carm' in stats:
@@ -312,7 +314,7 @@ async def handle_rac(args):
     if history:
         print(f"\nRecent Sessions ({len(history)}):")
         for h in history[-5:]:
-            locked = "🟢" if h.get('locked') else "🟡" if h.get('converging') else "🔴"
+            locked = {'virgin': "⚪", 'doped': "🟢", 'shattered': "🔴"}.get(h.get('status'), "·")
             print(f"  {locked} {h['session_id'][:8]} | ΔΓ={h['mean_delta_gamma']:.3f} | {len(h.get('points', []))} pts")
 
     memory.end_session()
